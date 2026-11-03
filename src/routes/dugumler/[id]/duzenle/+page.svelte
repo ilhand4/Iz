@@ -1,5 +1,6 @@
 <script lang="ts">
 	import DugumFormu from '#lib/bilesenler/DugumFormu.svelte';
+	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import type { PageProps } from './$types';
 
@@ -9,10 +10,7 @@
 <svelte:head><title>Düzenle: {data.baslik} · İz</title></svelte:head>
 
 <div class="kap kap-dar yigin">
-	<div>
-		<a href="/dugumler/{data.id}" class="kucuk">← {data.baslik}</a>
-		<h1>Düğümü düzenle</h1>
-	</div>
+	<SayfaBasligi ust="Düzenle" baslik={data.baslik} geri={{ href: `/dugumler/${data.id}`, etiket: 'Düğüme dön' }} />
 
 	<div class="kart">
 		<DugumFormu
@@ -35,14 +33,11 @@
 				<Simge ad="cop" boyut={16} /> Kalıcı olarak sil
 			</button>
 		</form>
+		{#if form?.hatalar?.genel}<p class="hata-metni kucuk" role="alert">{form.hatalar.genel}</p>{/if}
 	</section>
 </div>
 
 <style>
-	h1 {
-		font-size: var(--boyut-2xl);
-		margin-top: var(--a-2);
-	}
 	.tehlike {
 		border-color: color-mix(in srgb, var(--hata) 35%, var(--cizgi));
 	}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Alan from '#lib/bilesenler/Alan.svelte';
 	import DugumFormu from '#lib/bilesenler/DugumFormu.svelte';
+	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -12,15 +13,20 @@
 <svelte:head><title>Yeni düğüm · İz</title></svelte:head>
 
 <div class="kap kap-dar yigin">
-	<div>
-		<a href={data.kaynak ? `/dugumler/${data.kaynak.id}` : '/dugumler'} class="kucuk">← Geri</a>
-		<h1>Yeni düğüm</h1>
-		{#if data.kaynak}
-			<p class="bildirim bildirim-uyari">
-				Bu düğüm, <strong>{data.kaynak.baslik}</strong> düğümünden “beni şuna götürdü” bağıyla eklenecek.
-			</p>
-		{/if}
-	</div>
+	<SayfaBasligi
+		ust="Haritana ekle"
+		baslik="Yeni düğüm"
+		aciklama="Bir eser, kişi, yer, karar ya da anı. Kitap, film ve diziler için eser aramasını da kullanabilirsin."
+		geri={data.kaynak
+			? { href: `/dugumler/${data.kaynak.id}`, etiket: data.kaynak.baslik }
+			: { href: '/dugumler', etiket: 'Düğümler' }}
+	/>
+
+	{#if data.kaynak}
+		<p class="bildirim bildirim-uyari kaynak">
+			Bu düğüm, <strong>{data.kaynak.baslik}</strong> düğümünden “beni şuna götürdü” bağıyla eklenecek.
+		</p>
+	{/if}
 
 	<div class="kart">
 		<DugumFormu {degerler} hatalar={form?.hatalar as Record<string, string> | undefined} gonderMetni="Düğümü ekle">
@@ -36,8 +42,7 @@
 </div>
 
 <style>
-	h1 {
-		font-size: var(--boyut-2xl);
-		margin-top: var(--a-2);
+	.kaynak {
+		margin: 0;
 	}
 </style>

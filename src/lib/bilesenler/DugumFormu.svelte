@@ -5,12 +5,11 @@
 		DUGUM_TURLERI,
 		DUGUM_TURU_ETIKETI,
 		ESER_TURLERI,
-		ESER_TURU_ETIKETI,
-		GIZLILIK_ACIKLAMASI,
-		GIZLILIK_DUZEYLERI,
-		GIZLILIK_ETIKETI
+		ESER_TURU_ETIKETI
 	} from '#lib/sabitler.ts';
 	import Alan from './Alan.svelte';
+	import GizlilikSecici from './GizlilikSecici.svelte';
+	import TurSekli from './TurSekli.svelte';
 
 	type Props = {
 		degerler?: Record<string, string>;
@@ -47,7 +46,7 @@
 			{#each DUGUM_TURLERI as tur (tur)}
 				<label class="secenek" data-tur={tur}>
 					<input type="radio" name="tur" value={tur} checked={(d('tur') || 'eser') === tur} />
-					<span>{DUGUM_TURU_ETIKETI[tur]}</span>
+					<span><TurSekli {tur} boyut={12} /> {DUGUM_TURU_ETIKETI[tur]}</span>
 				</label>
 			{/each}
 		</div>
@@ -110,18 +109,7 @@
 		</div>
 	</details>
 
-	<fieldset class="alan">
-		<legend class="etiket">Kim görebilir?</legend>
-		<div class="gizlilik-secenekleri">
-			{#each GIZLILIK_DUZEYLERI as g (g)}
-				<label class="gizlilik-secenek">
-					<input type="radio" name="gizlilik" value={g} checked={(d('gizlilik') || 'ozel') === g} />
-					<span><strong>{GIZLILIK_ETIKETI[g]}</strong><small>{GIZLILIK_ACIKLAMASI[g]}</small></span>
-				</label>
-			{/each}
-		</div>
-		{#if hatalar.gizlilik}<span class="hata-metni">{hatalar.gizlilik}</span>{/if}
-	</fieldset>
+	<GizlilikSecici secili={d('gizlilik')} hata={hatalar.gizlilik} />
 
 	{@render ek?.()}
 
@@ -157,6 +145,7 @@
 	.secenek span {
 		display: inline-flex;
 		align-items: center;
+		gap: 0.4rem;
 		min-height: 2.5rem;
 		padding: 0 var(--a-4);
 		border-radius: var(--yaricap-tam);
@@ -229,41 +218,5 @@
 	}
 	.konum p {
 		margin: 0;
-	}
-
-	.gizlilik-secenekleri {
-		display: grid;
-		gap: var(--a-2);
-	}
-	.gizlilik-secenek {
-		display: flex;
-		gap: var(--a-3);
-		align-items: flex-start;
-		padding: var(--a-3);
-		border: 1px solid var(--cizgi);
-		border-radius: var(--yaricap);
-		background: var(--yuzey);
-		cursor: pointer;
-	}
-	.gizlilik-secenek:has(input:checked) {
-		border-color: var(--vurgu);
-		background: var(--vurgu-zemin);
-	}
-	.gizlilik-secenek input {
-		margin-top: 0.3rem;
-		accent-color: var(--vurgu);
-	}
-	.gizlilik-secenek span {
-		display: flex;
-		flex-direction: column;
-	}
-	.gizlilik-secenek small {
-		color: var(--metin-soluk);
-		font-size: var(--boyut-xs);
-	}
-	@media (min-width: 40rem) {
-		.gizlilik-secenekleri {
-			grid-template-columns: repeat(3, 1fr);
-		}
 	}
 </style>

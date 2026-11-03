@@ -46,15 +46,28 @@ Kitap araması (Open Library) anahtarsız çalışır. Film/dizi için ücretsiz
 | --------------------- | -------------------------------------------------------------- |
 | `npm run dev`         | Geliştirme sunucusu (http://localhost:5173)                    |
 | `npm run check`       | Svelte + TypeScript tip denetimi                               |
-| `npm test`            | Vitest birim testleri                                          |
+| `npm test`            | Vitest: birim + PGlite üzerinde entegrasyon testleri            |
 | `npm run build`       | Üretim derlemesi (`build/` klasörü, Node sunucusu)             |
-| `npm start`           | Derlenmiş uygulamayı `.env` ile çalıştırır (port 3000)         |
+| `npm run preview`     | Üretim derlemesini yerelde dener (http://localhost:4173)        |
+| `npm start`           | Derlenmiş uygulamayı `.env` ile çalıştırır (port 3000; HTTPS vekil arkasında yayın için) |
 | `npm run db:generate` | Şema değişikliğinden yeni migration üretir (`drizzle/`)        |
 | `npm run db:migrate`  | Bekleyen migration'ları uygular                                |
 | `npm run db:seed`     | Demo hesaplarını ve örnek veriyi (yeniden) yükler              |
 | `npm run db:studio`   | Drizzle Studio ile veritabanını tarayıcıda gezme               |
 
 Şema değiştirme akışı: `src/lib/server/db/schema.ts` dosyasını düzenle → `npm run db:generate` → üretilen SQL'i gözden geçir → `npm run db:migrate`.
+
+Testler ayrı bir veritabanı sunucusu gerektirmez: entegrasyon testleri, gerçek migration dosyalarıyla kurulan bellek içi bir PostgreSQL'de (PGlite) çalışır.
+
+> `npm start` kökeni `https://` varsayar (adapter-node); yerelde düz http ile denerken formlar CSRF korumasına takılır. Yerel deneme için `npm run preview` kullanın.
+
+## Neler var?
+
+- **Düğümler:** eser (kitap, film, dizi, müzik, oyun, podcast), kişi, yer, karar, anı; gün/ay/yıl hassasiyetli tarih, isteğe bağlı konum, düğüm başına gizlilik.
+- **Bağlar:** "bu beni şuna götürdü" ya da "beni buraya getirdi"; notlu ve tarihli, yerinde düzenlenebilir. "Geldiğin yol" bağları geriye doğru izler.
+- **Görünümler:** Liste, **Ağ** (Cytoscape.js; türe göre renk ve şekil, arama, süzgeç, odaklanma) ve **Zaman çizgisi** (yıl/ay grupları, yoğunluk şeridi).
+- **İzler:** düğümlerden sıralı, anlatılabilir yollar; sürükle-bırak sıralama, durak notları, bağlardan durak önerileri, hikâye gibi okuma sayfası, herkese açık paylaşım.
+- **Eser arama:** Open Library (kitap) ve TMDB (film/dizi).
 
 ## Klasör yapısı
 
@@ -64,7 +77,8 @@ src/
   hooks.server.ts           CSRF, oturum, tema, güvenlik başlıkları
   lib/
     sabitler.ts, tarih.ts   Ortak sabitler, Türkçe etiketler, tarih çözme/yazma
-    bilesenler/             Svelte bileşenleri (DugumKarti, DugumFormu, Simge…)
+    metin.ts, zaman.ts      Türkçe arama sadeleştirme, zaman çizgisi gruplama
+    bilesenler/             Svelte bileşenleri (AgGorunumu, DugumSecici, SayfaBasligi, TurSekli…)
     stiller/tasarim.css     Tasarım sistemi (renk, yazı, aralık değişkenleri)
     server/                 Yalnızca sunucuda çalışan kod
       db/                   Drizzle bağlantısı ve şema
@@ -72,8 +86,10 @@ src/
       hizSiniri.ts          Bellek içi hız sınırlayıcı
       dogrulama.ts          Form doğrulama (Türkçe mesajlar)
       dugumler.ts           Düğüm/bağ veri erişimi ve yetki kuralları
+      izler.ts              İz ve durak veri erişimi (sıralama, gizli duraklar)
       eserArama.ts          Open Library ve TMDB
-  routes/                   Sayfalar: /, /kayit, /giris, /pano, /dugumler, /ara
+      test/pglite.ts        Entegrasyon testleri için bellek içi PostgreSQL
+  routes/                   /, /kayit, /giris, /pano, /dugumler (+ /ag, /zaman), /izler, /ara
 drizzle/                    Migration dosyaları
 scripts/seed.ts             Örnek veri
 db/kurulum.sql              Rol ve veritabanı oluşturma

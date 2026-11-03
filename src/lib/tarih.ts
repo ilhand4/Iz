@@ -2,7 +2,7 @@ import type { TarihHassasiyeti } from './sabitler';
 
 export type CozulmusTarih = { tarih: string; hassasiyet: TarihHassasiyeti };
 
-const AYLAR = [
+export const AY_ADLARI = [
 	'Ocak',
 	'Şubat',
 	'Mart',
@@ -73,6 +73,18 @@ export function tarihYaz(tarih: string | null, hassasiyet: TarihHassasiyeti | nu
 	if (!tarih || !hassasiyet) return '';
 	const [yil, ay, gun] = tarih.split('-').map(Number);
 	if (hassasiyet === 'yil') return String(yil);
-	if (hassasiyet === 'ay') return `${AYLAR[ay - 1]} ${yil}`;
-	return `${gun} ${AYLAR[ay - 1]} ${yil}`;
+	if (hassasiyet === 'ay') return `${AY_ADLARI[ay - 1]} ${yil}`;
+	return `${gun} ${AY_ADLARI[ay - 1]} ${yil}`;
+}
+
+const GUN_BICIMI = new Intl.DateTimeFormat('tr-TR', {
+	day: 'numeric',
+	month: 'long',
+	year: 'numeric',
+	timeZone: 'Europe/Istanbul'
+});
+
+/** Zaman damgasını Türkçe gün olarak yazar: "3 Kasım 2026" (sunucu ve tarayıcıda aynı sonuç) */
+export function gunYaz(zaman: Date | string): string {
+	return GUN_BICIMI.format(typeof zaman === 'string' ? new Date(zaman) : zaman);
 }

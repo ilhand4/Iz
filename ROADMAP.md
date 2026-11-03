@@ -22,15 +22,18 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 - [x] Vitest birim testleri (32 test), `npm run check` ve `npm run build` hatasız
 - [x] Tarayıcıda uçtan uca deneme, XSS ve yetkisiz erişim denemeleri; açık/koyu tema, masaüstü/mobil ekran görüntüleri
 
-## ⏳ Aşama 2 — Ağ & zaman çizgisi görünümleri, iz oluşturma (ilk kullanılabilir ürün)
+## ✅ Aşama 2 — Ağ & zaman çizgisi görünümleri, iz oluşturma (ilk kullanılabilir ürün)
 
-- [ ] Ağ görünümü (Cytoscape.js ya da Sigma.js; karar bu aşamada): yakınlaştırma, türe göre renk, düğüme tıklayınca ayrıntı
-- [ ] Zaman çizgisi görünümü: tarih hassasiyetini (gün/ay/yıl) doğru gösteren eksen
-- [ ] İz oluşturma: düğümleri sıraya dizme, her adıma anlatı notu, sürükle-bırak sıralama
-- [ ] İz okuma sayfası (hikâye gibi adım adım)
-- [ ] Bağ kurarken aranabilir hedef seçici (çok düğümde `<select>` yetmez)
-- [ ] Düğüm/bağ düzenlemede bağ notunu ve tarihini düzenleme
-- [ ] Veritabanına bağlı entegrasyon testleri (ayrı test veritabanı)
+- [x] Ağ görünümü — **Cytoscape.js** (+ fcose yerleşimi) seçildi: yakınlaştırma/kaydırma, türe göre renk **ve şekil**, bağ sayısına göre boyut, düğüme dokununca komşuluğu vurgulayan yan panel, ağda arama, tür süzgeci, klavye kısayolları, tema değişince yeniden boyama, `?odak=` ile düğüme odaklanma, mobilde alttan açılan panel
+- [x] Zaman çizgisi: gün/ay/yıl hassasiyetine göre gruplanan dikey eksen, yapışkan yıl başlıkları, yıllara göre yoğunluk şeridi (boş yıllar dahil), eskiden yeniye / yeniden eskiye sıralama, tarihsiz düğümler için ayrı bölüm
+- [x] İz oluşturma ve düzenleme: aranabilir seçiciyle durak ekleme, son duraktan giden bağlara göre durak önerileri, dokunmatik uyumlu sürükle-bırak sıralama + klavye/JavaScript'siz ok düğmeleri, her durağa anlatı notu, iz silme
+- [x] İz okuma sayfası: numaralı duraklar, anlatı notları, duraklar arasındaki bağ notu ("nasıl götürdü"), eksik bağı tek tıkla kurma, herkese açık izde özel durakların "gizli durak" olarak gösterilmesi, bağlantıyı kopyalama
+- [x] Aranabilir düğüm seçici (ARIA combobox, Türkçe karakterlere duyarsız arama; JavaScript yoksa `<select>`)
+- [x] Bağ notunu ve tarihini yerinde düzenleme; düğüm sayfasından iki yönde bağ kurma ("götürdü" / "getirdi")
+- [x] Düğüm sayfası: "Ağda göster", "Buradan iz başlat", geçtiği izler ve "İze ekle"
+- [x] Tasarım sistemi genişletildi: tür şekilleri (eser ◼, kişi ●, yer ▲, karar ◆, anı ⬟), ortak sayfa başlığı, görünüm seçici, boş durum çizimleri, mobilde 5 sekmeli alt menü ve ortada "Ekle" düğmesi, pano görünüm kartları ve iz önizlemeleri
+- [x] Entegrasyon testleri: **PGlite** (bellek içi PostgreSQL) üzerinde gerçek migration'larla 16 test; toplam 66 test
+- [x] Zengin örnek veri: 1998–2023'e yayılmış 19 düğüm, 18 bağ, notlu 2 iz
 
 ## ⏳ Aşama 3 — Paylaşılan izler, profil, keşif yolu önerileri
 
@@ -67,7 +70,8 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 
 - [ ] PWA (çevrimdışı okuma, ana ekrana ekleme)
 - [ ] İngilizce arayüz (i18n)
-- [ ] Yayına alma: barındırma seçimi, yedekleme, izleme; hız sınırını PostgreSQL/Redis'e taşıma
+- [ ] Yayına alma: barındırma seçimi, HTTPS arkasında `adapter-node` (gerekirse `paths.origin`), yedekleme, izleme; hız sınırını PostgreSQL/Redis'e taşıma
+- [ ] Gelir getiren bir yayına geçilirse TMDB'den ticari kullanım lisansı alma (şu anki anahtar yalnızca kişisel kullanım içindir)
 - [ ] Hesap silme, veri dışa aktarma (KVKK)
 
 ---
@@ -81,3 +85,8 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 - Düğüm birleştirme (aynı kişiyi iki kez eklediysen)
 - Bağ eklerken Claude'dan "nasıl götürdü?" notu için öneri
 - E-posta doğrulama ve şifre sıfırlama (e-posta gönderimi gerektiriyor)
+- "Geldiğin yol"dan tek tıkla iz oluşturma
+- Ağda düğüm konumlarını kaydetme (her açılışta aynı yerleşim) ve "ağaç" yerleşimi seçeneği
+- Çok büyük ağlar (binlerce düğüm) için Sigma.js/WebGL'e geçiş eşiği
+- Zaman çizgisinde yakınlaştırılabilir yatay eksen (masaüstü için ikinci düzen)
+- Herkese açık izler için sosyal önizleme görseli (Open Graph)

@@ -133,6 +133,8 @@ const DUGUM_ALANLARI = [
 	'gizlilik'
 ];
 
+const TARIH_HATASI = 'Tarihi 1998, 1998-05, 1998-05-12 ya da 12.05.1998 biçiminde yazın.';
+
 function sayiCoz(metin: string): number | null | 'gecersiz' {
 	if (!metin) return null;
 	const n = Number(metin.replace(',', '.'));
@@ -160,7 +162,7 @@ export function dugumDogrula(fd: FormData): Sonuc<DugumVerisi> {
 
 	const tarih = tarihCoz(d.tarih);
 	if (tarih === 'gecersiz')
-		hatalar.tarih = 'Tarihi 1998, 1998-05, 1998-05-12 ya da 12.05.1998 biçiminde yazın.';
+		hatalar.tarih = TARIH_HATASI;
 
 	let yil: number | null = null;
 	if (d.yil) {
@@ -204,31 +206,88 @@ export function dugumDogrula(fd: FormData): Sonuc<DugumVerisi> {
 
 // ——— Bağ ———
 
-export type BagVerisi = {
-	hedefId: string;
+export type BagBilgisi = {
 	not: string | null;
 	tarih: string | null;
 	tarihHassasiyeti: TarihHassasiyeti | null;
 };
 
-export function bagDogrula(fd: FormData, kaynakId: string): Sonuc<BagVerisi> {
-	const d = degerleriAl(fd, ['hedefId', 'not', 'tarih']);
+export type BagVerisi = BagBilgisi & { kaynakId: string; hedefId: string };
+
+/** Bağın notu ve tarihi (kurarken ve düzenlerken ortak) */
+function bagBilgisiAl(fd: FormData, hatalar: Hatalar): BagBilgisi & { metin: Record<string, string> } {
+	const metin = degerleriAl(fd, ['not', 'tarih']);
+	if (metin.not.length > 1000) hatalar.not = 'Not en fazla 1000 karakter olabilir.';
+	const tarih = tarihCoz(metin.tarih);
+	if (tarih === 'gecersiz') hatalar.tarih = TARIH_HATASI;
+	const cozuldu = tarih && tarih !== 'gecersiz' ? tarih : null;
+	return {
+		metin,
+		not: metin.not || null,
+		tarih: cozuldu?.tarih ?? null,
+		tarihHassasiyeti: cozuldu?.hassasiyet ?? null
+	};
+}
+
+/**
+ * Bir düğümün sayfasından bağ kurma. yon = "giden": bu düğüm → diğeri ("beni şuna götürdü");
+ * yon = "gelen": diğeri → bu düğüm ("beni buraya getirdi").
+ */
+export function bagDogrula(fd: FormData, buDugumId: string): Sonuc<BagVerisi> {
+	const digerId = alan(fd, 'digerId');
+	const yon = alan(fd, 'yon') === 'gelen' ? 'gelen' : 'giden';
 	const hatalar: Hatalar = {};
-	if (!uuidMu(d.hedefId)) hatalar.hedefId = 'Seni nereye götürdüğünü seç.';
-	else if (d.hedefId === kaynakId) hatalar.hedefId = 'Bir düğüm kendine bağlanamaz.';
-	if (d.not.length > 1000) hatalar.not = 'Not en fazla 1000 karakter olabilir.';
-	const tarih = tarihCoz(d.tarih);
-	if (tarih === 'gecersiz')
-		hatalar.tarih = 'Tarihi 1998, 1998-05, 1998-05-12 ya da 12.05.1998 biçiminde yazın.';
+	if (!uuidMu(digerId))
+		hatalar.digerId =
+			yon === 'giden' ? 'Seni nereye götürdüğünü seç.' : 'Seni buraya neyin getirdiğini seç.';
+	else if (digerId === buDugumId) hatalar.digerId = 'Bir düğüm kendine bağlanamaz.';
+	const bilgi = bagBilgisiAl(fd, hatalar);
+
+	if (Object.keys(hatalar).length)
+		return { tamam: false, hatalar, degerler: { ...bilgi.metin, digerId, yon } };
+	return {
+		tamam: true,
+		veri: {
+			kaynakId: yon === 'giden' ? buDugumId : digerId,
+			hedefId: yon === 'giden' ? digerId : buDugumId,
+			not: bilgi.not,
+			tarih: bilgi.tarih,
+			tarihHassasiyeti: bilgi.tarihHassasiyeti
+		}
+	};
+}
+
+export function bagBilgisiDogrula(fd: FormData): Sonuc<BagBilgisi> {
+	const hatalar: Hatalar = {};
+	const { metin, ...bilgi } = bagBilgisiAl(fd, hatalar);
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: metin };
+	return { tamam: true, veri: bilgi };
+}
+
+// ——— İz ———
+
+export type IzVerisi = { baslik: string; aciklama: string | null; gizlilik: Gizlilik };
+
+export function izDogrula(fd: FormData): Sonuc<IzVerisi> {
+	const d = degerleriAl(fd, ['baslik', 'aciklama', 'gizlilik']);
+	const hatalar: Hatalar = {};
+	if (!d.baslik) hatalar.baslik = 'İze bir ad ver.';
+	else if (d.baslik.length > 120) hatalar.baslik = 'İzin adı en fazla 120 karakter olabilir.';
+	if (d.aciklama.length > 2000) hatalar.aciklama = 'Açıklama en fazla 2000 karakter olabilir.';
+	const gizlilik = d.gizlilik || 'ozel';
+	if (!gizlilikMi(gizlilik)) hatalar.gizlilik = 'Geçerli bir gizlilik düzeyi seçin.';
 
 	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: d };
 	return {
 		tamam: true,
-		veri: {
-			hedefId: d.hedefId,
-			not: d.not || null,
-			tarih: tarih && tarih !== 'gecersiz' ? tarih.tarih : null,
-			tarihHassasiyeti: tarih && tarih !== 'gecersiz' ? tarih.hassasiyet : null
-		}
+		veri: { baslik: d.baslik, aciklama: d.aciklama || null, gizlilik: gizlilik as Gizlilik }
 	};
+}
+
+/** Bir durağın anlatı notu */
+export function adimNotuDogrula(fd: FormData): Sonuc<{ not: string | null }> {
+	const not = alan(fd, 'not');
+	if (not.length > 2000)
+		return { tamam: false, hatalar: { not: 'Not en fazla 2000 karakter olabilir.' }, degerler: { not } };
+	return { tamam: true, veri: { not: not || null } };
 }

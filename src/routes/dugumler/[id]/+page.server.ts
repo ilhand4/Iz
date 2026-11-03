@@ -1,13 +1,15 @@
 import { error, fail } from '@sveltejs/kit';
-import { alan, bagDogrula, uuidMu } from '#lib/server/dogrulama.ts';
+import { alan, bagBilgisiDogrula, bagDogrula, uuidMu } from '#lib/server/dogrulama.ts';
 import {
+	bagGuncelle,
 	bagKur,
 	bagSil,
 	dugumBaglari,
 	dugumGetir,
-	geldigiYol,
-	hedefSecenekleri
+	dugumSecenekleri,
+	geldigiYol
 } from '#lib/server/dugumler.ts';
+import { durakEkle, dugumunIzleri, izSecenekleri } from '#lib/server/izler.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -21,10 +23,12 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	if (!sonuc) error(404, BULUNAMADI);
 
 	const sahibiMi = sonuc.dugum.sahipId === izleyenId;
-	const [baglar, yol, secenekler] = await Promise.all([
+	const [baglar, yol, izler, secenekler, eklenebilirIzler] = await Promise.all([
 		dugumBaglari(params.id, izleyenId),
 		geldigiYol(params.id, izleyenId),
-		sahibiMi ? hedefSecenekleri(sonuc.dugum.sahipId, params.id) : Promise.resolve([])
+		dugumunIzleri(params.id, izleyenId),
+		sahibiMi ? dugumSecenekleri(sonuc.dugum.sahipId, params.id) : Promise.resolve([]),
+		sahibiMi ? izSecenekleri(sonuc.dugum.sahipId, params.id) : Promise.resolve([])
 	]);
 
 	// Sahip kimliği sayfaya gönderilmez
@@ -35,7 +39,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		sahibiMi,
 		baglar,
 		yol,
+		izler,
 		secenekler,
+		eklenebilirIzler,
 		eklendi: url.searchParams.has('eklendi')
 	};
 };
@@ -45,22 +51,37 @@ export const actions: Actions = {
 		const kullanici = girisGerekli(locals, url);
 		if (!uuidMu(params.id)) error(404, BULUNAMADI);
 		const fd = await request.formData();
+		const yon = alan(fd, 'yon') === 'gelen' ? 'gelen' : 'giden';
 		const sonuc = bagDogrula(fd, params.id);
 		if (!sonuc.tamam) {
-			return fail(400, { bag: { hatalar: sonuc.hatalar, degerler: sonuc.degerler } });
+			return fail(400, { bag: { yon, hatalar: sonuc.hatalar, degerler: sonuc.degerler } });
 		}
 
-		const durum = await bagKur(kullanici.id, params.id, sonuc.veri);
+		const durum = await bagKur(kullanici.id, sonuc.veri);
 		if (durum === 'yetkisiz') error(404, BULUNAMADI);
 		if (durum === 'zaten-var') {
 			return fail(400, {
 				bag: {
-					hatalar: { hedefId: 'Bu iki düğüm zaten bu yönde bağlı.' },
-					degerler: { hedefId: sonuc.veri.hedefId, not: sonuc.veri.not ?? '' }
+					yon,
+					hatalar: { digerId: 'Bu iki düğüm zaten bu yönde bağlı.' },
+					degerler: { digerId: alan(fd, 'digerId'), not: alan(fd, 'not'), tarih: alan(fd, 'tarih') }
 				}
 			});
 		}
 		return { bagKuruldu: true };
+	},
+
+	bagGuncelle: async ({ request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const fd = await request.formData();
+		const bagId = alan(fd, 'bagId');
+		if (!uuidMu(bagId)) error(404, 'Bağ bulunamadı.');
+		const sonuc = bagBilgisiDogrula(fd);
+		if (!sonuc.tamam) {
+			return fail(400, { bagDuzenle: { bagId, hatalar: sonuc.hatalar, degerler: sonuc.degerler } });
+		}
+		if (!(await bagGuncelle(bagId, kullanici.id, sonuc.veri))) error(404, 'Bağ bulunamadı.');
+		return { bagGuncellendi: true };
 	},
 
 	bagSil: async ({ request, locals, url }) => {
@@ -68,5 +89,17 @@ export const actions: Actions = {
 		const bagId = alan(await request.formData(), 'bagId');
 		if (!uuidMu(bagId) || !(await bagSil(bagId, kullanici.id))) error(404, 'Bağ bulunamadı.');
 		return { bagSilindi: true };
+	},
+
+	izeEkle: async ({ params, request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const izId = alan(await request.formData(), 'izId');
+		if (!uuidMu(params.id) || !uuidMu(izId)) {
+			return fail(400, { izHatasi: 'Eklemek istediğin izi seç.' });
+		}
+		const durum = await durakEkle(izId, kullanici.id, params.id);
+		if (durum === 'yetkisiz') error(404, 'İz bulunamadı.');
+		if (durum === 'zaten-var') return fail(400, { izHatasi: 'Bu düğüm zaten o izde.' });
+		return { izeEklendi: izId };
 	}
 };

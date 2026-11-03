@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { bagDogrula, dugumDogrula, girisDogrula, kayitDogrula, uuidMu } from './dogrulama';
+import {
+	adimNotuDogrula,
+	bagBilgisiDogrula,
+	bagDogrula,
+	dugumDogrula,
+	girisDogrula,
+	izDogrula,
+	kayitDogrula,
+	uuidMu
+} from './dogrulama';
 
 function form(alanlar: Record<string, string>) {
 	const fd = new FormData();
@@ -114,18 +123,83 @@ describe('dugumDogrula', () => {
 
 describe('bagDogrula', () => {
 	it('kendine bağı ve geçersiz hedefi reddeder', () => {
-		const kendine = bagDogrula(form({ hedefId: UUID_A }), UUID_A);
-		expect(!kendine.tamam && kendine.hatalar.hedefId).toMatch(/kendine/);
-		const gecersiz = bagDogrula(form({ hedefId: "1' or 1=1 --" }), UUID_A);
+		const kendine = bagDogrula(form({ digerId: UUID_A }), UUID_A);
+		expect(!kendine.tamam && kendine.hatalar.digerId).toMatch(/kendine/);
+		const gecersiz = bagDogrula(form({ digerId: "1' or 1=1 --" }), UUID_A);
 		expect(gecersiz.tamam).toBe(false);
 	});
 
-	it('notlu ve tarihli bağı kabul eder', () => {
-		const sonuc = bagDogrula(form({ hedefId: UUID_B, not: 'hocam önerdi', tarih: '2019' }), UUID_A);
+	it('"giden" yönde bu düğüm kaynak olur; not ve tarihi çözer', () => {
+		const sonuc = bagDogrula(
+			form({ digerId: UUID_B, yon: 'giden', not: 'hocam önerdi', tarih: '2019' }),
+			UUID_A
+		);
 		expect(sonuc).toEqual({
 			tamam: true,
-			veri: { hedefId: UUID_B, not: 'hocam önerdi', tarih: '2019-01-01', tarihHassasiyeti: 'yil' }
+			veri: {
+				kaynakId: UUID_A,
+				hedefId: UUID_B,
+				not: 'hocam önerdi',
+				tarih: '2019-01-01',
+				tarihHassasiyeti: 'yil'
+			}
 		});
+	});
+
+	it('"gelen" yönde diğer düğüm kaynak olur; yön verilmezse "giden" sayılır', () => {
+		const gelen = bagDogrula(form({ digerId: UUID_B, yon: 'gelen' }), UUID_A);
+		expect(gelen.tamam && gelen.veri).toMatchObject({ kaynakId: UUID_B, hedefId: UUID_A });
+		const varsayilan = bagDogrula(form({ digerId: UUID_B, yon: 'saçma' }), UUID_A);
+		expect(varsayilan.tamam && varsayilan.veri).toMatchObject({ kaynakId: UUID_A, hedefId: UUID_B });
+	});
+
+	it('yöne göre Türkçe hata verir', () => {
+		const giden = bagDogrula(form({ yon: 'giden' }), UUID_A);
+		expect(!giden.tamam && giden.hatalar.digerId).toBe('Seni nereye götürdüğünü seç.');
+		const gelen = bagDogrula(form({ yon: 'gelen' }), UUID_A);
+		expect(!gelen.tamam && gelen.hatalar.digerId).toBe('Seni buraya neyin getirdiğini seç.');
+	});
+});
+
+describe('bagBilgisiDogrula', () => {
+	it('notu ve tarihi doğrular', () => {
+		expect(bagBilgisiDogrula(form({ not: '', tarih: '' }))).toEqual({
+			tamam: true,
+			veri: { not: null, tarih: null, tarihHassasiyeti: null }
+		});
+		const hatali = bagBilgisiDogrula(form({ not: 'x'.repeat(1001), tarih: '32.13.2020' }));
+		expect(hatali.tamam).toBe(false);
+		if (!hatali.tamam) {
+			expect(hatali.hatalar.not).toBeDefined();
+			expect(hatali.hatalar.tarih).toBeDefined();
+		}
+	});
+});
+
+describe('izDogrula', () => {
+	it('adı zorunlu tutar; gizlilik varsayılanı özeldir', () => {
+		const bos = izDogrula(form({}));
+		expect(!bos.tamam && bos.hatalar.baslik).toBe('İze bir ad ver.');
+		expect(izDogrula(form({ baslik: '  Bir kitaplıktan Berlin’e  ' }))).toEqual({
+			tamam: true,
+			veri: { baslik: 'Bir kitaplıktan Berlin’e', aciklama: null, gizlilik: 'ozel' }
+		});
+	});
+
+	it('uzun adı ve geçersiz gizliliği reddeder', () => {
+		const sonuc = izDogrula(form({ baslik: 'x'.repeat(121), gizlilik: 'herkese' }));
+		expect(sonuc.tamam).toBe(false);
+		if (!sonuc.tamam) {
+			expect(sonuc.hatalar.baslik).toMatch(/120/);
+			expect(sonuc.hatalar.gizlilik).toBeDefined();
+		}
+	});
+});
+
+describe('adimNotuDogrula', () => {
+	it('boş notu null yapar, çok uzun notu reddeder', () => {
+		expect(adimNotuDogrula(form({ not: '   ' }))).toEqual({ tamam: true, veri: { not: null } });
+		expect(adimNotuDogrula(form({ not: 'x'.repeat(2001) })).tamam).toBe(false);
 	});
 });
 

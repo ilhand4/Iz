@@ -40,7 +40,8 @@ export const actions: Actions = {
 		const yeni = await dugumOlustur(kullanici.id, sonuc.veri);
 		const kaynak = await kaynakDugum(url.searchParams.get('kaynak'), kullanici.id);
 		if (kaynak) {
-			await bagKur(kullanici.id, kaynak.id, {
+			await bagKur(kullanici.id, {
+				kaynakId: kaynak.id,
 				hedefId: yeni.id,
 				not: bagNotu || null,
 				tarih: null,

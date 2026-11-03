@@ -120,7 +120,8 @@ export const actions: Actions = {
 			).id;
 
 		if (kaynakDugumu && kaynakDugumu.id !== dugumId) {
-			await bagKur(kullanici.id, kaynakDugumu.id, {
+			await bagKur(kullanici.id, {
+				kaynakId: kaynakDugumu.id,
 				hedefId: dugumId,
 				not: null,
 				tarih: null,

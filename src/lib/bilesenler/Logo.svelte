@@ -16,7 +16,7 @@
 			fill="none"
 		/>
 	</svg>
-	<span class="ad">İz</span>
+	<span class="ad" style:font-size="{(boyut * 1.5) / 28}rem">İz</span>
 </span>
 
 <style>
@@ -28,7 +28,6 @@
 	.ad {
 		font-family: var(--yazi-baslik);
 		font-weight: 700;
-		font-size: 1.5rem;
 		letter-spacing: -0.02em;
 		line-height: 1;
 		color: var(--metin);

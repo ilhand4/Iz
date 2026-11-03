@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import type { PageProps } from './$types';
 
@@ -23,16 +24,18 @@
 <svelte:head><title>Eser ara · İz</title></svelte:head>
 
 <div class="kap yigin">
-	<div>
-		<h1>Eser ara</h1>
-		<p class="soluk">Bulduğun eseri tek dokunuşla düğüme dönüştür. Eklediklerin varsayılan olarak özeldir.</p>
-		{#if data.kaynak}
-			<p class="bildirim bildirim-uyari">
-				Seçtiğin eser, <a href="/dugumler/{data.kaynak.id}"><strong>{data.kaynak.baslik}</strong></a>
-				düğümünden “beni şuna götürdü” bağıyla eklenecek.
-			</p>
-		{/if}
-	</div>
+	<SayfaBasligi
+		ust="Kültür İzi"
+		baslik="Eser ara"
+		aciklama="Bulduğun eseri tek dokunuşla düğüme dönüştür. Eklediklerin varsayılan olarak özeldir."
+		geri={data.kaynak ? { href: `/dugumler/${data.kaynak.id}`, etiket: data.kaynak.baslik } : undefined}
+	/>
+	{#if data.kaynak}
+		<p class="bildirim bildirim-uyari kaynak">
+			Seçtiğin eser, <a href="/dugumler/{data.kaynak.id}"><strong>{data.kaynak.baslik}</strong></a>
+			düğümünden “beni şuna götürdü” bağıyla eklenecek.
+		</p>
+	{/if}
 
 	<nav class="sekmeler" aria-label="Eser türü">
 		{#each SEKMELER as s (s.tur)}
@@ -130,8 +133,8 @@
 </div>
 
 <style>
-	h1 {
-		font-size: var(--boyut-2xl);
+	.kaynak {
+		margin: 0;
 	}
 	.sekmeler {
 		display: flex;

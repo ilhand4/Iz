@@ -1,17 +1,32 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Alan from '#lib/bilesenler/Alan.svelte';
+	import BagOgesi from '#lib/bilesenler/BagOgesi.svelte';
+	import DugumSecici from '#lib/bilesenler/DugumSecici.svelte';
 	import GizlilikRozeti from '#lib/bilesenler/GizlilikRozeti.svelte';
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import TurRozeti from '#lib/bilesenler/TurRozeti.svelte';
-	import { DUGUM_TURU_ETIKETI } from '#lib/sabitler.ts';
+	import TurSekli from '#lib/bilesenler/TurSekli.svelte';
 	import { tarihYaz } from '#lib/tarih.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	const d = $derived(data.dugum);
-	const bagHatalari = $derived((form?.bag?.hatalar ?? {}) as Record<string, string>);
-	const bagDegerleri = $derived((form?.bag?.degerler ?? {}) as Record<string, string>);
+
+	type BagFormu = { yon: string; hatalar: Record<string, string>; degerler: Record<string, string> };
+	const bagFormu = $derived((form?.bag ?? null) as BagFormu | null);
+	const gidenHata = $derived(bagFormu?.yon === 'giden' ? bagFormu : null);
+	const gelenHata = $derived(bagFormu?.yon === 'gelen' ? bagFormu : null);
+	const bagDuzenle = $derived(
+		(form?.bagDuzenle ?? null) as {
+			bagId: string;
+			hatalar: Record<string, string>;
+			degerler: Record<string, string>;
+		} | null
+	);
+	const eklenenIz = $derived(
+		form?.izeEklendi ? data.izler.find((i) => i.id === form.izeEklendi) : null
+	);
 
 	const KAYNAK_ADI: Record<string, string> = { openlibrary: 'Open Library', tmdb: 'TMDB' };
 	function disBaglanti(kaynak: string | null, kimlik: string | null) {
@@ -26,15 +41,23 @@
 <svelte:head><title>{d.baslik} · İz</title></svelte:head>
 
 <div class="kap yigin">
-	{#if data.sahibiMi}<a href="/dugumler" class="kucuk">← Düğümler</a>{/if}
-
-	{#if data.eklendi && !form}
-		<p class="bildirim bildirim-basari" role="status">
-			Düğüm eklendi. Şimdi onu başka düğümlere bağlayabilirsin.
-		</p>
+	{#if data.sahibiMi}
+		<a href="/dugumler" class="geri"><Simge ad="geri" boyut={16} /> Düğümler</a>
 	{/if}
-	{#if form?.bagKuruldu}<p class="bildirim bildirim-basari" role="status">Bağ kuruldu.</p>{/if}
-	{#if form?.bagSilindi}<p class="bildirim bildirim-basari" role="status">Bağ kaldırıldı.</p>{/if}
+
+	<div aria-live="polite" class="bildirimler">
+		{#if data.eklendi && !form}
+			<p class="bildirim bildirim-basari">Düğüm eklendi. Şimdi onu başka düğümlere bağlayabilirsin.</p>
+		{/if}
+		{#if form?.bagKuruldu}<p class="bildirim bildirim-basari">Bağ kuruldu.</p>{/if}
+		{#if form?.bagGuncellendi}<p class="bildirim bildirim-basari">Bağ güncellendi.</p>{/if}
+		{#if form?.bagSilindi}<p class="bildirim bildirim-basari">Bağ kaldırıldı.</p>{/if}
+		{#if eklenenIz}
+			<p class="bildirim bildirim-basari">
+				Düğüm <a href="/izler/{eklenenIz.id}">{eklenenIz.baslik}</a> izine son durak olarak eklendi.
+			</p>
+		{/if}
+	</div>
 
 	<article class="kart dugum" data-tur={d.tur}>
 		{#if d.gorselUrl}
@@ -75,9 +98,15 @@
 			</ul>
 			{#if d.aciklama}<p class="aciklama">{d.aciklama}</p>{/if}
 			{#if data.sahibiMi}
-				<div class="satir">
+				<div class="satir eylemler">
 					<a class="dugme dugme-kucuk" href="/dugumler/{d.id}/duzenle">
 						<Simge ad="kalem" boyut={16} /> Düzenle
+					</a>
+					<a class="dugme dugme-kucuk" href="/dugumler/ag?odak={d.id}">
+						<Simge ad="dugumler" boyut={16} /> Ağda göster
+					</a>
+					<a class="dugme dugme-kucuk" href="/izler/yeni?dugum={d.id}">
+						<Simge ad="iz" boyut={16} /> Buradan iz başlat
 					</a>
 				</div>
 			{/if}
@@ -85,34 +114,18 @@
 	</article>
 
 	<div class="baglar-izgara">
-		<section class="yigin">
-			<h2>Bu beni şuna götürdü</h2>
+		<section class="yigin" aria-labelledby="giden-baslik">
+			<h2 id="giden-baslik">Bu beni şuna götürdü</h2>
 			{#if data.baglar.giden.length}
 				<ul class="bag-listesi">
 					{#each data.baglar.giden as bag (bag.id)}
-						<li>
-							<span class="ok" aria-hidden="true">→</span>
-							<div class="bag-govde">
-								<a href="/dugumler/{bag.dugum.id}">{bag.dugum.baslik}</a>
-								<TurRozeti tur={bag.dugum.tur} eserTuru={bag.dugum.eserTuru} />
-								{#if bag.not}<p class="not">“{bag.not}”</p>{/if}
-								{#if bag.tarih}
-									<p class="kucuk soluk">{tarihYaz(bag.tarih, bag.tarihHassasiyeti)}</p>
-								{/if}
-							</div>
-							{#if data.sahibiMi}
-								<form method="POST" action="?/bagSil" use:enhance>
-									<input type="hidden" name="bagId" value={bag.id} />
-									<button
-										class="dugme dugme-hayalet dugme-kucuk"
-										aria-label="“{bag.dugum.baslik}” bağını kaldır"
-										title="Bağı kaldır"
-									>
-										<Simge ad="cop" boyut={16} />
-									</button>
-								</form>
-							{/if}
-						</li>
+						<BagOgesi
+							{bag}
+							yon="giden"
+							duzenlenebilir={data.sahibiMi}
+							hatalar={bagDuzenle?.bagId === bag.id ? bagDuzenle.hatalar : null}
+							degerler={bagDuzenle?.bagId === bag.id ? bagDuzenle.degerler : null}
+						/>
 					{/each}
 				</ul>
 			{:else}
@@ -124,39 +137,34 @@
 					<h3>Yeni bağ kur</h3>
 					{#if data.secenekler.length}
 						<form method="POST" action="?/bagKur" class="yigin" use:enhance>
-							<Alan id="hedefId" etiket="“{d.baslik}” beni şuna götürdü:" hata={bagHatalari.hedefId}>
-								<select id="hedefId" name="hedefId" required aria-invalid={!!bagHatalari.hedefId}>
-									<option value="">Bir düğüm seç…</option>
-									{#each data.secenekler as s (s.id)}
-										<option value={s.id} selected={bagDegerleri.hedefId === s.id}>
-											{s.baslik} ({DUGUM_TURU_ETIKETI[s.tur]})
-										</option>
-									{/each}
-								</select>
-							</Alan>
-							<Alan
-								id="not"
-								etiket="Nasıl?"
-								hata={bagHatalari.not}
-								ipucu="İsteğe bağlı: “arkadaşım hediye etti”, “filmin müziğiydi”…"
-							>
-								<input id="not" name="not" maxlength="1000" value={bagDegerleri.not ?? ''} />
-							</Alan>
-							<Alan
-								id="bagTarih"
-								etiket="Ne zaman?"
-								hata={bagHatalari.tarih}
-								ipucu="İsteğe bağlı: 2021 · 2021-03 · 14.03.2021"
-							>
-								<input
-									id="bagTarih"
-									name="tarih"
-									inputmode="numeric"
-									value={bagDegerleri.tarih ?? ''}
-									aria-invalid={!!bagHatalari.tarih}
+							<input type="hidden" name="yon" value="giden" />
+							<Alan id="gidenHedef" etiket="“{d.baslik}” beni şuna götürdü:" hata={gidenHata?.hatalar.digerId}>
+								<DugumSecici
+									id="gidenHedef"
+									ad="digerId"
+									secenekler={data.secenekler}
+									secili={gidenHata?.degerler.digerId}
+									hata={gidenHata?.hatalar.digerId}
 								/>
 							</Alan>
-							<button class="dugme dugme-birincil">Bağı kur</button>
+							<Alan
+								id="gidenNot"
+								etiket="Nasıl?"
+								hata={gidenHata?.hatalar.not}
+								ipucu="İsteğe bağlı: “arkadaşım hediye etti”, “filmin müziğiydi”…"
+							>
+								<input id="gidenNot" name="not" maxlength="1000" value={gidenHata?.degerler.not ?? ''} />
+							</Alan>
+							<Alan id="gidenTarih" etiket="Ne zaman?" hata={gidenHata?.hatalar.tarih} ipucu="İsteğe bağlı: 2021 · 2021-03 · 14.03.2021">
+								<input
+									id="gidenTarih"
+									name="tarih"
+									inputmode="numeric"
+									value={gidenHata?.degerler.tarih ?? ''}
+									aria-invalid={!!gidenHata?.hatalar.tarih}
+								/>
+							</Alan>
+							<div class="satir"><button class="dugme dugme-birincil">Bağı kur</button></div>
 						</form>
 					{:else}
 						<p class="soluk kucuk">Bağ kurmak için önce başka bir düğüm eklemen gerek.</p>
@@ -170,23 +178,53 @@
 			{/if}
 		</section>
 
-		<section class="yigin">
-			<h2>Buraya getirenler</h2>
+		<section class="yigin" aria-labelledby="gelen-baslik">
+			<h2 id="gelen-baslik">Beni buraya getirenler</h2>
 			{#if data.baglar.gelen.length}
 				<ul class="bag-listesi">
 					{#each data.baglar.gelen as bag (bag.id)}
-						<li>
-							<span class="ok" aria-hidden="true">←</span>
-							<div class="bag-govde">
-								<a href="/dugumler/{bag.dugum.id}">{bag.dugum.baslik}</a>
-								<TurRozeti tur={bag.dugum.tur} eserTuru={bag.dugum.eserTuru} />
-								{#if bag.not}<p class="not">“{bag.not}”</p>{/if}
-							</div>
-						</li>
+						<BagOgesi
+							{bag}
+							yon="gelen"
+							duzenlenebilir={data.sahibiMi}
+							hatalar={bagDuzenle?.bagId === bag.id ? bagDuzenle.hatalar : null}
+							degerler={bagDuzenle?.bagId === bag.id ? bagDuzenle.degerler : null}
+						/>
 					{/each}
 				</ul>
 			{:else}
 				<p class="soluk kucuk">Buraya gelen bir bağ yok.</p>
+			{/if}
+
+			{#if data.sahibiMi && data.secenekler.length}
+				<details class="kart bag-formu" open={!!gelenHata}>
+					<summary>Seni buraya ne getirdi?</summary>
+					<form method="POST" action="?/bagKur" class="yigin" use:enhance>
+						<input type="hidden" name="yon" value="gelen" />
+						<Alan id="gelenKaynak" etiket="Beni “{d.baslik}” düğümüne getiren:" hata={gelenHata?.hatalar.digerId}>
+							<DugumSecici
+								id="gelenKaynak"
+								ad="digerId"
+								secenekler={data.secenekler}
+								secili={gelenHata?.degerler.digerId}
+								hata={gelenHata?.hatalar.digerId}
+							/>
+						</Alan>
+						<Alan id="gelenNot" etiket="Nasıl?" hata={gelenHata?.hatalar.not}>
+							<input id="gelenNot" name="not" maxlength="1000" value={gelenHata?.degerler.not ?? ''} />
+						</Alan>
+						<Alan id="gelenTarih" etiket="Ne zaman?" hata={gelenHata?.hatalar.tarih}>
+							<input
+								id="gelenTarih"
+								name="tarih"
+								inputmode="numeric"
+								value={gelenHata?.degerler.tarih ?? ''}
+								aria-invalid={!!gelenHata?.hatalar.tarih}
+							/>
+						</Alan>
+						<div class="satir"><button class="dugme dugme-birincil">Bağı kur</button></div>
+					</form>
+				</details>
 			{/if}
 
 			{#if data.yol.length > data.baglar.gelen.length}
@@ -197,7 +235,7 @@
 						{#each data.yol as y (y.id)}
 							<li style:--derinlik={y.derinlik}>
 								<span class="kucuk soluk">{y.derinlik} adım önce</span>
-								<a href="/dugumler/{y.id}">{y.baslik}</a>
+								<a href="/dugumler/{y.id}"><TurSekli tur={y.tur} boyut={11} /> {y.baslik}</a>
 							</li>
 						{/each}
 					</ol>
@@ -205,9 +243,64 @@
 			{/if}
 		</section>
 	</div>
+
+	{#if data.izler.length || data.sahibiMi}
+		<section class="izler yigin" aria-labelledby="izler-baslik">
+			<h2 id="izler-baslik">Geçtiği izler</h2>
+			{#if data.izler.length}
+				<ul class="iz-listesi">
+					{#each data.izler as iz (iz.id)}
+						<li>
+							<a href="/izler/{iz.id}"><Simge ad="iz" boyut={16} /> {iz.baslik}</a>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="soluk kucuk">Bu düğüm henüz bir izde durak değil.</p>
+			{/if}
+
+			{#if data.sahibiMi}
+				<div class="ize-ekle">
+					{#if data.eklenebilirIzler.length}
+						<form method="POST" action="?/izeEkle" class="satir" use:enhance>
+							<label class="gorunmez" for="izId">Eklenecek iz</label>
+							<select id="izId" name="izId" required aria-invalid={!!form?.izHatasi}>
+								<option value="">Bir iz seç…</option>
+								{#each data.eklenebilirIzler as iz (iz.id)}
+									<option value={iz.id}>{iz.baslik}</option>
+								{/each}
+							</select>
+							<button class="dugme">İze ekle</button>
+						</form>
+						{#if form?.izHatasi}<p class="hata-metni kucuk" role="alert">{form.izHatasi}</p>{/if}
+					{/if}
+					<a class="kucuk" href="/izler/yeni?dugum={d.id}">Bu düğümle yeni bir iz başlat →</a>
+				</div>
+			{/if}
+		</section>
+	{/if}
 </div>
 
 <style>
+	.geri {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-1);
+		align-self: flex-start;
+		font-size: var(--boyut-sm);
+		font-weight: 550;
+		color: var(--metin-soluk);
+		text-decoration: none;
+	}
+	.geri:hover {
+		color: var(--vurgu);
+	}
+	.bildirimler:empty {
+		display: none;
+	}
+	.bildirimler p {
+		margin: 0;
+	}
 	.dugum {
 		display: grid;
 		gap: var(--a-5);
@@ -267,6 +360,10 @@
 		max-width: var(--okuma-genislik);
 		margin: 0;
 	}
+	.eylemler {
+		padding-top: var(--a-2);
+		border-top: 1px solid var(--cizgi);
+	}
 	.baglar-izgara {
 		display: grid;
 		gap: var(--a-6);
@@ -283,46 +380,23 @@
 		flex-direction: column;
 		gap: var(--a-2);
 	}
-	.bag-listesi li {
-		display: flex;
-		gap: var(--a-3);
-		align-items: flex-start;
-		padding: var(--a-3);
-		background: var(--yuzey);
-		border: 1px solid var(--cizgi);
-		border-radius: var(--yaricap);
-	}
-	.ok {
-		color: var(--vurgu);
-		font-weight: 700;
-		line-height: 1.6;
-	}
-	.bag-govde {
-		flex: 1;
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--a-1) var(--a-2);
-		align-items: center;
-		min-width: 0;
-	}
-	.bag-govde a {
-		font-weight: 600;
-		color: var(--metin);
-	}
-	.bag-govde p {
-		width: 100%;
-		margin: 0;
-	}
-	.not {
-		font-style: italic;
-		color: var(--metin-soluk);
-		font-size: var(--boyut-sm);
-	}
 	.bag-formu h3 {
+		margin-bottom: var(--a-3);
+	}
+	details.bag-formu summary {
+		cursor: pointer;
+		font-family: var(--yazi-baslik);
+		font-weight: 600;
+		font-size: var(--boyut-lg);
+	}
+	details.bag-formu[open] summary {
 		margin-bottom: var(--a-3);
 	}
 	.yeni-yol {
 		margin: var(--a-4) 0 0;
+	}
+	.yol h3 {
+		margin-bottom: var(--a-1);
 	}
 	.yol ol {
 		list-style: none;
@@ -338,8 +412,50 @@
 		border-left: 2px dotted var(--vurgu);
 		padding-inline-start: calc(var(--a-3) + (var(--derinlik) - 1) * var(--a-3));
 	}
+	.yol li a {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-1);
+	}
 	.yol p {
 		margin: 0 0 var(--a-3);
+	}
+	.iz-listesi {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--a-2);
+	}
+	.iz-listesi a {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-2);
+		padding: var(--a-2) var(--a-3);
+		border: 1px solid var(--cizgi);
+		border-radius: var(--yaricap-tam);
+		background: var(--yuzey);
+		color: var(--metin);
+		font-weight: 550;
+		font-size: var(--boyut-sm);
+		text-decoration: none;
+	}
+	.iz-listesi a:hover {
+		border-color: var(--vurgu);
+		color: var(--vurgu);
+	}
+	.ize-ekle {
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-2);
+		max-width: 32rem;
+	}
+	.ize-ekle form {
+		flex-wrap: nowrap;
+	}
+	.ize-ekle p {
+		margin: 0;
 	}
 	@media (min-width: 40rem) {
 		.dugum:has(img) {

@@ -101,6 +101,8 @@ export const dugumler = pgTable(
 	},
 	(t) => [
 		index('dugumler_sahip_idx').on(t.sahipId, t.olusturma),
+		// Zaman çizgisi sıralaması için
+		index('dugumler_sahip_tarih_idx').on(t.sahipId, t.tarih),
 		index('dugumler_gizlilik_idx').on(t.gizlilik),
 		// Aynı kullanıcı aynı dış eseri iki kez eklemesin
 		uniqueIndex('dugumler_dis_kaynak_tekil')
@@ -172,7 +174,10 @@ export const izler = pgTable(
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow(),
 		guncelleme: zamanDamgasi('guncelleme').notNull().defaultNow()
 	},
-	(t) => [index('izler_sahip_idx').on(t.sahipId)]
+	(t) => [
+		index('izler_sahip_idx').on(t.sahipId),
+		check('izler_baslik_kontrol', sql`length(${t.baslik}) between 1 and 120`)
+	]
 );
 
 export const izAdimlari = pgTable(
@@ -191,7 +196,10 @@ export const izAdimlari = pgTable(
 	},
 	(t) => [
 		unique('iz_adimlari_sira_tekil').on(t.izId, t.sira),
-		index('iz_adimlari_dugum_idx').on(t.dugumId)
+		// Bir düğüm aynı izde bir kez durak olabilir
+		unique('iz_adimlari_dugum_tekil').on(t.izId, t.dugumId),
+		index('iz_adimlari_dugum_idx').on(t.dugumId),
+		check('iz_adimlari_sira_kontrol', sql`${t.sira} > 0`)
 	]
 );
 

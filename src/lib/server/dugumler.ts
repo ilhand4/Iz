@@ -3,21 +3,26 @@
 // - Yazma: yalnızca sahibi (her sorgu sahip_id ile süzülür).
 import { and, asc, count, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
-import type { DugumTuru, EserTuru, Gizlilik } from '../sabitler';
+import type { DugumTuru, EserTuru, Gizlilik, TarihHassasiyeti } from '../sabitler';
 import { db } from './db';
 import { baglar, dugumler, kullanicilar } from './db/schema';
-import type { BagVerisi, DugumVerisi } from './dogrulama';
+import type { BagBilgisi, BagVerisi, DugumVerisi } from './dogrulama';
 import { likeKacir } from './yetki';
 
 export { gorebilirMi } from './yetki';
 
 /** gorebilirMi kuralının SQL karşılığı */
-function gorunurluk(
+export function gorunurluk(
 	tablo: { sahipId: AnyPgColumn; gizlilik: AnyPgColumn },
 	izleyenId: string | null
 ): SQL {
 	const herkes = eq(tablo.gizlilik, 'herkes');
 	return izleyenId ? (or(eq(tablo.sahipId, izleyenId), herkes) as SQL) : herkes;
+}
+
+/** db.execute sonucunu satır dizisine çevirir (postgres.js dizi, PGlite { rows } döner) */
+export function satirlar<T>(sonuc: unknown): T[] {
+	return Array.isArray(sonuc) ? (sonuc as T[]) : ((sonuc as { rows: T[] }).rows ?? []);
 }
 
 export type DugumOzeti = {
@@ -29,7 +34,7 @@ export type DugumOzeti = {
 	gorselUrl: string | null;
 	gizlilik: Gizlilik;
 	tarih: string | null;
-	tarihHassasiyeti: 'gun' | 'ay' | 'yil' | null;
+	tarihHassasiyeti: TarihHassasiyeti | null;
 };
 
 const ozetAlanlari = {
@@ -62,14 +67,28 @@ export async function dugumleriListele(
 		.limit(suzgec.limit ?? 200);
 }
 
-/** Bağ kurarken hedef seçimi için kullanıcının kendi düğümleri */
-export async function hedefSecenekleri(sahipId: string, haricId: string) {
+export type DugumSecenegi = {
+	id: string;
+	baslik: string;
+	altBaslik: string | null;
+	tur: DugumTuru;
+};
+
+/** Bağ kurarken ya da ize durak eklerken seçilebilecek, kullanıcının kendi düğümleri */
+export async function dugumSecenekleri(sahipId: string, haricId?: string): Promise<DugumSecenegi[]> {
+	const kosullar: SQL[] = [eq(dugumler.sahipId, sahipId)];
+	if (haricId) kosullar.push(sql`${dugumler.id} <> ${haricId}`);
 	return db
-		.select({ id: dugumler.id, baslik: dugumler.baslik, tur: dugumler.tur })
+		.select({
+			id: dugumler.id,
+			baslik: dugumler.baslik,
+			altBaslik: dugumler.altBaslik,
+			tur: dugumler.tur
+		})
 		.from(dugumler)
-		.where(and(eq(dugumler.sahipId, sahipId), sql`${dugumler.id} <> ${haricId}`))
+		.where(and(...kosullar))
 		.orderBy(asc(dugumler.baslik))
-		.limit(1000);
+		.limit(2000);
 }
 
 /** Düğümü getirir; izleyen göremiyorsa null (var olduğunu da belli etmemek için) */
@@ -85,6 +104,8 @@ export async function dugumGetir(id: string, izleyenId: string | null) {
 	return sonuc ?? null;
 }
 
+export type DisBilgi = { disKaynak: string; disKimlik: string; gorselUrl: string | null };
+
 export async function dugumOlustur(sahipId: string, veri: DugumVerisi & Partial<DisBilgi>) {
 	const [dugum] = await db
 		.insert(dugumler)
@@ -92,8 +113,6 @@ export async function dugumOlustur(sahipId: string, veri: DugumVerisi & Partial<
 		.returning({ id: dugumler.id });
 	return dugum;
 }
-
-export type DisBilgi = { disKaynak: string; disKimlik: string; gorselUrl: string | null };
 
 export async function disKaynaktanBul(sahipId: string, disKaynak: string, disKimlik: string) {
 	const [dugum] = await db
@@ -161,19 +180,25 @@ export async function dugumBaglari(dugumId: string, izleyenId: string | null) {
 	return { giden, gelen };
 }
 
+export type YolDugumu = {
+	id: string;
+	baslik: string;
+	tur: DugumTuru;
+	eser_turu: EserTuru | null;
+	derinlik: number;
+};
+
 /**
  * Bu düğüme hangi yollardan gelindi? Bağları geriye doğru özyinelemeli izler.
  * Döngülere karşı geçilen düğümler dizide tutulur; görünmeyen düğümlerden geçilmez.
  */
-export async function geldigiYol(dugumId: string, izleyenId: string | null, enFazlaDerinlik = 6) {
+export async function geldigiYol(
+	dugumId: string,
+	izleyenId: string | null,
+	enFazlaDerinlik = 6
+): Promise<YolDugumu[]> {
 	const izleyen = izleyenId ?? '00000000-0000-0000-0000-000000000000';
-	const satirlar = await db.execute<{
-		id: string;
-		baslik: string;
-		tur: DugumTuru;
-		eser_turu: EserTuru | null;
-		derinlik: number;
-	}>(sql`
+	const sonuc = await db.execute(sql`
 		with recursive yol(id, derinlik, gecilen) as (
 			select b.kaynak_id, 1, array[b.hedef_id, b.kaynak_id]
 			from baglar b
@@ -196,34 +221,40 @@ export async function geldigiYol(dugumId: string, izleyenId: string | null, enFa
 		order by derinlik, d.baslik
 		limit 50
 	`);
-	return [...satirlar];
+	return satirlar<YolDugumu>(sonuc);
 }
 
 export type BagKurmaSonucu = 'kuruldu' | 'zaten-var' | 'yetkisiz';
 
-export async function bagKur(
-	sahipId: string,
-	kaynakId: string,
-	veri: BagVerisi
-): Promise<BagKurmaSonucu> {
-	// İki uç da bu kullanıcıya ait olmalı
+/** İki uç da bu kullanıcıya ait olmalı; aynı yönde ikinci bağ kurulmaz */
+export async function bagKur(sahipId: string, veri: BagVerisi): Promise<BagKurmaSonucu> {
+	if (veri.kaynakId === veri.hedefId) return 'yetkisiz';
 	const [{ sayi }] = await db
 		.select({ sayi: count() })
 		.from(dugumler)
 		.where(
 			and(
 				eq(dugumler.sahipId, sahipId),
-				or(eq(dugumler.id, kaynakId), eq(dugumler.id, veri.hedefId))
+				or(eq(dugumler.id, veri.kaynakId), eq(dugumler.id, veri.hedefId))
 			)
 		);
 	if (sayi !== 2) return 'yetkisiz';
 
 	const eklenen = await db
 		.insert(baglar)
-		.values({ sahipId, kaynakId, ...veri })
+		.values({ sahipId, ...veri })
 		.onConflictDoNothing({ target: [baglar.kaynakId, baglar.hedefId] })
 		.returning({ id: baglar.id });
 	return eklenen.length ? 'kuruldu' : 'zaten-var';
+}
+
+export async function bagGuncelle(bagId: string, sahipId: string, bilgi: BagBilgisi) {
+	const sonuc = await db
+		.update(baglar)
+		.set(bilgi)
+		.where(and(eq(baglar.id, bagId), eq(baglar.sahipId, sahipId)))
+		.returning({ id: baglar.id });
+	return sonuc.length > 0;
 }
 
 export async function bagSil(bagId: string, sahipId: string) {
@@ -232,6 +263,39 @@ export async function bagSil(bagId: string, sahipId: string) {
 		.where(and(eq(baglar.id, bagId), eq(baglar.sahipId, sahipId)))
 		.returning({ id: baglar.id });
 	return sonuc.length > 0;
+}
+
+// ——— Ağ ve zaman çizgisi görünümleri ———
+
+export type HaritaDugumu = DugumOzeti & { yerAdi: string | null };
+export type HaritaBagi = {
+	id: string;
+	kaynakId: string;
+	hedefId: string;
+	not: string | null;
+};
+
+/** Kullanıcının tüm düğümleri ve bağları: ağ ve zaman çizgisi aynı veriden çizilir */
+export async function haritaVerisi(sahipId: string) {
+	const [tumDugumler, tumBaglar] = await Promise.all([
+		db
+			.select({ ...ozetAlanlari, yerAdi: dugumler.yerAdi })
+			.from(dugumler)
+			.where(eq(dugumler.sahipId, sahipId))
+			.orderBy(asc(dugumler.tarih), asc(dugumler.baslik))
+			.limit(5000),
+		db
+			.select({
+				id: baglar.id,
+				kaynakId: baglar.kaynakId,
+				hedefId: baglar.hedefId,
+				not: baglar.not
+			})
+			.from(baglar)
+			.where(eq(baglar.sahipId, sahipId))
+			.limit(20000)
+	]);
+	return { dugumler: tumDugumler as HaritaDugumu[], baglar: tumBaglar as HaritaBagi[] };
 }
 
 // ——— Pano ———
