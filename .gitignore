@@ -1,0 +1,27 @@
+node_modules
+
+# Çıktılar
+.output
+/.svelte-kit
+/build
+
+# İşletim sistemi
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Ortam değişkenleri (gizli bilgiler)
+.env
+.env.*
+!.env.example
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Ekran görüntüleri ve geçici dosyalar
+/tmp
+*.log
+
+# Claude Code yerel ayarları
+.claude/settings.local.json
