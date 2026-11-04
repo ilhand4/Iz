@@ -35,6 +35,38 @@ export function bagTuruMu(deger: unknown): deger is BagTuru {
 	return typeof deger === 'string' && (BAG_TURLERI as readonly string[]).includes(deger);
 }
 
+/** Etki ölçeği: puan değil, düğümün hayatındaki ağırlığı */
+export const ETKI_DUZEYLERI = ['degistirdi', 'iz_birakti', 'gecti'] as const;
+export type Etki = (typeof ETKI_DUZEYLERI)[number];
+export const ETKI_ETIKETI: Record<Etki, string> = {
+	degistirdi: 'Beni değiştirdi',
+	iz_birakti: 'İz bıraktı',
+	gecti: 'Geçti gitti'
+};
+export function etkiMi(deger: unknown): deger is Etki {
+	return typeof deger === 'string' && (ETKI_DUZEYLERI as readonly string[]).includes(deger);
+}
+
+/** Dönem renkleri: tasarım belirteçlerine eşlenir (açık/koyu temada okunur) */
+export const DONEM_RENKLERI = ['kiremit', 'hardal', 'yesil', 'mavi', 'mor', 'gri'] as const;
+export type DonemRengi = (typeof DONEM_RENKLERI)[number];
+export const DONEM_RENGI_DEGISKENI: Record<DonemRengi, string> = {
+	kiremit: '--vurgu',
+	hardal: '--tur-eser',
+	yesil: '--tur-yer',
+	mavi: '--tur-karar',
+	mor: '--tur-ani',
+	gri: '--metin-soluk'
+};
+export const DONEM_RENGI_ADI: Record<DonemRengi, string> = {
+	kiremit: 'Kiremit',
+	hardal: 'Hardal',
+	yesil: 'Yeşil',
+	mavi: 'Mavi',
+	mor: 'Mor',
+	gri: 'Gri'
+};
+
 export type DugumTuru = (typeof DUGUM_TURLERI)[number];
 export type EserTuru = (typeof ESER_TURLERI)[number];
 export type Gizlilik = (typeof GIZLILIK_DUZEYLERI)[number];

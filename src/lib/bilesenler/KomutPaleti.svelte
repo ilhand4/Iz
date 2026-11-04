@@ -38,6 +38,7 @@
 			href: '/dugumler?durum=merak'
 		},
 		{ tur: 'eylem', id: 'e-hat', etiket: 'Hat haritası', simge: 'iz', href: '/izler/hat' },
+		{ tur: 'eylem', id: 'e-donemler', etiket: 'Dönemler', simge: 'takvim', href: '/donemler' },
 		{ tur: 'eylem', id: 'e-gruplar', etiket: 'Gruplar', simge: 'grup', href: '/gruplar' },
 		{ tur: 'eylem', id: 'e-ayarlar', etiket: 'Ayarlar', simge: 'ayar', href: '/ayarlar' }
 	];

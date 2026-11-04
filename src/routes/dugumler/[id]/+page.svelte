@@ -9,7 +9,13 @@
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import TurRozeti from '#lib/bilesenler/TurRozeti.svelte';
 	import TurSekli from '#lib/bilesenler/TurSekli.svelte';
-	import { durumEtiketi, ESER_DURUMLARI, type DugumTuru } from '#lib/sabitler.ts';
+	import {
+		durumEtiketi,
+		ESER_DURUMLARI,
+		ETKI_ETIKETI,
+		etkiMi,
+		type DugumTuru
+	} from '#lib/sabitler.ts';
 	import { tarihYaz } from '#lib/tarih.ts';
 	import type { PageProps } from './$types';
 
@@ -37,6 +43,13 @@
 			(data.eklendi || data.getirenSor) &&
 			data.baglar.gelen.length === 0 &&
 			data.secenekler.length > 0
+	);
+	const alintiHata = $derived(
+		(
+			form as {
+				alinti?: { hatalar: Record<string, string>; degerler: Record<string, string> };
+			} | null
+		)?.alinti ?? null
 	);
 	const uzakKapilar = $derived(data.kapilar.filter((k) => k.derinlik > 1));
 
@@ -204,6 +217,9 @@
 					</li>
 				{/if}
 			</ul>
+			{#if d.etki && etkiMi(d.etki)}
+				<span class="rozet etki-rozeti" data-etki={d.etki}>{ETKI_ETIKETI[d.etki]}</span>
+			{/if}
 			{#if d.aciklama}<p class="aciklama">{d.aciklama}</p>{/if}
 			{#if data.yol.length || data.kapilar.length}
 				<p class="olcuyler kucuk">
@@ -231,6 +247,62 @@
 		</div>
 	</article>
 
+	{#if data.alintilar.length || (data.sahibiMi && d.tur === 'eser')}
+		<section class="alintilar yigin" aria-labelledby="alintilar-baslik">
+			<h2 id="alintilar-baslik">Alıntılar</h2>
+			{#if data.alintilar.length}
+				<ul class="alinti-listesi">
+					{#each data.alintilar as a (a.id)}
+						<li>
+							<blockquote>
+								{a.metin}
+								{#if a.yer}<cite>{a.yer}</cite>{/if}
+							</blockquote>
+							{#if data.sahibiMi}
+								<form method="POST" action="?/alintiSil" use:enhance>
+									<input type="hidden" name="alintiId" value={a.id} />
+									<button class="dugme dugme-kucuk dugme-hayalet" aria-label="Alıntıyı sil">
+										<Simge ad="cop" boyut={14} />
+									</button>
+								</form>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			{/if}
+			{#if data.sahibiMi}
+				<details class="kart bag-formu" open={!!alintiHata}>
+					<summary>Alıntı ekle</summary>
+					<form method="POST" action="?/alintiEkle" class="yigin" use:enhance>
+						<Alan id="alintiMetin" etiket="Alıntı" hata={alintiHata?.hatalar.metin}>
+							<textarea id="alintiMetin" name="metin" rows="3" maxlength="2000" required
+								>{alintiHata?.degerler.metin ?? ''}</textarea
+							>
+						</Alan>
+						<Alan
+							id="alintiYer"
+							etiket="Nerede?"
+							hata={alintiHata?.hatalar.yer}
+							ipucu="İsteğe bağlı: s. 42, 1:12:30…"
+						>
+							<input
+								id="alintiYer"
+								name="yer"
+								maxlength="60"
+								value={alintiHata?.degerler.yer ?? ''}
+							/>
+						</Alan>
+						<p class="kucuk soluk">
+							Bu düğümden giden bir bağın notunu bir alıntıya iliştirebilirsin: “Bu cümle beni şuna
+							götürdü”.
+						</p>
+						<div class="satir"><button class="dugme dugme-birincil">Ekle</button></div>
+					</form>
+				</details>
+			{/if}
+		</section>
+	{/if}
+
 	<div class="baglar-izgara">
 		<section class="yigin" aria-labelledby="giden-baslik">
 			<h2 id="giden-baslik">Bu beni şuna götürdü</h2>
@@ -241,6 +313,7 @@
 							{bag}
 							yon="giden"
 							duzenlenebilir={data.sahibiMi}
+							alintiSecenekleri={data.sahibiMi ? data.alintilar : []}
 							hatalar={bagDuzenle?.bagId === bag.id ? bagDuzenle.hatalar : null}
 							degerler={bagDuzenle?.bagId === bag.id ? bagDuzenle.degerler : null}
 						/>
@@ -732,6 +805,51 @@
 	}
 	.yol p {
 		margin: 0 0 var(--a-3);
+	}
+	.etki-rozeti {
+		align-self: flex-start;
+		background: var(--vurgu-zemin);
+		color: var(--metin);
+	}
+	.etki-rozeti[data-etki='degistirdi'] {
+		box-shadow: inset 0 0 0 1.5px var(--vurgu);
+	}
+	.alintilar h2 {
+		margin: 0;
+	}
+	.alinti-listesi {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-3);
+	}
+	.alinti-listesi li {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--a-2);
+	}
+	.alinti-listesi blockquote {
+		flex: 1;
+		margin: 0;
+		padding: var(--a-2) var(--a-4);
+		border-left: 3px solid var(--tur-eser);
+		font-family: var(--yazi-baslik);
+		font-size: var(--boyut-lg);
+		font-style: italic;
+		white-space: pre-line;
+	}
+	.alinti-listesi cite {
+		display: block;
+		margin-top: var(--a-1);
+		font-family: var(--yazi-govde);
+		font-style: normal;
+		font-size: var(--boyut-sm);
+		color: var(--metin-soluk);
+	}
+	.alinti-listesi form {
+		margin: 0;
 	}
 	.kesif {
 		padding-top: var(--a-4);

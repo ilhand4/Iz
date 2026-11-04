@@ -6,12 +6,21 @@
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import TurRozeti from '#lib/bilesenler/TurRozeti.svelte';
 	import TurSekli from '#lib/bilesenler/TurSekli.svelte';
+	import { DONEM_RENGI_DEGISKENI, type DonemRengi } from '#lib/sabitler.ts';
 	import { AY_ADLARI } from '#lib/tarih.ts';
 	import type { ZamanOgesi } from '#lib/zaman.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	const cizgi = $derived(data.cizgi);
+	/** O yılla kesişen dönemler (bitiş yoksa sürüyor sayılır) */
+	function yilinDonemleri(yil: number) {
+		return data.donemler.filter(
+			(d) =>
+				Number(d.baslangic.slice(0, 4)) <= yil && (!d.bitis || Number(d.bitis.slice(0, 4)) >= yil)
+		);
+	}
+	const renk = (r: string) => `var(${DONEM_RENGI_DEGISKENI[r as DonemRengi] ?? '--vurgu'})`;
 	const enCok = $derived(Math.max(1, ...cizgi.yogunluk.map((y) => y.sayi)));
 	const tarihliSayi = $derived(cizgi.yillar.reduce((t, y) => t + y.sayi, 0));
 	const ilkYil = $derived(cizgi.yogunluk[0]?.yil);
@@ -61,6 +70,7 @@
 		aciklama="Düğümlerin yaşandıkları sırayla. Yalnızca yılı ya da ayı bilinenler, o yılın ya da ayın başında ayrıca gösterilir."
 	>
 		{#snippet eylemler()}
+			<a class="dugme" href="/donemler">Dönemler</a>
 			<a class="dugme dugme-birincil" href="/dugumler/yeni"
 				><Simge ad="ekle" boyut={18} /> Düğüm ekle</a
 			>
@@ -123,10 +133,19 @@
 		{#if cizgi.yillar.length}
 			<ol class="zaman-cizgisi">
 				{#each cizgi.yillar as y (y.yil)}
-					<li class="yil" id="yil-{y.yil}">
+					{@const donemleri = yilinDonemleri(y.yil)}
+					<li
+						class="yil"
+						class:donemli={donemleri.length > 0}
+						id="yil-{y.yil}"
+						style:--donem={donemleri.length ? renk(donemleri[0].renk) : undefined}
+					>
 						<h2 class="yil-baslik">
 							<span class="yil-no">{y.yil}</span>
 							<span class="yil-sayi">{y.sayi} düğüm</span>
+							{#each donemleri as dn (dn.id)}
+								<span class="donem-etiketi" style:--renk={renk(dn.renk)}>{dn.ad}</span>
+							{/each}
 						</h2>
 						{#if y.yilBoyunca.length}
 							<section class="ay" aria-label="{y.yil} yılı içinde">
@@ -237,7 +256,31 @@
 		padding-bottom: var(--a-5);
 		scroll-margin-top: calc(var(--ust-yukseklik) + var(--a-3));
 	}
+	/* Dönem bandı: yılın solunda renkli şerit */
+	.yil.donemli {
+		box-shadow: inset 4px 0 0 color-mix(in srgb, var(--donem) 70%, transparent);
+		padding-left: var(--a-3);
+		border-radius: var(--yaricap-sm);
+		background: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--donem) 7%, transparent),
+			transparent 40%
+		);
+	}
+	.donem-etiketi {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-1);
+		padding: 0 var(--a-2);
+		border-radius: var(--yaricap-tam);
+		background: color-mix(in srgb, var(--renk) 14%, var(--yuzey));
+		color: var(--metin);
+		font-size: var(--boyut-xs);
+		font-weight: 600;
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--renk) 45%, transparent);
+	}
 	.yil-baslik {
+		flex-wrap: wrap;
 		position: sticky;
 		top: var(--ust-yukseklik);
 		z-index: 2;

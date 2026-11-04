@@ -21,15 +21,25 @@
 			tarih: string | null;
 			tarihHassasiyeti: TarihHassasiyeti | null;
 			tur?: string | null;
+			alinti?: { id: string | null; metin: string | null; yer: string | null } | null;
 			dugum: { id: string; baslik: string; tur: DugumTuru; eserTuru: EserTuru | null };
 		};
 		yon: 'giden' | 'gelen';
 		duzenlenebilir: boolean;
+		/** Giden bağlarda: bu düğümün alıntıları (bağı bir alıntıya iliştirmek için) */
+		alintiSecenekleri?: { id: string; metin: string }[];
 		/** Bu bağın düzenleme formundan dönen hatalar */
 		hatalar?: Record<string, string> | null;
 		degerler?: Record<string, string> | null;
 	};
-	let { bag, yon, duzenlenebilir, hatalar = null, degerler = null }: Props = $props();
+	let {
+		bag,
+		yon,
+		duzenlenebilir,
+		alintiSecenekleri = [],
+		hatalar = null,
+		degerler = null
+	}: Props = $props();
 	let detay: HTMLDetailsElement | undefined = $state();
 </script>
 
@@ -46,6 +56,12 @@
 			{/if}
 		</div>
 		{#if bag.not}<p class="not">“{bag.not}”</p>{/if}
+		{#if bag.alinti?.id && bag.alinti.metin}
+			<blockquote class="alinti">
+				{bag.alinti.metin}
+				{#if bag.alinti.yer}<cite>{bag.alinti.yer}</cite>{/if}
+			</blockquote>
+		{/if}
 		{#if bag.tarih}<p class="tarih">{tarihYaz(bag.tarih, bag.tarihHassasiyeti)}</p>{/if}
 
 		{#if duzenlenebilir}
@@ -95,6 +111,21 @@
 					<div class="satir"><button class="dugme dugme-birincil dugme-kucuk">Kaydet</button></div>
 				</form>
 			</details>
+			{#if alintiSecenekleri.length}
+				<form method="POST" action="?/bagAlintisi" class="alinti-formu" use:enhance>
+					<input type="hidden" name="bagId" value={bag.id} />
+					<label class="kucuk soluk" for="alinti-{bag.id}">Alıntıya işaret et</label>
+					<select id="alinti-{bag.id}" name="alintiId">
+						<option value="">Yok</option>
+						{#each alintiSecenekleri as a (a.id)}
+							<option value={a.id} selected={bag.alinti?.id === a.id}
+								>{a.metin.length > 60 ? a.metin.slice(0, 59) + '…' : a.metin}</option
+							>
+						{/each}
+					</select>
+					<button class="dugme dugme-kucuk">İliştir</button>
+				</form>
+			{/if}
 		{/if}
 	</div>
 	{#if duzenlenebilir}
@@ -112,6 +143,32 @@
 </li>
 
 <style>
+	.alinti {
+		margin: var(--a-2) 0 0;
+		padding: var(--a-1) var(--a-3);
+		border-left: 3px solid var(--tur-eser);
+		font-family: var(--yazi-baslik);
+		font-style: italic;
+		font-size: var(--boyut-sm);
+	}
+	.alinti cite {
+		display: block;
+		font-family: var(--yazi-govde);
+		font-style: normal;
+		font-size: var(--boyut-xs);
+		color: var(--metin-soluk);
+	}
+	.alinti-formu {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--a-2);
+		margin-top: var(--a-2);
+	}
+	.alinti-formu select {
+		flex: 1 1 10rem;
+		min-width: 0;
+	}
 	.bag-turu {
 		background: var(--yuzey-2);
 		color: var(--metin);

@@ -58,6 +58,8 @@
 		y?: number | null;
 		/** Gölge düğüm: başkasının açık haritasında yalnızca tür şekli (başlık ve içerik yok) */
 		golge?: boolean;
+		/** Etki ölçeği: boyutu belirler (yoksa bağ sayısı) */
+		etki?: string | null;
 	};
 	type AgBagi = {
 		id: string;
@@ -83,6 +85,8 @@
 		bagKurabilir?: boolean;
 		/** Zaman sürgüsü: düğümler yaşandıkları tarihe göre belirir */
 		zamanSurgusu?: boolean;
+		/** Dönemler: tarihi bir döneme düşen düğümlerin çevresinde o dönemin renginde hale */
+		donemler?: { baslangic: string; bitis: string | null; renk: string }[];
 	};
 
 	let {
@@ -93,8 +97,16 @@
 		adreseYaz = false,
 		baslangic = {},
 		bagKurabilir = false,
-		zamanSurgusu = false
+		zamanSurgusu = false,
+		donemler = []
 	}: Props = $props();
+
+	/** Düğümün tarihinin düştüğü ilk dönemin rengi */
+	function donemRengi(tarih: string | null): string {
+		if (!tarih) return '';
+		const d = donemler.find((p) => p.baslangic <= tarih && (!p.bitis || p.bitis >= tarih));
+		return d?.renk ?? '';
+	}
 
 	let tuval: HTMLDivElement;
 	let cy: cytoscape.Core | null = null;
@@ -262,6 +274,29 @@
 					width: 3.2
 				}
 			},
+			// Etki ölçeği: boyut (puan değil); belirtilmemişse bağ sayısı
+			{ selector: 'node[etki = "degistirdi"]', style: { width: 62, height: 62, 'font-size': 16 } },
+			{ selector: 'node[etki = "iz_birakti"]', style: { width: 42, height: 42 } },
+			{ selector: 'node[etki = "gecti"]', style: { width: 22, height: 22, 'font-size': 12 } },
+			// Dönem haleleri
+			...(
+				[
+					['kiremit', r.vurgu],
+					['hardal', r.eser],
+					['yesil', r.yer],
+					['mavi', r.karar],
+					['mor', r.ani],
+					['gri', r.soluk]
+				] as const
+			).map(([ad, renk]) => ({
+				selector: `node[donem = "${ad}"]`,
+				style: {
+					'underlay-color': renk,
+					'underlay-opacity': 0.22,
+					'underlay-padding': 9,
+					'underlay-shape': 'ellipse' as const
+				}
+			})),
 			{ selector: 'edge.suzulen', style: { opacity: 0.07 } },
 			{ selector: 'node.gelecek', style: { display: 'none' } },
 			{
@@ -359,6 +394,8 @@
 					durum: d.durum ?? '',
 					etiket: d.golge ? '' : kisalt(d.baslik, 30),
 					golge: d.golge ? 1 : 0,
+					etki: d.etki ?? '',
+					donem: donemRengi(d.tarih),
 					derece: derece.get(d.id) ?? 0
 				},
 				position: konumlar?.get(d.id)
@@ -1151,6 +1188,14 @@
 	.zaman input {
 		flex: 1;
 		accent-color: var(--vurgu);
+	}
+	/* "Bağ kur" bir kip düğmesi: tür süzgecinin kapalı (soluk) biçemini almaz */
+	.cip.bag-kur[aria-pressed='false'] {
+		opacity: 1;
+		background: var(--yuzey);
+		color: var(--metin);
+		border-style: dashed;
+		text-decoration: none;
 	}
 	.bag-kur[aria-pressed='true'] {
 		background: var(--vurgu);

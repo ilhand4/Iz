@@ -36,7 +36,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			boylam: metin(d.boylam),
 			yerAdi: metin(d.yerAdi),
 			gizlilik: d.gizlilik,
-			durum: d.durum ?? ''
+			durum: d.durum ?? '',
+			etki: d.etki ?? ''
 		}
 	};
 };

@@ -11,7 +11,13 @@ const SAYFALAR = [
 	'/cop-kutusu',
 	'/ara',
 	'/ayarlar',
-	'/sifremi-unuttum'
+	'/sifremi-unuttum',
+	'/gruplar',
+	'/bildirimler',
+	'/donemler',
+	'/izler/hat',
+	'/dugumler/ag',
+	'/dugumler/zaman'
 ];
 
 for (const tema of ['light', 'dark'] as const) {

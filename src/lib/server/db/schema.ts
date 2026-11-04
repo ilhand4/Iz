@@ -14,7 +14,8 @@ import {
 	timestamp,
 	unique,
 	uniqueIndex,
-	uuid
+	uuid,
+	type AnyPgColumn
 } from 'drizzle-orm/pg-core';
 
 import {
@@ -230,6 +231,8 @@ export const dugumler = pgTable(
 		aramaMetni: text('arama_metni').generatedAlwaysAs((): SQL =>
 			sadelestirSql(sql`${dugumler.baslik} || ' ' || coalesce(${dugumler.altBaslik}, '')`)
 		),
+		/** Etki ölçeği (puan değil): degistirdi / iz_birakti / gecti; null: belirtilmemiş */
+		etki: text('etki'),
 		/** Eserin ortak kaydı (tetikleyiciyle doldurulur; eser değilse null) */
 		kanonikEserId: uuid('kanonik_eser_id').references(() => kanonikEserler.id, {
 			onDelete: 'set null'
@@ -253,7 +256,11 @@ export const dugumler = pgTable(
 			sql`(${t.enlem} is null) = (${t.boylam} is null) and (${t.enlem} is null or (${t.enlem} between -90 and 90 and ${t.boylam} between -180 and 180))`
 		),
 		check('dugumler_tarih_kontrol', sql`(${t.tarih} is null) = (${t.tarihHassasiyeti} is null)`),
-		check('dugumler_baslik_kontrol', sql`length(${t.baslik}) between 1 and 200`)
+		check('dugumler_baslik_kontrol', sql`length(${t.baslik}) between 1 and 200`),
+		check(
+			'dugumler_etki_kontrol',
+			sql`${t.etki} is null or ${t.etki} in ('degistirdi', 'iz_birakti', 'gecti')`
+		)
 	]
 );
 
@@ -280,6 +287,10 @@ export const baglar = pgTable(
 		tarihHassasiyeti: tarihHassasiyeti('tarih_hassasiyeti'),
 		/** besler / celisir / cagristirir / sentezler; null: belirtilmemiş */
 		tur: text('tur'),
+		/** Bağ notu kaynak düğümün bir alıntısına işaret edebilir */
+		alintiId: uuid('alinti_id').references((): AnyPgColumn => alintilar.id, {
+			onDelete: 'set null'
+		}),
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
 	},
 	(t) => [
@@ -311,6 +322,9 @@ export const izler = pgTable(
 		guncelleme: zamanDamgasi('guncelleme').notNull().defaultNow(),
 		/** Doluysa iz çöp kutusundadır */
 		silinme: zamanDamgasi('silinme'),
+		/** Çatallanma: bu iz hangi izden, kaçıncı duraktan sonra ayrıldı */
+		ataIzId: uuid('ata_iz_id').references((): AnyPgColumn => izler.id, { onDelete: 'set null' }),
+		ayrilmaSirasi: integer('ayrilma_sirasi'),
 		/** Ortak iz: bu grubun üyeleri izi görür ve kendi düğümlerinden durak ekleyebilir */
 		ortakGrupId: uuid('ortak_grup_id').references(() => gruplar.id, { onDelete: 'set null' }),
 		aramaMetni: text('arama_metni').generatedAlwaysAs((): SQL =>
@@ -426,6 +440,53 @@ export const eserAramaOnbellegi = pgTable('eser_arama_onbellegi', {
 	sonuclar: jsonb('sonuclar').notNull(),
 	zaman: zamanDamgasi('zaman').notNull().defaultNow()
 });
+
+// ——— Dönemler (hayat bölümleri): "Kadıköy yılları 2004–2011" ———
+
+export const donemler = pgTable(
+	'donemler',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		sahipId: uuid('sahip_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		ad: text('ad').notNull(),
+		baslangic: date('baslangic', { mode: 'string' }).notNull(),
+		/** null: sürüyor */
+		bitis: date('bitis', { mode: 'string' }),
+		/** Palet anahtarı: kiremit, hardal, yesil, mavi, mor, gri */
+		renk: text('renk').notNull().default('kiremit'),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		index('donemler_sahip_idx').on(t.sahipId, t.baslangic),
+		check('donemler_ad_kontrol', sql`length(${t.ad}) between 1 and 80`),
+		check('donemler_aralik_kontrol', sql`${t.bitis} is null or ${t.bitis} >= ${t.baslangic}`)
+	]
+);
+
+// ——— Alıntılar: eserlerden satırlar ———
+
+export const alintilar = pgTable(
+	'alintilar',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		sahipId: uuid('sahip_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		dugumId: uuid('dugum_id')
+			.notNull()
+			.references(() => dugumler.id, { onDelete: 'cascade' }),
+		metin: text('metin').notNull(),
+		/** "s. 42", "1:12:30" gibi yer bilgisi */
+		yer: text('yer'),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		index('alintilar_dugum_idx').on(t.dugumId),
+		check('alintilar_metin_kontrol', sql`length(${t.metin}) between 1 and 2000`)
+	]
+);
 
 // ——— Kalıcı hız sınırı (UNLOGGED): sunucu yeniden başlasa ya da çoğalsa da sınırlar korunur ———
 

@@ -6,6 +6,8 @@
 		ESER_DURUMLARI,
 		ESER_TURLERI,
 		ESER_TURU_ETIKETI,
+		ETKI_DUZEYLERI,
+		ETKI_ETIKETI,
 		durumEtiketi,
 		eserTuruMu
 	} from '#lib/sabitler.ts';
@@ -433,6 +435,25 @@
 			<p class="kucuk soluk">Harita görünümü geldiğinde konumu haritadan seçebileceksin.</p>
 		</div>
 	</details>
+
+	<fieldset class="alan">
+		<legend class="etiket"
+			>Hayatındaki etkisi <span class="soluk">(isteğe bağlı, puan değil)</span></legend
+		>
+		<div class="secenekler kucuk-secenekler">
+			<label class="secenek durum-secenegi">
+				<input type="radio" name="etki" value="" checked={!d('etki')} />
+				<span>Belirtme</span>
+			</label>
+			{#each ETKI_DUZEYLERI as e (e)}
+				<label class="secenek durum-secenegi">
+					<input type="radio" name="etki" value={e} checked={d('etki') === e} />
+					<span>{ETKI_ETIKETI[e]}</span>
+				</label>
+			{/each}
+		</div>
+		<span class="ipucu">Ağda düğümün büyüklüğünü belirler.</span>
+	</fieldset>
 
 	<GizlilikSecici secili={d('gizlilik')} hata={hatalar.gizlilik} />
 	<p class="kisi-uyarisi bildirim bildirim-uyari" role="note">

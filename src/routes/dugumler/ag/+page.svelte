@@ -62,6 +62,7 @@
 			baglar={data.baglar}
 			odakId={data.odakId}
 			baslangic={data.baslangic}
+			donemler={data.donemler}
 			adreseYaz
 			bagKurabilir
 			zamanSurgusu

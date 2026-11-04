@@ -61,6 +61,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		eklenebilir: tumSecenekler.filter((s) => !izdekiler.has(s.id)),
 		oneriler,
 		yeni: url.searchParams.has('yeni'),
+		catal: url.searchParams.has('catal'),
 		sahibiMi: iz.sahibiMi,
 		ortakGrup: iz.ortakGrup,
 		gruplar: iz.sahibiMi ? (await gruplarim(kullanici.id)).map((g) => ({ id: g.id, ad: g.ad })) : []

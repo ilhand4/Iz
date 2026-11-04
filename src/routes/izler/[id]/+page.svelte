@@ -14,6 +14,7 @@
 	type GorunurDurak = Extract<Durak, { dugum: unknown }>;
 
 	const iz = $derived(data.iz);
+	const ayrilanlar = (i: number) => data.catallar.filter((c) => c.ayrilmaSirasi === i + 1);
 	const gorunurDuraklar = $derived(data.duraklar.filter((d): d is GorunurDurak => !('gizli' in d)));
 	const yillar = $derived(
 		gorunurDuraklar
@@ -107,6 +108,13 @@
 		</details>
 	{/if}
 
+	{#if data.ata}
+		<p class="bildirim bildirim-bilgi">
+			Bu yol, <a href="/izler/{data.ata.id}">{data.ata.baslik}</a> izinden
+			{iz.ayrilmaSirasi}. duraktan sonra ayrılıyor.
+		</p>
+	{/if}
+
 	{#if data.gorunmeyenDurakSayisi > 0}
 		<p class="bildirim bildirim-uyari">
 			Bu iz herkese açık ama {data.gorunmeyenDurakSayisi} durağındaki düğüm herkese açık değil. Başkaları
@@ -198,6 +206,29 @@
 							{/if}
 						</div>
 					{/if}
+					{#if ayrilanlar(i).length || (data.sahibiMi && sonraki)}
+						<div class="catal">
+							{#if ayrilanlar(i).length}
+								<span class="kucuk"
+									><Simge ad="iz" boyut={14} /> Buradan ayrılan yollar:
+									{#each ayrilanlar(i) as c, j (c.id)}{j ? ', ' : ''}<a href="/izler/{c.id}"
+											>{c.baslik}</a
+										>{/each}</span
+								>
+							{/if}
+							{#if data.sahibiMi && sonraki}
+								<form method="POST" action="?/catalla" class="catal-formu">
+									<input type="hidden" name="sira" value={i + 1} />
+									<button
+										class="dugme dugme-hayalet dugme-kucuk"
+										title="Buraya kadarki duraklarla yeni bir iz başlat"
+									>
+										Buradan başka bir yol…
+									</button>
+								</form>
+							{/if}
+						</div>
+					{/if}
 				</li>
 			{/each}
 			<li class="son" aria-label="İzin sonu">
@@ -209,6 +240,23 @@
 </div>
 
 <style>
+	.catal {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--a-1) var(--a-3);
+		margin-top: var(--a-2);
+		color: var(--metin-soluk);
+	}
+	.catal > span {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-1);
+		flex-wrap: wrap;
+	}
+	.catal-formu {
+		margin: 0;
+	}
 	.ortak-rozet {
 		background: var(--vurgu-zemin);
 		color: var(--metin);

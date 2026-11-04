@@ -80,6 +80,8 @@ export type DugumOzeti = {
 	tarih: string | null;
 	tarihHassasiyeti: TarihHassasiyeti | null;
 	durum: EserDurumu | null;
+	/** Etki ölçeği (degistirdi / iz_birakti / gecti) */
+	etki?: string | null;
 };
 
 const ozetAlanlari = {
@@ -92,7 +94,8 @@ const ozetAlanlari = {
 	gizlilik: dugumler.gizlilik,
 	tarih: dugumler.tarih,
 	tarihHassasiyeti: dugumler.tarihHassasiyeti,
-	durum: dugumler.durum
+	durum: dugumler.durum,
+	etki: dugumler.etki
 };
 
 export async function dugumleriListele(

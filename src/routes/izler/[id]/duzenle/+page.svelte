@@ -84,6 +84,12 @@
 		{/snippet}
 	</SayfaBasligi>
 
+	{#if data.catal && !form}
+		<p class="bildirim bildirim-basari">
+			Başka bir yol başladı: ilk duraklar kopyalandı. Şimdi bu yolun nereye gittiğini ekle ve izine
+			bir ad ver.
+		</p>
+	{/if}
 	{#if data.yeni && !form}
 		<p class="bildirim bildirim-basari">İz oluşturuldu. Şimdi duraklarını ekle ve sırala.</p>
 	{/if}

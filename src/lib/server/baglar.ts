@@ -5,7 +5,7 @@ import { alias } from 'drizzle-orm/pg-core';
 import { sadelestir, satirIciBaglar } from '../metin';
 import type { DugumTuru, EserTuru } from '../sabitler';
 import { db } from './db';
-import { baglar, dugumler } from './db/schema';
+import { alintilar, baglar, dugumler } from './db/schema';
 import type { BagBilgisi, BagVerisi } from './dogrulama';
 import { etkin, gorunurluk, satirlar } from './dugumler';
 
@@ -17,6 +17,7 @@ export async function dugumBaglari(dugumId: string, izleyenId: string | null) {
 		id: baglar.id,
 		not: baglar.not,
 		tur: baglar.tur,
+		alinti: { id: alintilar.id, metin: alintilar.metin, yer: alintilar.yer },
 		tarih: baglar.tarih,
 		tarihHassasiyeti: baglar.tarihHassasiyeti,
 		dugum: {
@@ -31,12 +32,14 @@ export async function dugumBaglari(dugumId: string, izleyenId: string | null) {
 			.select(alanlar)
 			.from(baglar)
 			.innerJoin(karsi, eq(baglar.hedefId, karsi.id))
+			.leftJoin(alintilar, eq(baglar.alintiId, alintilar.id))
 			.where(and(eq(baglar.kaynakId, dugumId), gorunurluk(karsi, izleyenId)))
 			.orderBy(asc(baglar.olusturma)),
 		db
 			.select(alanlar)
 			.from(baglar)
 			.innerJoin(karsi, eq(baglar.kaynakId, karsi.id))
+			.leftJoin(alintilar, eq(baglar.alintiId, alintilar.id))
 			.where(and(eq(baglar.hedefId, dugumId), gorunurluk(karsi, izleyenId)))
 			.orderBy(asc(baglar.olusturma))
 	]);
@@ -225,4 +228,19 @@ export async function satirIciBaglariKur(
 		if (durum === 'kuruldu') kurulan++;
 	}
 	return kurulan;
+}
+
+/** Bağı, kaynak düğümünün bir alıntısına iliştirir (alintiId null: ilişiği kaldırır) */
+export async function bagAlintisiAyarla(
+	bagId: string,
+	sahipId: string,
+	kaynakId: string,
+	alintiId: string | null
+) {
+	const s = await db
+		.update(baglar)
+		.set({ alintiId })
+		.where(and(eq(baglar.id, bagId), eq(baglar.sahipId, sahipId), eq(baglar.kaynakId, kaynakId)))
+		.returning({ id: baglar.id });
+	return s.length > 0;
 }

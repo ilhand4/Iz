@@ -1,8 +1,16 @@
 import { error, fail } from '@sveltejs/kit';
 import { durumEtiketi, eserDurumuMu } from '#lib/sabitler.ts';
-import { alan, bagBilgisiDogrula, bagDogrula, uuidMu } from '#lib/server/dogrulama.ts';
+import {
+	alan,
+	alintiDogrula,
+	bagBilgisiDogrula,
+	bagDogrula,
+	uuidMu
+} from '#lib/server/dogrulama.ts';
+import { alintiEkle, alintiKaynagi, alintilariListele, alintiSil } from '#lib/server/dusunce.ts';
 import {
 	actigiKapilar,
+	bagAlintisiAyarla,
 	bagGuncelle,
 	bagKur,
 	bagSil,
@@ -46,7 +54,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		kesifler,
 		gelenDis,
 		gidenDis,
-		kendiSeceneklerim
+		kendiSeceneklerim,
+		alintiListesi
 	] = await Promise.all([
 		dugumBaglari(params.id, izleyenId),
 		geldigiYol(params.id, izleyenId),
@@ -59,7 +68,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		gelenDisBaglar(params.id, izleyenId),
 		gidenDisBaglar(params.id, izleyenId),
 		// Başkasının düğümüne bakan kişi, kendi düğümlerinden birine bağ kurabilir
-		izleyenId && !sahibiMi ? dugumSecenekleri(izleyenId) : Promise.resolve([])
+		izleyenId && !sahibiMi ? dugumSecenekleri(izleyenId) : Promise.resolve([]),
+		alintilariListele(params.id, izleyenId)
 	]);
 
 	// Sahip kimliği ve iç alanlar sayfaya gönderilmez
@@ -79,6 +89,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		gelenDis,
 		gidenDis,
 		kendiSeceneklerim,
+		alintilar: alintiListesi,
 		indekslenebilir: dugum.gizlilik === 'herkes' && sonuc.sahip.aramaMotorlari,
 		eklendi: url.searchParams.has('eklendi'),
 		getirenSor: url.searchParams.has('getiren')
@@ -166,6 +177,45 @@ export const actions: Actions = {
 						? `Durum: ${durumEtiketi(durum, sonuc.eserTuru)}.`
 						: 'Durum kaldırıldı.'
 			}
+		};
+	},
+
+	alintiEkle: async ({ params, request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		if (!uuidMu(params.id)) error(404, BULUNAMADI);
+		const sonuc = alintiDogrula(await request.formData());
+		if (!sonuc.tamam) {
+			return fail(400, { alinti: { hatalar: sonuc.hatalar, degerler: sonuc.degerler } });
+		}
+		if (!(await alintiEkle(kullanici.id, params.id, sonuc.veri))) error(404, BULUNAMADI);
+		return { bildirim: { mesaj: 'Alıntı eklendi.' } };
+	},
+
+	alintiSil: async ({ request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const id = alan(await request.formData(), 'alintiId');
+		if (!uuidMu(id) || !(await alintiSil(id, kullanici.id))) error(404, 'Alıntı bulunamadı.');
+		return { bildirim: { mesaj: 'Alıntı silindi.' } };
+	},
+
+	/** Bağı bu düğümün bir alıntısına iliştirir (ya da ilişiği kaldırır) */
+	bagAlintisi: async ({ params, request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const fd = await request.formData();
+		const bagId = alan(fd, 'bagId');
+		const alintiId = alan(fd, 'alintiId');
+		if (!uuidMu(params.id) || !uuidMu(bagId)) error(404, 'Bağ bulunamadı.');
+		if (
+			alintiId &&
+			(!uuidMu(alintiId) || (await alintiKaynagi(alintiId, kullanici.id)) !== params.id)
+		) {
+			error(404, 'Alıntı bulunamadı.');
+		}
+		if (!(await bagAlintisiAyarla(bagId, kullanici.id, params.id, alintiId || null))) {
+			error(404, 'Bağ bulunamadı.');
+		}
+		return {
+			bildirim: { mesaj: alintiId ? 'Bağ alıntıya iliştirildi.' : 'Alıntı ilişiği kaldırıldı.' }
 		};
 	},
 

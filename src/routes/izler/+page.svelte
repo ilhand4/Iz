@@ -25,6 +25,7 @@
 		aciklama="Düğümlerinden seçip sıraya dizdiğin yollar. Her durağa bir not yaz; izi bir hikâye gibi oku ya da paylaş."
 	>
 		{#snippet eylemler()}
+			<a class="dugme" href="/izler/hat"><Simge ad="harita" boyut={18} /> Hat haritası</a>
 			<a class="dugme" href="/gruplar"><Simge ad="grup" boyut={18} /> Gruplar</a>
 			<a class="dugme dugme-birincil" href="/izler/yeni"><Simge ad="ekle" boyut={18} /> Yeni iz</a>
 		{/snippet}

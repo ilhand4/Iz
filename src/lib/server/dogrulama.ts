@@ -6,7 +6,11 @@ import {
 	eserTuruMu,
 	gizlilikMi,
 	type BagTuru,
+	DONEM_RENKLERI,
+	type DonemRengi,
 	type DugumTuru,
+	type Etki,
+	etkiMi,
 	type EserDurumu,
 	type EserTuru,
 	type Gizlilik,
@@ -181,6 +185,8 @@ export type DugumVerisi = {
 	gizlilik: Gizlilik;
 	/** Yalnızca eserler için; diğer türlerde null */
 	durum: EserDurumu | null;
+	/** Etki ölçeği; formda alan yoksa dokunulmaz */
+	etki?: Etki | null;
 };
 
 const DUGUM_ALANLARI = [
@@ -270,9 +276,67 @@ export function dugumDogrula(fd: FormData): Sonuc<DugumVerisi> {
 			boylam: konumVar ? boylam : null,
 			yerAdi: d.yerAdi || null,
 			gizlilik: gizlilik as Gizlilik,
-			durum
+			durum,
+			...(fd.has('etki') ? { etki: etkiMi(fd.get('etki')) ? (fd.get('etki') as Etki) : null } : {})
 		}
 	};
+}
+
+// ——— Dönemler ve alıntılar ———
+
+export type DonemVerisi = { ad: string; baslangic: string; bitis: string | null; renk: DonemRengi };
+
+/** Dönem: başlangıç zorunlu, bitiş isteğe bağlı (sürüyor). Tarihler gün/ay/yıl hassasiyetinde girilir */
+export function donemDogrula(fd: FormData): Sonuc<DonemVerisi> {
+	const v = degerleriAl(fd, ['ad', 'baslangic', 'bitis', 'renk']);
+	const hatalar: Hatalar = {};
+	if (!v.ad) hatalar.ad = 'Döneme bir ad ver.';
+	else if (v.ad.length > 80) hatalar.ad = 'Ad en fazla 80 karakter olabilir.';
+	const bas = tarihCoz(v.baslangic);
+	if (!bas) hatalar.baslangic = 'Başlangıç tarihini yaz (ör. 2004).';
+	else if (bas === 'gecersiz') hatalar.baslangic = TARIH_HATASI;
+	const bit = tarihCoz(v.bitis);
+	if (bit === 'gecersiz') hatalar.bitis = TARIH_HATASI;
+	// Bitiş yılı/ayı verildiyse o dönemin sonuna kadar sayılır
+	const bitisSonu =
+		bit && bit !== 'gecersiz'
+			? bit.hassasiyet === 'yil'
+				? `${bit.tarih.slice(0, 4)}-12-31`
+				: bit.hassasiyet === 'ay'
+					? ayinSonGunu(bit.tarih)
+					: bit.tarih
+			: null;
+	if (bas && bas !== 'gecersiz' && bitisSonu && bitisSonu < bas.tarih)
+		hatalar.bitis = 'Bitiş başlangıçtan önce olamaz.';
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: v };
+	return {
+		tamam: true,
+		veri: {
+			ad: v.ad,
+			baslangic: (bas as { tarih: string }).tarih,
+			bitis: bitisSonu,
+			renk: (DONEM_RENKLERI as readonly string[]).includes(v.renk)
+				? (v.renk as DonemRengi)
+				: 'kiremit'
+		}
+	};
+}
+
+function ayinSonGunu(ayBasi: string) {
+	const [y, a] = ayBasi.split('-').map(Number);
+	const son = new Date(Date.UTC(y, a, 0)).getUTCDate();
+	return `${ayBasi.slice(0, 7)}-${String(son).padStart(2, '0')}`;
+}
+
+export function alintiDogrula(fd: FormData): Sonuc<{ metin: string; yer: string | null }> {
+	const metin = String(fd.get('metin') ?? '').trim();
+	const yer = alan(fd, 'yer');
+	const hatalar: Hatalar = {};
+	if (!metin) hatalar.metin = 'Alıntıyı yaz.';
+	else if (metin.length > 2000) hatalar.metin = 'Alıntı en fazla 2000 karakter olabilir.';
+	if (yer.length > 60) hatalar.yer = 'En fazla 60 karakter.';
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: { metin, yer } };
+	return { tamam: true, veri: { metin, yer: yer || null } };
 }
 
 // ——— Bağ ———

@@ -259,6 +259,8 @@ export type IzAyrintisi = {
 		aciklama: string | null;
 		gizlilik: Gizlilik;
 		ortakGrupId: string | null;
+		ataIzId: string | null;
+		ayrilmaSirasi: number | null;
 		olusturma: Date;
 		guncelleme: Date;
 	};
@@ -720,4 +722,40 @@ export async function sonrakiDurakOnerileri(izId: string, sahipId: string) {
 		)
 		.orderBy(asc(dugumler.baslik))
 		.limit(12);
+}
+
+/** Hat haritası için: kullanıcının izleri ve tüm durakları (tarihleriyle), en son güncellenenler */
+export async function hatVerisi(sahipId: string, enFazla = 30) {
+	const liste = await db
+		.select({ id: izler.id, baslik: izler.baslik })
+		.from(izler)
+		.where(and(eq(izler.sahipId, sahipId), etkin(izler)))
+		.orderBy(desc(izler.guncelleme))
+		.limit(enFazla);
+	if (!liste.length) return [];
+	const adimlar = await db
+		.select({
+			izId: izAdimlari.izId,
+			id: dugumler.id,
+			baslik: dugumler.baslik,
+			tur: dugumler.tur,
+			tarih: dugumler.tarih
+		})
+		.from(izAdimlari)
+		.innerJoin(dugumler, eq(izAdimlari.dugumId, dugumler.id))
+		.where(
+			and(
+				inArray(
+					izAdimlari.izId,
+					liste.map((i) => i.id)
+				),
+				eq(dugumler.sahipId, sahipId),
+				etkin(dugumler)
+			)
+		)
+		.orderBy(asc(izAdimlari.izId), asc(izAdimlari.sira));
+	return liste.map((iz) => ({
+		...iz,
+		duraklar: adimlar.filter((a) => a.izId === iz.id).map(({ izId: _izId, ...d }) => d)
+	}));
 }
