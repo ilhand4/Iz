@@ -69,15 +69,16 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 - [ ] Keşif yolu önerileri: puan değil, başkalarının gerçek yolları ("X'ten Y'ye gidenler Z'ye de gitti")
 - [ ] Paylaşılabilir iz bağlantıları ve tür şekilleriyle otomatik Open Graph görseli (PNG)
 - [x] Hesap ayarları (`/ayarlar`): görünen ad, kısa tanıtım, şifre değiştirme (diğer oturumlar kapanır), e-posta değiştirme (şimdilik şifreyle onay), hesap silme (kullanıcı adı + şifre); şifre soran işlemlerde kullanıcı başına hız sınırı
-- [ ] Şifre sıfırlama ve e-posta doğrulama — **e-posta servisini kullanıcı seçecek**; seçilene kadar geliştirmede bağlantı terminale yazılır
+- [x] Şifre sıfırlama (1 saat, tek kullanımlık; tüm oturumları kapatır) ve e-posta doğrulama (kayıtta ve e-posta değişince; eski adrese bilgi iletisi). Hesap varlığı sızdırmayan yanıt, IP ve adres başına hız sınırı
+- [ ] **E-posta servisi seçimi (kullanıcının kararı):** seçilene kadar geliştirmede iletiler terminale yazılır, üretimde gönderilmez
 - [x] Veri dışa aktarma (JSON + Markdown) ve JSON'dan içe aktarma (KVKK için de gerekli): sürümlü biçim, eklemeli içe aktarma, kimlikler yeniden üretilir, aynı dış eser birleşir, bozuk kayıtlar atlanır; en çok 5 MB
-- [ ] pg_trgm ile yazım hatasına dayanıklı arama (düğümler, izler; Türkçe sadeleştirmeyle birlikte)
-- [ ] İmleç tabanlı sayfalama: `/dugumler` (şu an 200'de kesiliyor) ve `/izler` (100)
-- [ ] Eser araması için veritabanında önbellek (UNLOGGED tablo, ~24 saat) — dış servis kotasını korur
+- [x] pg_trgm ile yazım hatasına dayanıklı arama (düğümler, izler): Türkçe karakterleri sadeleştiren üretilmiş `arama_metni` sütunu + GIN trigram dizini; birebir eşleşme önce, sonra benzerlik
+- [x] İmleç tabanlı sayfalama: `/dugumler` (60'ar) ve `/izler` (30'ar); "Daha fazla göster" sayfayı yenilemeden ekler, JavaScript'siz de çalışır
+- [x] Eser araması için veritabanında önbellek (UNLOGGED tablo, ~24 saat) — dış servis kotasını korur; veritabanı hata verirse arama yine çalışır
 - [x] Düğüm sayfasındaki "Geçtiği izler" listesi `IzKarti` önizlemesine dönüştü
 - [ ] **"Senin izin beni buraya götürdü":** başkasının açık düğümünden kendi düğümüne bağ; sahibine bildirim gider. Beğeni ve takipçi sayısı yok, sonsuz akış yok
 - [ ] Ortak izler (çiftler, aileler, kitap kulüpleri; öğretmenler için okuma izleri)
-- [ ] İz gömme (blog) ve herkese açık profil için RSS
+- [x] İz gömme (`/izler/<id>/gom`, yalnızca bu rota çerçevelenebilir; anonim görünüm) ve herkese açık profil için RSS (`/@kullanici/rss.xml`)
 - [x] Oturum yönetimi: açık oturumlar (cihaz, son kullanım), tek tek ya da topluca kapatma
 - [ ] Passkey ile şifresiz giriş
 - [x] Herkese açık sayfalar varsayılan olarak arama motorlarına kapalı (noindex); isteyen ayarlardan açar (tanıtım sayfası her zaman açık)

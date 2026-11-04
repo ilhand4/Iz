@@ -29,6 +29,12 @@
 
 <svelte:head>
 	<title>{p.ad} (@{p.kullaniciAdi}) · İz</title>
+	<link
+		rel="alternate"
+		type="application/rss+xml"
+		title="{p.ad} · İz izleri"
+		href="/@{p.kullaniciAdi}/rss.xml"
+	/>
 	<meta
 		name="description"
 		content={p.hakkinda ?? `${p.ad} adlı kişinin İz'deki herkese açık haritası ve izleri.`}
@@ -77,7 +83,10 @@
 	{:else}
 		{#if data.izler.length}
 			<section class="yigin" aria-labelledby="izler-baslik">
-				<h2 id="izler-baslik">İzler</h2>
+				<div class="bolum-ust">
+					<h2 id="izler-baslik">İzler</h2>
+					<a class="kucuk rss" href="/@{p.kullaniciAdi}/rss.xml">RSS ile takip et</a>
+				</div>
 				<div class="izgara">
 					{#each data.izler as iz (iz.id)}
 						<IzKarti {iz} />
@@ -184,6 +193,15 @@
 	}
 	.sayilar strong {
 		color: var(--metin);
+	}
+	.bolum-ust {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: var(--a-3);
+	}
+	.rss {
+		color: var(--metin-soluk);
 	}
 	.izgara {
 		display: grid;

@@ -14,6 +14,7 @@ export async function hesapGetir(id: string) {
 			ad: kullanicilar.ad,
 			hakkinda: kullanicilar.hakkinda,
 			aramaMotorlari: kullanicilar.aramaMotorlari,
+			epostaDogrulandi: kullanicilar.epostaDogrulandi,
 			olusturma: kullanicilar.olusturma
 		})
 		.from(kullanicilar)
@@ -56,8 +57,8 @@ export async function sifreDegistir(
 }
 
 /**
- * E-postayı değiştirir. E-posta doğrulaması, e-posta servisi seçilince eklenecek (ROADMAP 3a);
- * o zamana kadar değişiklik şifreyle onaylanır.
+ * E-postayı değiştirir (şifreyle onaylanır). Yeni adres doğrulanmamış sayılır; doğrulama bağlantısı
+ * ve eski adrese bilgi iletisi rota tarafından gönderilir.
  */
 export async function epostaDegistir(
 	id: string,
@@ -71,7 +72,10 @@ export async function epostaDegistir(
 		.where(and(eq(kullanicilar.eposta, yeniEposta), ne(kullanicilar.id, id)));
 	if (baskasi) return 'kullaniliyor';
 	try {
-		await db.update(kullanicilar).set({ eposta: yeniEposta }).where(eq(kullanicilar.id, id));
+		await db
+			.update(kullanicilar)
+			.set({ eposta: yeniEposta, epostaDogrulandi: null })
+			.where(eq(kullanicilar.id, id));
 	} catch (hata) {
 		// Aynı anda başka bir hesap aynı adresi aldıysa tekil dizin yakalar
 		const h = hata as { code?: string; cause?: { code?: string } };

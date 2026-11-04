@@ -290,8 +290,20 @@ async function tohumla() {
 	const [demo, ayse] = await db
 		.insert(kullanicilar)
 		.values([
-			{ kullaniciAdi: 'demo', eposta: 'demo@iz.test', ad: 'Deniz Demir', sifreOzeti: ozet },
-			{ kullaniciAdi: 'ayse', eposta: 'ayse@iz.test', ad: 'Ayşe Işık', sifreOzeti: ozet }
+			{
+				kullaniciAdi: 'demo',
+				eposta: 'demo@iz.test',
+				ad: 'Deniz Demir',
+				sifreOzeti: ozet,
+				epostaDogrulandi: new Date()
+			},
+			{
+				kullaniciAdi: 'ayse',
+				eposta: 'ayse@iz.test',
+				ad: 'Ayşe Işık',
+				sifreOzeti: ozet,
+				epostaDogrulandi: new Date()
+			}
 		])
 		.returning({ id: kullanicilar.id });
 

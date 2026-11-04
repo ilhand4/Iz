@@ -59,3 +59,9 @@ export function beklemeMesaji(saniye: number): string {
 export const hesapSiniri = new HizSiniri(10, 15 * 60_000);
 /** Kullanıcı başına: saatte 5 içe aktarma */
 export const iceAktarmaSiniri = new HizSiniri(5, 60 * 60_000);
+/** IP başına: saatte 5 şifre sıfırlama isteği */
+export const sifirlamaSiniri = new HizSiniri(5, 60 * 60_000);
+/** E-posta adresi başına: saatte 3 sıfırlama iletisi (bir adres iletiye boğulmasın) */
+export const sifirlamaEpostaSiniri = new HizSiniri(3, 60 * 60_000);
+/** Kullanıcı başına: saatte 3 doğrulama iletisi */
+export const dogrulamaSiniri = new HizSiniri(3, 60 * 60_000);

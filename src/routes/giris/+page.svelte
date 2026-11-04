@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import Alan from '#lib/bilesenler/Alan.svelte';
 	import type { PageProps } from './$types';
 
@@ -27,6 +28,11 @@
 				};
 			}}
 		>
+			{#if page.url.searchParams.has('sifirlandi') && !form}
+				<p class="bildirim bildirim-basari" role="status">
+					Şifren değiştirildi. Yeni şifrenle giriş yapabilirsin.
+				</p>
+			{/if}
 			{#if h?.genel}<p class="bildirim bildirim-hata" role="alert">{h.genel}</p>{/if}
 
 			<Alan id="eposta" etiket="E-posta" hata={h?.eposta}>
@@ -40,7 +46,7 @@
 					required
 				/>
 			</Alan>
-			<Alan id="sifre" etiket="Şifre" hata={h?.sifre}>
+			<Alan id="sifre" etiket="Şifre" hata={h?.sifre} ipucu={null}>
 				<input
 					id="sifre"
 					name="sifre"
@@ -50,6 +56,8 @@
 					required
 				/>
 			</Alan>
+
+			<p class="kucuk sifre-unuttum"><a href="/sifremi-unuttum">Şifremi unuttum</a></p>
 
 			<button class="dugme dugme-birincil" disabled={gonderiliyor}>
 				{gonderiliyor ? 'Giriş yapılıyor…' : 'Giriş yap'}
@@ -67,6 +75,10 @@
 	}
 	h1 {
 		font-size: var(--boyut-2xl);
+	}
+	.sifre-unuttum {
+		margin: calc(-1 * var(--a-2)) 0 0;
+		text-align: right;
 	}
 	.alt-not {
 		margin: var(--a-4) 0 0;

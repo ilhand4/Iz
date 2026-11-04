@@ -130,17 +130,36 @@ async function jsonGetir(url: string, basliklar: Record<string, string> = {}): P
 	return yanit.json();
 }
 
-async function onbellekli(anahtar: string, getir: () => Promise<EserSonucu[]>) {
+/**
+ * İkinci önbellek katmanı (veritabanı, ~24 saat): sunucu yeniden başlasa da dış servislerin
+ * kotası korunur. Bu modül veritabanına bağlı olmasın diye katman dışarıdan takılır
+ * (hooks.server.ts → aramaOnbellegi.ts). Takılmamışsa yalnızca bellek önbelleği kullanılır.
+ */
+export type KaliciOnbellek = {
+	oku(anahtar: string): Promise<EserSonucu[] | null>;
+	yaz(anahtar: string, sonuclar: EserSonucu[]): Promise<void>;
+};
+let kalici: KaliciOnbellek | null = null;
+export function kaliciOnbellekKur(katman: KaliciOnbellek | null) {
+	kalici = katman;
+}
+
+async function onbellekli(anahtarHam: string, getir: () => Promise<EserSonucu[]>) {
+	const anahtar = anahtarHam.trim().toLocaleLowerCase('tr').replace(/\s+/g, ' ');
 	const kayit = onbellek.get(anahtar);
 	if (kayit && Date.now() - kayit.zaman < ONBELLEK_SURESI_MS) return kayit.sonuclar;
-	const sonuclar = await getir();
+
+	// Veritabanı önbelleği hata verirse arama yine de dış servisten yapılır
+	const kaliciSonuc = await kalici?.oku(anahtar).catch(() => null);
+	const sonuclar = kaliciSonuc ?? (await getir());
+	if (!kaliciSonuc) await kalici?.yaz(anahtar, sonuclar).catch(() => {});
 	if (onbellek.size > 500) onbellek.clear();
 	onbellek.set(anahtar, { zaman: Date.now(), sonuclar });
 	return sonuclar;
 }
 
 export function kitapAra(sorgu: string): Promise<EserSonucu[]> {
-	return onbellekli(`kitap:${sorgu}`, async () => {
+	return onbellekli(`kitap:${sorgu.trim()}`, async () => {
 		const url = new URL('https://openlibrary.org/search.json');
 		url.searchParams.set('q', sorgu);
 		url.searchParams.set('fields', 'key,title,author_name,first_publish_year,cover_i');
@@ -155,7 +174,7 @@ export function tmdbAra(
 	tur: 'film' | 'dizi',
 	anahtar: string
 ): Promise<EserSonucu[]> {
-	return onbellekli(`${tur}:${sorgu}`, async () => {
+	return onbellekli(`${tur}:${sorgu.trim()}`, async () => {
 		const url = new URL(`https://api.themoviedb.org/3/search/${tur === 'film' ? 'movie' : 'tv'}`);
 		url.searchParams.set('query', sorgu);
 		url.searchParams.set('language', 'tr-TR');

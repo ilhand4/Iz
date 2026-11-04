@@ -1,4 +1,6 @@
 import { sequence, type Handle } from '@sveltejs/kit/hooks';
+import { aramaOnbellegi } from '#lib/server/aramaOnbellegi.ts';
+import { kaliciOnbellekKur } from '#lib/server/eserArama.ts';
 import {
 	OTURUM_CEREZI,
 	oturumCereziSil,
@@ -53,13 +55,29 @@ const tema: Handle = async ({ event, resolve }) => {
 	});
 };
 
+/** Yalnızca gömme sayfası (herkese açık iz) başka sitelerde çerçeve içinde açılabilir */
+const GOMME_ROTASI = '/izler/[id]/gom';
+
 const guvenlikBasliklari: Handle = async ({ event, resolve }) => {
 	const yanit = await resolve(event);
 	yanit.headers.set('X-Content-Type-Options', 'nosniff');
 	yanit.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-	yanit.headers.set('X-Frame-Options', 'DENY');
+	if (event.route.id === GOMME_ROTASI) {
+		const csp = yanit.headers.get('content-security-policy');
+		if (csp) {
+			yanit.headers.set(
+				'content-security-policy',
+				csp.replace("frame-ancestors 'none'", 'frame-ancestors *')
+			);
+		}
+	} else {
+		yanit.headers.set('X-Frame-Options', 'DENY');
+	}
 	yanit.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
 	return yanit;
 };
+
+// Eser araması sonuçları sunucu yeniden başlasa da (veritabanında ~24 saat) saklansın
+kaliciOnbellekKur(aramaOnbellegi);
 
 export const handle = sequence(guvenlikBasliklari, csrfKorumasi, oturum, tema);

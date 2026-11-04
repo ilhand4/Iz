@@ -39,93 +39,103 @@
 	{#if page.data.indekslenebilir !== true}<meta name="robots" content="noindex" />{/if}
 </svelte:head>
 
-<a class="atla" href="#icerik">İçeriğe geç</a>
-
-<header class="ust">
-	<div class="kap ust-ic">
-		<a href={data.kullanici ? '/pano' : '/'} class="logo-baglanti" aria-label="İz ana sayfa">
-			<Logo />
-		</a>
-
-		{#if data.kullanici}
-			<nav class="ust-menu" aria-label="Ana menü">
-				{#each MENU as m (m.yol)}
-					<a href={m.yol} aria-current={etkinMi(m.yol) ? 'page' : undefined}>{m.etiket}</a>
-				{/each}
-			</nav>
-		{/if}
-
-		<div class="ust-sag">
-			{#if data.kullanici}
-				<a class="dugme dugme-birincil dugme-kucuk ekle-dugmesi" href="/dugumler/yeni">
-					<Simge ad="ekle" boyut={16} /> Ekle
-				</a>
-			{/if}
-			<TemaDugmesi baslangic={data.tema} />
-			{#if data.kullanici}
-				<a
-					class="dugme dugme-hayalet dugme-kucuk hesap-baglantisi"
-					href="/ayarlar"
-					title="Ayarlar (@{data.kullanici.kullaniciAdi})"
-					aria-current={page.url.pathname === '/ayarlar' ? 'page' : undefined}
-				>
-					<Simge ad="ayar" />
-					<span class="gorunmez">Ayarlar:</span>
-					<span class="kullanici kucuk">{data.kullanici.ad}</span>
-				</a>
-				<form method="POST" action="/cikis">
-					<button class="dugme dugme-hayalet dugme-kucuk" aria-label="Çıkış yap" title="Çıkış yap">
-						<Simge ad="cikis" />
-					</button>
-				</form>
-			{:else}
-				<a class="dugme dugme-hayalet dugme-kucuk" href="/giris">Giriş</a>
-				<a class="dugme dugme-birincil dugme-kucuk" href="/kayit">Kayıt ol</a>
-			{/if}
-		</div>
-	</div>
-</header>
-
-<main id="icerik" class:alt-menulu={!!data.kullanici}>
+{#if page.route.id === '/izler/[id]/gom'}
+	<!-- Gömme görünümü: üst menü, alt bilgi ve bildirimler olmadan -->
 	{@render children()}
-</main>
+{:else}
+	<a class="atla" href="#icerik">İçeriğe geç</a>
 
-{#if data.kullanici}
-	<nav class="alt-menu" aria-label="Ana menü (mobil)">
-		{#each ALT_MENU as m (m.yol)}
-			<a
-				href={m.yol}
-				class:ozel={m.ozel}
-				aria-current={!m.ozel && etkinMi(m.yol) ? 'page' : undefined}
-			>
-				<span class="simge"><Simge ad={m.simge} boyut={m.ozel ? 24 : 22} /></span>
-				<span class="etiket">{m.etiket}</span>
+	<header class="ust">
+		<div class="kap ust-ic">
+			<a href={data.kullanici ? '/pano' : '/'} class="logo-baglanti" aria-label="İz ana sayfa">
+				<Logo />
 			</a>
-		{/each}
-	</nav>
+
+			{#if data.kullanici}
+				<nav class="ust-menu" aria-label="Ana menü">
+					{#each MENU as m (m.yol)}
+						<a href={m.yol} aria-current={etkinMi(m.yol) ? 'page' : undefined}>{m.etiket}</a>
+					{/each}
+				</nav>
+			{/if}
+
+			<div class="ust-sag">
+				{#if data.kullanici}
+					<a class="dugme dugme-birincil dugme-kucuk ekle-dugmesi" href="/dugumler/yeni">
+						<Simge ad="ekle" boyut={16} /> Ekle
+					</a>
+				{/if}
+				<TemaDugmesi baslangic={data.tema} />
+				{#if data.kullanici}
+					<a
+						class="dugme dugme-hayalet dugme-kucuk hesap-baglantisi"
+						href="/ayarlar"
+						title="Ayarlar (@{data.kullanici.kullaniciAdi})"
+						aria-current={page.url.pathname === '/ayarlar' ? 'page' : undefined}
+					>
+						<Simge ad="ayar" />
+						<span class="gorunmez">Ayarlar:</span>
+						<span class="kullanici kucuk">{data.kullanici.ad}</span>
+					</a>
+					<form method="POST" action="/cikis">
+						<button
+							class="dugme dugme-hayalet dugme-kucuk"
+							aria-label="Çıkış yap"
+							title="Çıkış yap"
+						>
+							<Simge ad="cikis" />
+						</button>
+					</form>
+				{:else}
+					<a class="dugme dugme-hayalet dugme-kucuk" href="/giris">Giriş</a>
+					<a class="dugme dugme-birincil dugme-kucuk" href="/kayit">Kayıt ol</a>
+				{/if}
+			</div>
+		</div>
+	</header>
+
+	<main id="icerik" class:alt-menulu={!!data.kullanici}>
+		{@render children()}
+	</main>
+
+	{#if data.kullanici}
+		<nav class="alt-menu" aria-label="Ana menü (mobil)">
+			{#each ALT_MENU as m (m.yol)}
+				<a
+					href={m.yol}
+					class:ozel={m.ozel}
+					aria-current={!m.ozel && etkinMi(m.yol) ? 'page' : undefined}
+				>
+					<span class="simge"><Simge ad={m.simge} boyut={m.ozel ? 24 : 22} /></span>
+					<span class="etiket">{m.etiket}</span>
+				</a>
+			{/each}
+		</nav>
+	{/if}
+
+	<Bildirimler altMenu={!!data.kullanici} />
+
+	<footer class="alt" class:alt-menulu={!!data.kullanici}>
+		<div class="kap alt-ic">
+			<p class="slogan">
+				<Logo boyut={20} />
+				<span>İnsanlar ne yaşadığını kaydeder; İz neyin seni neye götürdüğünü kaydeder.</span>
+			</p>
+			<p class="kaynaklar">
+				Eser verileri: <a
+					href="https://openlibrary.org"
+					rel="noopener noreferrer external"
+					target="_blank">Open Library</a
+				>
+				ve
+				<a href="https://www.themoviedb.org" rel="noopener noreferrer external" target="_blank"
+					>TMDB</a
+				>. Bu ürün TMDB API'sini kullanır ancak TMDB tarafından onaylanmamış ya da
+				desteklenmemiştir.
+			</p>
+		</div>
+	</footer>
 {/if}
-
-<Bildirimler altMenu={!!data.kullanici} />
-
-<footer class="alt" class:alt-menulu={!!data.kullanici}>
-	<div class="kap alt-ic">
-		<p class="slogan">
-			<Logo boyut={20} />
-			<span>İnsanlar ne yaşadığını kaydeder; İz neyin seni neye götürdüğünü kaydeder.</span>
-		</p>
-		<p class="kaynaklar">
-			Eser verileri: <a
-				href="https://openlibrary.org"
-				rel="noopener noreferrer external"
-				target="_blank">Open Library</a
-			>
-			ve
-			<a href="https://www.themoviedb.org" rel="noopener noreferrer external" target="_blank"
-				>TMDB</a
-			>. Bu ürün TMDB API'sini kullanır ancak TMDB tarafından onaylanmamış ya da desteklenmemiştir.
-		</p>
-	</div>
-</footer>
 
 <style>
 	.atla {

@@ -149,3 +149,70 @@ test('veriler JSON olarak indirilir', async ({ page }) => {
 	const dosya = await indirme;
 	expect(dosya.suggestedFilename()).toMatch(/^iz-e2e_.+\.json$/);
 });
+
+test('herkese açık iz başka sitelere gömülebilir, özel iz gömülemez', async ({ page }) => {
+	await page.goto('/izler');
+	await page.getByRole('link', { name: /Berlin izi/ }).click();
+	const izAdresi = page.url().split('?')[0];
+
+	// Özel izin gömme sayfası yok
+	const ozel = await page.request.get(`${izAdresi}/gom`);
+	expect(ozel.status()).toBe(404);
+
+	await page.goto(`${izAdresi}/duzenle`);
+	await page.locator('input[name="gizlilik"][value="herkes"]').check({ force: true });
+	await page.getByRole('button', { name: 'Bilgileri kaydet' }).click();
+	await expect(
+		page.getByRole('status').filter({ hasText: 'İz bilgileri kaydedildi.' })
+	).toBeVisible();
+
+	const yanit = await page.request.get(`${izAdresi}/gom`);
+	expect(yanit.status()).toBe(200);
+	expect(yanit.headers()['content-security-policy']).toContain('frame-ancestors *');
+	expect(yanit.headers()['x-frame-options']).toBeUndefined();
+	// Diğer sayfalar çerçevelenemez
+	const normal = await page.request.get(izAdresi);
+	expect(normal.headers()['x-frame-options']).toBe('DENY');
+
+	await page.goto(izAdresi);
+	await page.getByText('Sitene göm').click();
+	await expect(page.getByLabel('Gömme kodu')).toHaveValue(/<iframe src=".+\/gom"/);
+
+	await page.goto(`${izAdresi}/gom`);
+	await expect(page.getByRole('heading', { level: 1, name: 'Berlin izi' })).toBeVisible();
+	await expect(page.getByRole('banner')).toHaveCount(0);
+	// Düğümler özel: gömülü izde başlıkları görünmez
+	await expect(page.getByText('Gizli durak')).toHaveCount(3);
+});
+
+test('profil RSS akışı yalnızca açık izleri içerir', async ({ page }) => {
+	await page.goto('/ayarlar');
+	const profil = await page.locator('#profil a[href^="/@"]').getAttribute('href');
+	const yanit = await page.request.get(`${profil}/rss.xml`);
+	expect(yanit.headers()['content-type']).toContain('application/rss+xml');
+	const xml = await yanit.text();
+	expect(xml).toContain('<title>Berlin izi</title>');
+	expect(xml).not.toContain('Babylon Berlin');
+});
+
+test('arama yazım hatasına dayanıklı', async ({ page }) => {
+	await page.goto('/dugumler?q=babilon');
+	await expect(page.getByRole('link', { name: /Babylon Berlin/ })).toBeVisible();
+	await page.goto('/izler?q=berln');
+	await expect(page.getByRole('link', { name: /Berlin izi/ })).toBeVisible();
+});
+
+test('şifremi unuttum: kayıtlı olsun olmasın aynı yanıt', async ({ browser }) => {
+	// Oturumsuz bir bağlam
+	const baglam = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+	const page = await baglam.newPage();
+	await page.goto('/giris');
+	await page.getByRole('link', { name: 'Şifremi unuttum' }).click();
+	await page.getByLabel('E-posta').fill('olmayan-hesap@iz.test');
+	await page.getByRole('button', { name: 'Bağlantı gönder' }).click();
+	await expect(page.getByRole('status')).toContainText('kayıtlı bir hesap varsa');
+
+	await page.goto('/sifre-sifirla?jeton=uydurma');
+	await expect(page.getByRole('heading', { name: 'Bağlantı geçersiz' })).toBeVisible();
+	await baglam.close();
+});

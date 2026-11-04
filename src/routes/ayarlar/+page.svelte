@@ -120,7 +120,21 @@
 
 			<section id="eposta" class="kart bolum" aria-labelledby="eposta-baslik">
 				<h2 id="eposta-baslik">E-posta</h2>
-				<p class="kucuk soluk">Şu anki adresin: <strong>{hesap.eposta}</strong></p>
+				<div class="eposta-durumu">
+					<p class="kucuk">
+						Şu anki adresin: <strong>{hesap.eposta}</strong>
+						{#if hesap.epostaDogrulandi}
+							<span class="rozet dogrulandi"><Simge ad="onay" boyut={12} /> Doğrulandı</span>
+						{:else}
+							<span class="rozet dogrulanmadi">Doğrulanmadı</span>
+						{/if}
+					</p>
+					{#if !hesap.epostaDogrulandi}
+						<form method="POST" action="?/dogrulamaGonder" use:enhance>
+							<button class="dugme dugme-kucuk">Doğrulama bağlantısı gönder</button>
+						</form>
+					{/if}
+				</div>
 				<form method="POST" action="?/eposta" class="yigin" use:enhance={koru}>
 					<Alan id="yeniEposta" etiket="Yeni e-posta" hata={eposta?.hatalar.yeniEposta}>
 						<input
@@ -423,6 +437,25 @@
 		background: var(--basari-zemin);
 		color: var(--metin);
 		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--basari) 45%, transparent);
+	}
+	.eposta-durumu {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--a-2) var(--a-3);
+	}
+	.eposta-durumu p,
+	.eposta-durumu form {
+		margin: 0;
+	}
+	.dogrulandi {
+		background: var(--basari-zemin);
+		color: var(--metin);
+	}
+	.dogrulanmadi {
+		background: var(--uyari-zemin);
+		color: var(--metin);
 	}
 	.ice-aktar {
 		padding-top: var(--a-3);

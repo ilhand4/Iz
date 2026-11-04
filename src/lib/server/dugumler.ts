@@ -5,10 +5,12 @@
 import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { DugumTuru, EserDurumu, EserTuru, Gizlilik, TarihHassasiyeti } from '../sabitler';
+import { sadelestir } from '../metin';
 import { buAyinTarihi } from '../tarih';
 import { db } from './db';
 import { agKonumlari, baglar, dugumler, kullanicilar } from './db/schema';
 import type { BagBilgisi, BagVerisi, DugumVerisi, GetirenGirdisi, Konum } from './dogrulama';
+import { imlecYaz, type Imlec } from './imlec';
 import { likeKacir } from './yetki';
 
 export { gorebilirMi } from './yetki';
@@ -28,6 +30,26 @@ export function gorunurluk(
 	const herkes = eq(tablo.gizlilik, 'herkes');
 	const kim = izleyenId ? (or(eq(tablo.sahipId, izleyenId), herkes) as SQL) : herkes;
 	return and(kim, etkin(tablo)) as SQL;
+}
+
+/** Bu benzerliğin altındaki sonuçlar yazım hatası sayılmaz (pg_trgm word_similarity, 0–1) */
+export const BENZERLIK_ESIGI = 0.45;
+
+/**
+ * Yazım hatasına dayanıklı arama: sadeleştirilmiş sorgunun her sözcüğü geçiyorsa ya da sorgu
+ * metne trigram benzerliğiyle yeterince yakınsa eşleşir. Birebir eşleşenler önce, sonra
+ * benzerliğe göre sıralanır. Sütun, şemadaki üretilmiş `arama_metni`dir.
+ */
+export function aramaKosulu(sutun: AnyPgColumn, sorgu: string) {
+	const sade = sadelestir(sorgu).slice(0, 100);
+	const sozcukler = sade.split(/\s+/).filter(Boolean);
+	if (!sozcukler.length) return null;
+	const tam = and(...sozcukler.map((s) => sql`${sutun} like ${`%${likeKacir(s)}%`}`)) as SQL;
+	const benzerlik = sql`word_similarity(${sade}, ${sutun})`;
+	return {
+		kosul: or(tam, sql`${benzerlik} >= ${BENZERLIK_ESIGI}`) as SQL,
+		sira: [sql`(${tam}) desc`, sql`${benzerlik} desc`]
+	};
 }
 
 /** db.execute sonucunu satır dizisine çevirir (postgres.js dizi, PGlite { rows } döner) */
@@ -68,16 +90,50 @@ export async function dugumleriListele(
 	const kosullar: SQL[] = [eq(dugumler.sahipId, sahipId), etkin(dugumler)];
 	if (suzgec.tur) kosullar.push(eq(dugumler.tur, suzgec.tur));
 	if (suzgec.durumlar?.length) kosullar.push(inArray(dugumler.durum, suzgec.durumlar));
-	if (suzgec.q) {
-		const desen = `%${likeKacir(suzgec.q)}%`;
-		kosullar.push(or(ilike(dugumler.baslik, desen), ilike(dugumler.altBaslik, desen)) as SQL);
-	}
+	const arama = suzgec.q ? aramaKosulu(dugumler.aramaMetni, suzgec.q) : null;
+	if (arama) kosullar.push(arama.kosul);
 	return db
 		.select(ozetAlanlari)
 		.from(dugumler)
 		.where(and(...kosullar))
-		.orderBy(desc(dugumler.olusturma))
+		.orderBy(...(arama ? arama.sira : []), desc(dugumler.olusturma))
 		.limit(suzgec.limit ?? 200);
+}
+
+export const DUGUM_SAYFA_BOYUTU = 60;
+
+/**
+ * Düğüm listesinin bir sayfası (yeniden eskiye). Aramada sonuçlar alaka sırasına göre gelir ve
+ * sayfalanmaz (en alakalı 200 sonuç).
+ */
+export async function dugumSayfasi(
+	sahipId: string,
+	suzgec: { tur?: DugumTuru | null; q?: string; durumlar?: EserDurumu[] },
+	imlec: Imlec | null,
+	boyut = DUGUM_SAYFA_BOYUTU
+): Promise<{ liste: DugumOzeti[]; sonraki: string | null }> {
+	if (suzgec.q) return { liste: await dugumleriListele(sahipId, suzgec), sonraki: null };
+	const kosullar: SQL[] = [eq(dugumler.sahipId, sahipId), etkin(dugumler)];
+	if (suzgec.tur) kosullar.push(eq(dugumler.tur, suzgec.tur));
+	if (suzgec.durumlar?.length) kosullar.push(inArray(dugumler.durum, suzgec.durumlar));
+	if (imlec) {
+		kosullar.push(
+			sql`(${dugumler.olusturma}, ${dugumler.id}) < (${imlec.zaman}::timestamptz, ${imlec.id}::uuid)`
+		);
+	}
+	const satirlar = await db
+		.select({ ...ozetAlanlari, imlecZamani: sql<string>`${dugumler.olusturma}::text` })
+		.from(dugumler)
+		.where(and(...kosullar))
+		.orderBy(desc(dugumler.olusturma), desc(dugumler.id))
+		.limit(boyut + 1);
+	const fazlasiVar = satirlar.length > boyut;
+	const liste = satirlar.slice(0, boyut);
+	const son = liste.at(-1);
+	return {
+		liste: liste.map(({ imlecZamani: _z, ...d }) => d),
+		sonraki: fazlasiVar && son ? imlecYaz({ zaman: son.imlecZamani, id: son.id }) : null
+	};
 }
 
 export type DugumSecenegi = {

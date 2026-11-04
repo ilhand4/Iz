@@ -29,6 +29,27 @@
       "when": 1793801964634,
       "tag": "0003_asama3a_hesap",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793803192952,
+      "tag": "0004_asama3a_eposta",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793803399645,
+      "tag": "0005_asama3a_trgm",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793803584005,
+      "tag": "0006_asama3a_arama_onbellegi",
+      "breakpoints": true
     }
   ]
 }

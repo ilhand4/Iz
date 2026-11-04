@@ -5,6 +5,7 @@ import { kullanicilar } from '#lib/server/db/schema.ts';
 import { kayitDogrula } from '#lib/server/dogrulama.ts';
 import { beklemeMesaji, kayitSiniri } from '#lib/server/hizSiniri.ts';
 import { cihazAdi } from '#lib/server/cihaz.ts';
+import { dogrulamaGonder } from '#lib/server/epostaJetonu.ts';
 import { jetonUret, oturumAc, oturumCereziYaz } from '#lib/server/oturum.ts';
 import { sifreOzetle } from '#lib/server/sifre.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -14,7 +15,7 @@ export const load: PageServerLoad = ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies, getClientAddress }) => {
+	default: async ({ request, cookies, url, getClientAddress }) => {
 		const fd = await request.formData();
 		const sonuc = kayitDogrula(fd);
 		if (!sonuc.tamam) return fail(400, { hatalar: sonuc.hatalar, degerler: sonuc.degerler });
@@ -59,6 +60,11 @@ export const actions: Actions = {
 			}
 			throw hata;
 		}
+
+		// Doğrulama iletisi gönderilemese de kayıt tamamlanır (ayarlardan yeniden istenebilir)
+		await dogrulamaGonder(kullaniciId, url.origin).catch((e) =>
+			console.error('Doğrulama iletisi gönderilemedi', e)
+		);
 
 		const jeton = jetonUret();
 		const oturum = await oturumAc(jeton, kullaniciId, cihazAdi(request.headers.get('user-agent')));

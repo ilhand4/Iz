@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import BosDurum from '#lib/bilesenler/BosDurum.svelte';
 	import GizlilikRozeti from '#lib/bilesenler/GizlilikRozeti.svelte';
 	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
@@ -74,6 +75,20 @@
 			{/if}
 		{/snippet}
 	</SayfaBasligi>
+
+	{#if iz.gizlilik === 'herkes' && data.sahibiMi}
+		<details class="kart gomme-kodu">
+			<summary>Sitene göm</summary>
+			<p class="kucuk soluk">
+				Bu kodu blogunun ya da sitenin HTML'ine yapıştır. Gömülen iz, herkesin gördüğü hâliyle
+				görünür; gizli duraklar gizli kalır.
+			</p>
+			<label class="gorunmez" for="gomme-kodu">Gömme kodu</label>
+			<textarea id="gomme-kodu" readonly rows="3" onfocus={(e) => e.currentTarget.select()}
+				>{`<iframe src="${page.url.origin}/izler/${iz.id}/gom" title="${iz.baslik} · İz" width="100%" height="480" style="border:0" loading="lazy"></iframe>`}</textarea
+			>
+		</details>
+	{/if}
 
 	{#if data.gorunmeyenDurakSayisi > 0}
 		<p class="bildirim bildirim-uyari">
@@ -177,6 +192,21 @@
 </div>
 
 <style>
+	.gomme-kodu summary {
+		cursor: pointer;
+		font-weight: 600;
+	}
+	.gomme-kodu[open] summary {
+		margin-bottom: var(--a-2);
+	}
+	.gomme-kodu p {
+		margin: 0 0 var(--a-2);
+	}
+	.gomme-kodu textarea {
+		width: 100%;
+		font-family: var(--yazi-kod);
+		font-size: var(--boyut-xs);
+	}
 	.ilk-iz {
 		display: flex;
 		gap: var(--a-4);

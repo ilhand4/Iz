@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import {
 	boolean,
 	check,
@@ -6,6 +6,7 @@ import {
 	doublePrecision,
 	index,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
@@ -31,6 +32,14 @@ export const gizlilik = pgEnum('gizlilik', GIZLILIK_DUZEYLERI);
 export const tarihHassasiyeti = pgEnum('tarih_hassasiyeti', TARIH_HASSASIYETLERI);
 export const eserDurumu = pgEnum('eser_durumu', ESER_DURUMLARI);
 
+/**
+ * Arama için sadeleştirilmiş metin (metin.ts → sadelestir'in SQL karşılığı): Türkçe ve yaygın
+ * aksanlı harfler ASCII'ye indirilir, sonra küçültülür. "I" önce "i" yapılır ki ICU tr-TR
+ * sıralamasında lower('I') = 'ı' olmasın. Trigram (pg_trgm) dizini bu sütun üzerindedir.
+ */
+const sadelestirSql = (ifade: SQL) =>
+	sql`lower(translate(${ifade}, 'İIıÇĞÖŞÜÂÎÛçğöşüâîûÉÈÊËéèêëÁÀÄáàäÓÒóòÍÌíìÚÙúùÑñ', 'iiicgosuaiucgosuaiueeeeeeeeaaaaaaooooiiiiuuuunn'))`;
+
 const zamanDamgasi = (ad: string) => timestamp(ad, { withTimezone: true, mode: 'date' });
 
 // ——— Hesaplar ———
@@ -50,6 +59,8 @@ export const kullanicilar = pgTable(
 		hakkinda: text('hakkinda'),
 		/** Herkese açık sayfaları arama motorlarına açık mı? Varsayılan kapalı (noindex) */
 		aramaMotorlari: boolean('arama_motorlari').notNull().default(false),
+		/** E-posta adresinin doğrulandığı an (null: doğrulanmadı) */
+		epostaDogrulandi: zamanDamgasi('eposta_dogrulandi'),
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
 	},
 	(t) => [
@@ -74,6 +85,31 @@ export const oturumlar = pgTable(
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
 	},
 	(t) => [index('oturumlar_kullanici_idx').on(t.kullaniciId)]
+);
+
+/** Tek kullanımlık e-posta bağlantıları (şifre sıfırlama, e-posta doğrulama) */
+export const epostaJetonlari = pgTable(
+	'eposta_jetonlari',
+	{
+		/** Jetonun SHA-256 özeti; jetonun kendisi yalnızca e-postadaki bağlantıda */
+		id: text('id').primaryKey(),
+		kullaniciId: uuid('kullanici_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		amac: text('amac').notNull(),
+		/** Doğrulanacak adres (e-posta değişince eski bağlantılar geçersiz kalsın) */
+		eposta: text('eposta').notNull(),
+		bitis: zamanDamgasi('bitis').notNull(),
+		kullanildi: zamanDamgasi('kullanildi'),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		index('eposta_jetonlari_kullanici_idx').on(t.kullaniciId, t.amac),
+		check(
+			'eposta_jetonlari_amac_kontrol',
+			sql`${t.amac} in ('sifre_sifirlama', 'eposta_dogrulama')`
+		)
+	]
 );
 
 // ——— Düğümler: eser, kişi, yer, karar, anı ———
@@ -112,13 +148,17 @@ export const dugumler = pgTable(
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow(),
 		guncelleme: zamanDamgasi('guncelleme').notNull().defaultNow(),
 		/** Doluysa düğüm çöp kutusundadır; 30 gün sonra kalıcı olarak silinir */
-		silinme: zamanDamgasi('silinme')
+		silinme: zamanDamgasi('silinme'),
+		aramaMetni: text('arama_metni').generatedAlwaysAs((): SQL =>
+			sadelestirSql(sql`${dugumler.baslik} || ' ' || coalesce(${dugumler.altBaslik}, '')`)
+		)
 	},
 	(t) => [
 		index('dugumler_sahip_idx').on(t.sahipId, t.olusturma),
 		// Zaman çizgisi sıralaması için
 		index('dugumler_sahip_tarih_idx').on(t.sahipId, t.tarih),
 		index('dugumler_gizlilik_idx').on(t.gizlilik),
+		index('dugumler_arama_trgm_idx').using('gin', sql`${t.aramaMetni} gin_trgm_ops`),
 		// Aynı kullanıcı aynı dış eseri iki kez eklemesin (çöp kutusundakiler sayılmaz)
 		uniqueIndex('dugumler_dis_kaynak_tekil')
 			.on(t.sahipId, t.disKaynak, t.disKimlik)
@@ -181,10 +221,14 @@ export const izler = pgTable(
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow(),
 		guncelleme: zamanDamgasi('guncelleme').notNull().defaultNow(),
 		/** Doluysa iz çöp kutusundadır */
-		silinme: zamanDamgasi('silinme')
+		silinme: zamanDamgasi('silinme'),
+		aramaMetni: text('arama_metni').generatedAlwaysAs((): SQL =>
+			sadelestirSql(sql`${izler.baslik} || ' ' || coalesce(${izler.aciklama}, '')`)
+		)
 	},
 	(t) => [
 		index('izler_sahip_idx').on(t.sahipId),
+		index('izler_arama_trgm_idx').using('gin', sql`${t.aramaMetni} gin_trgm_ops`),
 		check('izler_baslik_kontrol', sql`length(${t.baslik}) between 1 and 120`)
 	]
 );
@@ -232,6 +276,15 @@ export const agKonumlari = pgTable(
 		)
 	]
 );
+
+// ——— Eser araması önbelleği (UNLOGGED: çökmede boşalabilir, önemli değil) ———
+
+export const eserAramaOnbellegi = pgTable('eser_arama_onbellegi', {
+	/** "kitap:tutunamayanlar", "film:dune" gibi küçük harfli anahtar */
+	anahtar: text('anahtar').primaryKey(),
+	sonuclar: jsonb('sonuclar').notNull(),
+	zaman: zamanDamgasi('zaman').notNull().defaultNow()
+});
 
 export type Kullanici = typeof kullanicilar.$inferSelect;
 export type Dugum = typeof dugumler.$inferSelect;

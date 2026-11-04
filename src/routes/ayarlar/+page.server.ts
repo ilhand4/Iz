@@ -17,7 +17,13 @@ import {
 	sifreDegistir
 } from '#lib/server/hesap.ts';
 import { iceAktar } from '#lib/server/disaIceAktar.ts';
-import { beklemeMesaji, hesapSiniri, iceAktarmaSiniri } from '#lib/server/hizSiniri.ts';
+import { dogrulamaGonder, epostaDegistiBildir } from '#lib/server/epostaJetonu.ts';
+import {
+	beklemeMesaji,
+	dogrulamaSiniri,
+	hesapSiniri,
+	iceAktarmaSiniri
+} from '#lib/server/hizSiniri.ts';
 import { oturumCereziSil } from '#lib/server/oturum.ts';
 import { iceAktarmaDogrula } from '#lib/server/veriTasima.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
@@ -60,6 +66,7 @@ export const actions: Actions = {
 		}
 		const bekle = sinirAsildi(kullanici.id);
 		if (bekle) return fail(429, { eposta: { hatalar: { sifre: bekle }, degerler: {} } });
+		const eski = (await hesapGetir(kullanici.id))?.eposta;
 		const durum = await epostaDegistir(kullanici.id, sonuc.veri.sifre, sonuc.veri.eposta);
 		const degerler = { yeniEposta: sonuc.veri.eposta };
 		if (durum === 'yanlis') {
@@ -70,7 +77,27 @@ export const actions: Actions = {
 				eposta: { hatalar: { yeniEposta: 'Bu e-posta başka bir hesapta kayıtlı.' }, degerler }
 			});
 		}
-		return { bildirim: { mesaj: 'E-posta adresin değiştirildi.' } };
+		await Promise.allSettled([
+			dogrulamaGonder(kullanici.id, url.origin),
+			eski && eski !== sonuc.veri.eposta ? epostaDegistiBildir(eski, sonuc.veri.eposta) : null
+		]);
+		return {
+			bildirim: {
+				mesaj: 'E-posta adresin değiştirildi. Yeni adrese doğrulama bağlantısı gönderdik.'
+			}
+		};
+	},
+
+	dogrulamaGonder: async ({ locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const sinir = dogrulamaSiniri.dene(kullanici.id);
+		if (!sinir.izin) {
+			return fail(429, {
+				bildirim: { mesaj: beklemeMesaji(sinir.beklemeSaniye), tur: 'hata' as const }
+			});
+		}
+		await dogrulamaGonder(kullanici.id, url.origin);
+		return { bildirim: { mesaj: 'Doğrulama bağlantısı gönderildi.' } };
 	},
 
 	sifre: async ({ request, locals, url }) => {

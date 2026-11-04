@@ -97,6 +97,9 @@ pg_restore --clean --if-exists --no-owner -h localhost -U iz -d iz_dev yedekler/
 - **Haritanın karakterleri:** panoda kökler, kapı açanlar, kavşaklar ve bağsız düğümler; düğüm sayfasında "Açtığı kapılar".
 - **Kalıcı ağ yerleşimi:** sürüklenen düğümlerin yeri kaydedilir, yeni düğümler komşularının yanına konur.
 - **Profil ve paylaşım:** `/@kullanici` herkese açık düğüm ve izleri gösterir; özel içerik (başlıkları dahil) hiç gönderilmez. Herkese açık sayfalar varsayılan olarak arama motorlarına kapalıdır.
+- **Hesap kurtarma:** şifre sıfırlama ve e-posta doğrulama bağlantıları (e-posta servisi seçilene kadar geliştirmede terminale yazılır).
+- **Arama ve sayfalama:** Türkçe karakterlerden bağımsız, yazım hatasına dayanıklı arama (pg_trgm); uzun listelerde "Daha fazla göster".
+- **Paylaşma:** herkese açık izler başka sitelere gömülebilir; profilin RSS akışı var.
 - **Ayarlar:** görünen ad ve tanıtım, e-posta ve şifre değiştirme, açık oturumları görme/kapatma, verileri JSON/Markdown olarak indirme ve JSON'dan içe aktarma, hesabı silme.
 - **Bildirimler ve "Geri al":** bağ kaldırma, durak çıkarma, silme ve yeniden yerleştirme geri alınabilir; silinenler 30 gün çöp kutusunda bekler.
 

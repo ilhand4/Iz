@@ -8,7 +8,8 @@ import type { DugumTuru, EserTuru, Gizlilik, TarihHassasiyeti } from '../sabitle
 import { db } from './db';
 import { baglar, dugumler, izAdimlari, izler, kullanicilar } from './db/schema';
 import type { IlkIzVerisi, IzVerisi, SihirbazDugumu } from './dogrulama';
-import { etkin, gorunurluk } from './dugumler';
+import { aramaKosulu, etkin, gorunurluk } from './dugumler';
+import { imlecYaz, type Imlec } from './imlec';
 import { gorebilirMi } from './yetki';
 
 type Islem = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -21,6 +22,8 @@ export type IzOzeti = {
 	aciklama: string | null;
 	gizlilik: Gizlilik;
 	guncelleme: Date;
+	/** Sayfalama imleci için zaman damgasının PostgreSQL metin biçimi */
+	imlecZamani: string;
 	durakSayisi: number;
 	/** Önizleme için ilk duraklar */
 	duraklar: { id: string; baslik: string; tur: DugumTuru }[];
@@ -34,6 +37,10 @@ type IzOzetSecenekleri = {
 	izleyenId?: string | null;
 	/** Yalnızca bu düğümün durak olduğu izler */
 	dugumId?: string;
+	/** Başlık ve açıklamada (yazım hatasına dayanıklı) arama */
+	q?: string;
+	/** Bu izden sonrakiler (yeniden eskiye; aramada kullanılmaz) */
+	imlec?: Imlec | null;
 };
 
 /**
@@ -47,7 +54,9 @@ export async function izleriListele(
 	const {
 		limit = 100,
 		izleyenId = sahipId,
-		dugumId
+		dugumId,
+		q,
+		imlec
 	} = typeof secenekler === 'number' ? { limit: secenekler } : secenekler;
 	const kosullar = [eq(izler.sahipId, sahipId), gorunurluk(izler, izleyenId)];
 	if (dugumId) {
@@ -58,17 +67,25 @@ export async function izleriListele(
 			)
 		);
 	}
+	const arama = q ? aramaKosulu(izler.aramaMetni, q) : null;
+	if (arama) kosullar.push(arama.kosul);
+	else if (imlec) {
+		kosullar.push(
+			sql`(${izler.guncelleme}, ${izler.id}) < (${imlec.zaman}::timestamptz, ${imlec.id}::uuid)`
+		);
+	}
 	const liste = await db
 		.select({
 			id: izler.id,
 			baslik: izler.baslik,
 			aciklama: izler.aciklama,
 			gizlilik: izler.gizlilik,
-			guncelleme: izler.guncelleme
+			guncelleme: izler.guncelleme,
+			imlecZamani: sql<string>`${izler.guncelleme}::text`
 		})
 		.from(izler)
 		.where(and(...kosullar))
-		.orderBy(desc(izler.guncelleme))
+		.orderBy(...(arama ? arama.sira : []), desc(izler.guncelleme), desc(izler.id))
 		.limit(limit);
 	if (!liste.length) return [];
 
@@ -109,6 +126,26 @@ export async function izleriListele(
 			sonDurak: gorunur.length > 1 ? gorunur[gorunur.length - 1] : null
 		};
 	});
+}
+
+export const IZ_SAYFA_BOYUTU = 30;
+
+/** Kullanıcının izlerinin bir sayfası (en son güncellenen önce) */
+export async function izSayfasi(
+	sahipId: string,
+	q: string,
+	imlec: Imlec | null,
+	boyut = IZ_SAYFA_BOYUTU
+): Promise<{ liste: IzOzeti[]; sonraki: string | null }> {
+	if (q) return { liste: await izleriListele(sahipId, { q }), sonraki: null };
+	const liste = await izleriListele(sahipId, { imlec, limit: boyut + 1 });
+	const fazlasiVar = liste.length > boyut;
+	const sayfa = liste.slice(0, boyut);
+	const son = sayfa.at(-1);
+	return {
+		liste: sayfa,
+		sonraki: fazlasiVar && son ? imlecYaz({ zaman: son.imlecZamani, id: son.id }) : null
+	};
 }
 
 export async function izSayisi(sahipId: string): Promise<number> {

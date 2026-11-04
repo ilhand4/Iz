@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BosDurum from '#lib/bilesenler/BosDurum.svelte';
+	import DahaFazla from '#lib/bilesenler/DahaFazla.svelte';
 	import DugumKarti from '#lib/bilesenler/DugumKarti.svelte';
 	import GorunumSecici from '#lib/bilesenler/GorunumSecici.svelte';
 	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
@@ -10,6 +11,13 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
+	// Önceki sayfalar "Daha fazla göster" ile biriktirilir; süzgeç değişince (ilk sayfa) sıfırlanır
+	let birikim = $state<PageProps['data']['dugumler']>([]);
+	$effect.pre(() => {
+		if (!data.devam) birikim = [];
+	});
+	const goruntulenen = $derived([...birikim, ...data.dugumler]);
 
 	function turAdresi(tur: string | null) {
 		// Bağlantı adresi üretmek için geçici nesne; tepkisel olması gerekmiyor
@@ -77,12 +85,21 @@
 		</nav>
 	</div>
 
-	{#if data.dugumler.length}
+	{#if goruntulenen.length}
 		<div class="izgara">
-			{#each data.dugumler as dugum (dugum.id)}
+			{#each goruntulenen as dugum (dugum.id)}
 				<DugumKarti {dugum} />
 			{/each}
 		</div>
+		<DahaFazla
+			sonraki={data.sonraki}
+			devam={data.devam}
+			birikti={birikim.length > 0}
+			ononcesi={() => (birikim = goruntulenen)}
+		/>
+		{#if data.q && data.dugumler.length >= 200}
+			<p class="kucuk soluk ortali">En alakalı 200 sonuç gösteriliyor; aramayı daralt.</p>
+		{/if}
 	{:else if data.merak && !data.q}
 		<BosDurum
 			baslik="Merak listen boş"
@@ -159,6 +176,10 @@
 		width: 1px;
 		margin: var(--a-1);
 		background: var(--cizgi-guclu);
+	}
+	.ortali {
+		text-align: center;
+		margin: 0;
 	}
 	.cop-baglantisi {
 		margin: 0;
