@@ -16,7 +16,8 @@
 		{ yol: '/pano', etiket: 'Pano', simge: 'pano' },
 		{ yol: '/dugumler', etiket: 'Düğümler', simge: 'dugumler' },
 		{ yol: '/izler', etiket: 'İzler', simge: 'iz' },
-		{ yol: '/ara', etiket: 'Eser ara', simge: 'ara' }
+		{ yol: '/ara', etiket: 'Eser ara', simge: 'ara' },
+		{ yol: '/gruplar', etiket: 'Gruplar', simge: 'grup' }
 	];
 	// Mobil alt menü: ortada belirgin "Ekle"
 	const ALT_MENU: (MenuOgesi & { ozel?: boolean })[] = [

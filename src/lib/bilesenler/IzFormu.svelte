@@ -9,8 +9,10 @@
 		gonderMetni: string;
 		/** Form eylemi, ör. "?/bilgi"; boşsa varsayılan eylem */
 		eylem?: string;
+		/** Kullanıcının grupları: ortak iz seçimi için */
+		gruplar?: { id: string; ad: string }[];
 	};
-	let { degerler = {}, hatalar = {}, gonderMetni, eylem }: Props = $props();
+	let { degerler = {}, hatalar = {}, gonderMetni, eylem, gruplar = [] }: Props = $props();
 	let gonderiliyor = $state(false);
 </script>
 
@@ -57,6 +59,20 @@
 		hata={hatalar.gizlilik}
 		baslik="Bu izi kim görebilir?"
 	/>
+	{#if gruplar.length}
+		<Alan
+			id="ortakGrupId"
+			etiket="Ortak iz"
+			ipucu="Seçersen grubun üyeleri bu izi görür ve kendi düğümlerinden durak ekleyebilir."
+		>
+			<select id="ortakGrupId" name="ortakGrupId">
+				<option value="">Yalnızca benim izim</option>
+				{#each gruplar as g (g.id)}
+					<option value={g.id} selected={degerler.ortakGrupId === g.id}>{g.ad} ile ortak</option>
+				{/each}
+			</select>
+		</Alan>
+	{/if}
 	<div class="satir">
 		<button class="dugme dugme-birincil" disabled={gonderiliyor}>
 			{gonderiliyor ? 'Kaydediliyor…' : gonderMetni}

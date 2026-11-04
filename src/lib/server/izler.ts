@@ -3,16 +3,68 @@
 // kendilerine görünür düğümleri (diğer duraklar "gizli durak" olarak döner).
 // Yazma: yalnızca sahibi; duraklar yalnızca sahibin kendi düğümlerinden oluşur.
 // Çöp kutusundaki izler hiç görünmez; çöp kutusundaki düğümler izlerde durak olarak gösterilmez.
-import { and, asc, count, desc, eq, inArray, max, notInArray, sql } from 'drizzle-orm';
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	inArray,
+	max,
+	notInArray,
+	or,
+	sql,
+	type SQL
+} from 'drizzle-orm';
 import type { DugumTuru, EserTuru, Gizlilik, TarihHassasiyeti } from '../sabitler';
 import { db } from './db';
-import { baglar, dugumler, izAdimlari, izler, kullanicilar } from './db/schema';
+import {
+	baglar,
+	dugumler,
+	grupUyeleri,
+	gruplar,
+	izAdimlari,
+	izler,
+	kullanicilar
+} from './db/schema';
 import type { IlkIzVerisi, IzVerisi, SihirbazDugumu } from './dogrulama';
-import { aramaKosulu, etkin, gorunurluk } from './dugumler';
+import { aramaKosulu, etkin, gorunurluk, satirlar } from './dugumler';
 import { imlecYaz, type Imlec } from './imlec';
 import { gorebilirMi } from './yetki';
 
 type Islem = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+// ——— Grup yardımcıları ———
+
+/** İzleyenle en az bir grupta birlikte olan kullanıcılar (kendisi dahil) */
+export async function grupArkadaslari(izleyenId: string | null): Promise<Set<string>> {
+	if (!izleyenId) return new Set();
+	const sonuc = satirlar<{ id: string }>(
+		await db.execute(sql`
+			select distinct gb.kullanici_id as id from grup_uyeleri ga
+			join grup_uyeleri gb on ga.grup_id = gb.grup_id
+			where ga.kullanici_id = ${izleyenId}
+		`)
+	);
+	return new Set([izleyenId, ...sonuc.map((s) => s.id)]);
+}
+
+/** Ortak izin grubunun üyesi mi? (SQL koşulu) */
+function ortakUyeSql(kullaniciId: string): SQL {
+	return sql`exists (select 1 from grup_uyeleri gu
+		where gu.grup_id = ${izler.ortakGrupId} and gu.kullanici_id = ${kullaniciId})`;
+}
+
+/** İzin görünürlüğü: düğümlerle aynı kural + ortak izde grubun üyeleri */
+function izGorunurluk(izleyenId: string | null): SQL {
+	const temel = gorunurluk(izler, izleyenId);
+	return izleyenId ? (or(temel, and(etkin(izler), ortakUyeSql(izleyenId))) as SQL) : temel;
+}
+
+/** İzi düzenleyebilir mi: sahibi ya da ortak izin grubunun üyesi */
+function duzenlemeYetkisi(kullaniciId: string): SQL {
+	return and(etkin(izler), or(eq(izler.sahipId, kullaniciId), ortakUyeSql(kullaniciId))) as SQL;
+}
 
 // ——— Listeleme ———
 
@@ -61,7 +113,7 @@ export async function izleriListele(
 		imlec,
 		idler
 	} = typeof secenekler === 'number' ? { limit: secenekler } : secenekler;
-	const kosullar = [gorunurluk(izler, izleyenId)];
+	const kosullar = [izGorunurluk(izleyenId)];
 	if (sahipId) kosullar.push(eq(izler.sahipId, sahipId));
 	if (idler) {
 		if (!idler.length) return [];
@@ -117,15 +169,16 @@ export async function izleriListele(
 		)
 		.orderBy(asc(izAdimlari.izId), asc(izAdimlari.sira));
 
-	const gruplar = new Map<string, { sayi: number; gorunur: IzOzeti['duraklar'] }>();
+	const arkadaslar = await grupArkadaslari(izleyenId);
+	const durakGruplari = new Map<string, { sayi: number; gorunur: IzOzeti['duraklar'] }>();
 	for (const a of adimlar) {
-		const grup = gruplar.get(a.izId) ?? { sayi: 0, gorunur: [] };
+		const grup = durakGruplari.get(a.izId) ?? { sayi: 0, gorunur: [] };
 		grup.sayi++;
-		if (gorebilirMi(a, izleyenId)) grup.gorunur.push(a.dugum);
-		gruplar.set(a.izId, grup);
+		if (gorebilirMi(a, izleyenId, arkadaslar.has(a.sahipId))) grup.gorunur.push(a.dugum);
+		durakGruplari.set(a.izId, grup);
 	}
 	return liste.map((iz) => {
-		const { sayi, gorunur } = gruplar.get(iz.id) ?? { sayi: 0, gorunur: [] };
+		const { sayi, gorunur } = durakGruplari.get(iz.id) ?? { sayi: 0, gorunur: [] };
 		return {
 			...iz,
 			durakSayisi: sayi,
@@ -191,6 +244,8 @@ export type IzDuragi = {
 		tarihHassasiyeti: TarihHassasiyeti | null;
 		gizlilik: Gizlilik;
 	};
+	/** Durağın düğümü izleyenin mi? (ortak izde yalnızca kendi durağını çıkarabilir) */
+	kendiDugumu: boolean;
 	/** Bu duraktan bir sonrakine giden bağ (varsa): "nasıl götürdü" notu */
 	sonrakineBag: { id: string; not: string | null } | null;
 };
@@ -203,11 +258,15 @@ export type IzAyrintisi = {
 		baslik: string;
 		aciklama: string | null;
 		gizlilik: Gizlilik;
+		ortakGrupId: string | null;
 		olusturma: Date;
 		guncelleme: Date;
 	};
 	sahip: { kullaniciAdi: string; ad: string; aramaMotorlari: boolean };
 	sahibiMi: boolean;
+	/** Sahibi ya da ortak izin grubunun üyesi */
+	duzenleyebilir: boolean;
+	ortakGrup: { id: string; ad: string } | null;
 	duraklar: (IzDuragi | GizliDurak)[];
 	/** Herkese açık izde, başkalarının göremeyeceği durak sayısı (yalnızca sahibine bilgi) */
 	gorunmeyenDurakSayisi: number;
@@ -230,10 +289,28 @@ export async function izGetir(id: string, izleyenId: string | null): Promise<IzA
 		})
 		.from(izler)
 		.innerJoin(kullanicilar, eq(izler.sahipId, kullanicilar.id))
-		.where(and(eq(izler.id, id), gorunurluk(izler, izleyenId)));
+		.where(and(eq(izler.id, id), izGorunurluk(izleyenId)));
 	if (!kayit) return null;
 
 	const sahibiMi = kayit.iz.sahipId === izleyenId;
+	const arkadaslar = await grupArkadaslari(izleyenId);
+	const ortakGrup = kayit.iz.ortakGrupId
+		? ((
+				await db
+					.select({ id: gruplar.id, ad: gruplar.ad })
+					.from(gruplar)
+					.where(eq(gruplar.id, kayit.iz.ortakGrupId))
+			)[0] ?? null)
+		: null;
+	const ortakUye =
+		!!ortakGrup &&
+		!!izleyenId &&
+		(
+			await db
+				.select({ k: grupUyeleri.kullaniciId })
+				.from(grupUyeleri)
+				.where(and(eq(grupUyeleri.grupId, ortakGrup.id), eq(grupUyeleri.kullaniciId, izleyenId)))
+		).length > 0;
 	const adimlar = await db
 		.select({
 			adimId: izAdimlari.id,
@@ -275,7 +352,11 @@ export async function izGetir(id: string, izleyenId: string | null): Promise<IzA
 		aradakiler.find((b) => b.kaynakId === kaynak && b.hedefId === hedef) ?? null;
 
 	const gorunurMu = (a: (typeof adimlar)[number]) =>
-		gorebilirMi({ sahipId: a.sahipId, gizlilik: a.dugum.gizlilik }, izleyenId);
+		gorebilirMi(
+			{ sahipId: a.sahipId, gizlilik: a.dugum.gizlilik },
+			izleyenId,
+			arkadaslar.has(a.sahipId)
+		);
 
 	const duraklar = adimlar.map((a, i): IzDuragi | GizliDurak => {
 		if (!gorunurMu(a)) return { adimId: a.adimId, sira: a.sira, gizli: true };
@@ -286,6 +367,7 @@ export async function izGetir(id: string, izleyenId: string | null): Promise<IzA
 			sira: a.sira,
 			not: a.not,
 			dugum: a.dugum,
+			kendiDugumu: a.sahipId === izleyenId,
 			sonrakineBag: bag ? { id: bag.id, not: bag.not } : null
 		};
 	});
@@ -295,6 +377,8 @@ export async function izGetir(id: string, izleyenId: string | null): Promise<IzA
 		iz,
 		sahip: kayit.sahip,
 		sahibiMi,
+		duzenleyebilir: sahibiMi || ortakUye,
+		ortakGrup,
 		duraklar,
 		gorunmeyenDurakSayisi:
 			sahibiMi && iz.gizlilik === 'herkes'
@@ -307,11 +391,26 @@ export async function izGetir(id: string, izleyenId: string | null): Promise<IzA
 
 export type IzEklemeSonucu = 'eklendi' | 'zaten-var' | 'yetkisiz';
 
+/** Ortak grup seçimi yalnızca kullanıcı o grubun üyesiyse geçerli */
+async function ortakGrupDenetle(
+	tx: Islem | typeof db,
+	grupId: string | null | undefined,
+	kullaniciId: string
+) {
+	if (!grupId) return null;
+	const [u] = await tx
+		.select({ k: grupUyeleri.kullaniciId })
+		.from(grupUyeleri)
+		.where(and(eq(grupUyeleri.grupId, grupId), eq(grupUyeleri.kullaniciId, kullaniciId)));
+	return u ? grupId : null;
+}
+
 export async function izOlustur(sahipId: string, veri: IzVerisi, ilkDugumId?: string | null) {
 	return db.transaction(async (tx) => {
+		const ortakGrupId = await ortakGrupDenetle(tx, veri.ortakGrupId, sahipId);
 		const [iz] = await tx
 			.insert(izler)
-			.values({ ...veri, sahipId })
+			.values({ ...veri, ortakGrupId, sahipId })
 			.returning({ id: izler.id });
 		if (ilkDugumId) {
 			const [dugum] = await tx
@@ -382,9 +481,10 @@ export async function ilkIzOlustur(sahipId: string, veri: IlkIzVerisi) {
 }
 
 export async function izGuncelle(id: string, sahipId: string, veri: IzVerisi) {
+	const ortakGrupId = await ortakGrupDenetle(db, veri.ortakGrupId, sahipId);
 	const sonuc = await db
 		.update(izler)
-		.set({ ...veri, guncelleme: new Date() })
+		.set({ ...veri, ortakGrupId, guncelleme: new Date() })
 		.where(and(eq(izler.id, id), eq(izler.sahipId, sahipId), etkin(izler)))
 		.returning({ id: izler.id });
 	return sonuc.length > 0;
@@ -400,12 +500,15 @@ export async function izCopeAt(id: string, sahipId: string) {
 	return sonuc ?? null;
 }
 
-/** İzi kilitleyerek sahipliğini doğrular (aynı ize eşzamanlı durak eklemeleri sıraya girer) */
-async function iziKilitle(tx: Islem, izId: string, sahipId: string) {
+/**
+ * İzi kilitleyerek düzenleme yetkisini doğrular (sahibi ya da ortak izin üyesi); aynı ize
+ * eşzamanlı durak eklemeleri sıraya girer.
+ */
+async function iziKilitle(tx: Islem, izId: string, kullaniciId: string) {
 	const [iz] = await tx
 		.select({ id: izler.id })
 		.from(izler)
-		.where(and(eq(izler.id, izId), eq(izler.sahipId, sahipId), etkin(izler)))
+		.where(and(eq(izler.id, izId), duzenlemeYetkisi(kullaniciId)))
 		.for('update');
 	return !!iz;
 }
@@ -481,19 +584,25 @@ export async function durakEkle(
 	});
 }
 
-/** Durağın ait olduğu iz bu kullanıcınınsa iz kimliğini döner */
-async function durakIzi(adimId: string, sahipId: string) {
+/**
+ * Durağın izini, kullanıcı o izi düzenleyebiliyorsa döner. `kendiDurak`: ortak izde üye
+ * yalnızca kendi düğümünün durağını çıkarabilir ve notunu değiştirebilir (sahip hepsini).
+ */
+async function durakIzi(adimId: string, kullaniciId: string, kendiDurak = false) {
 	const [adim] = await db
-		.select({ izId: izAdimlari.izId })
+		.select({ izId: izAdimlari.izId, izSahibi: izler.sahipId, dugumSahibi: dugumler.sahipId })
 		.from(izAdimlari)
 		.innerJoin(izler, eq(izAdimlari.izId, izler.id))
-		.where(and(eq(izAdimlari.id, adimId), eq(izler.sahipId, sahipId), etkin(izler)));
-	return adim?.izId ?? null;
+		.innerJoin(dugumler, eq(izAdimlari.dugumId, dugumler.id))
+		.where(and(eq(izAdimlari.id, adimId), duzenlemeYetkisi(kullaniciId)));
+	if (!adim) return null;
+	if (kendiDurak && adim.izSahibi !== kullaniciId && adim.dugumSahibi !== kullaniciId) return null;
+	return adim.izId;
 }
 
 /** Durağı izden çıkarır; "Geri al" için çıkarılan durağın bilgisini (düğüm, sıra, not) döner */
 export async function durakCikar(adimId: string, sahipId: string) {
-	const izId = await durakIzi(adimId, sahipId);
+	const izId = await durakIzi(adimId, sahipId, true);
 	if (!izId) return null;
 	return db.transaction(async (tx) => {
 		if (!(await iziKilitle(tx, izId, sahipId))) return null;
@@ -546,7 +655,7 @@ export async function durakTasi(adimId: string, sahipId: string, yon: 'yukari' |
 }
 
 export async function durakNotuKaydet(adimId: string, sahipId: string, not: string | null) {
-	const izId = await durakIzi(adimId, sahipId);
+	const izId = await durakIzi(adimId, sahipId, true);
 	if (!izId) return false;
 	await db.update(izAdimlari).set({ not }).where(eq(izAdimlari.id, adimId));
 	await db.update(izler).set({ guncelleme: new Date() }).where(eq(izler.id, izId));

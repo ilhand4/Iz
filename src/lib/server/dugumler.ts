@@ -28,8 +28,20 @@ export function gorunurluk(
 	izleyenId: string | null
 ): SQL {
 	const herkes = eq(tablo.gizlilik, 'herkes');
-	const kim = izleyenId ? (or(eq(tablo.sahipId, izleyenId), herkes) as SQL) : herkes;
+	const kim = izleyenId
+		? (or(
+				eq(tablo.sahipId, izleyenId),
+				herkes,
+				and(eq(tablo.gizlilik, 'grup'), grupArkadasiSql(tablo.sahipId, izleyenId))
+			) as SQL)
+		: herkes;
 	return and(kim, etkin(tablo)) as SQL;
+}
+
+/** Sahip ile izleyen en az bir grupta birlikte mi? (gorebilirMi'nin grupArkadasi koşulu) */
+export function grupArkadasiSql(sahipSutun: AnyPgColumn, izleyenId: string): SQL {
+	return sql`exists (select 1 from grup_uyeleri ga join grup_uyeleri gb on ga.grup_id = gb.grup_id
+		where ga.kullanici_id = ${sahipSutun} and gb.kullanici_id = ${izleyenId})`;
 }
 
 /** Bu benzerliğin altındaki sonuçlar yazım hatası sayılmaz (pg_trgm word_similarity, 0–1) */

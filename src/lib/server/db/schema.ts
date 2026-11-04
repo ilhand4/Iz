@@ -9,6 +9,7 @@ import {
 	jsonb,
 	pgEnum,
 	pgTable,
+	primaryKey,
 	text,
 	timestamp,
 	unique,
@@ -85,6 +86,43 @@ export const oturumlar = pgTable(
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
 	},
 	(t) => [index('oturumlar_kullanici_idx').on(t.kullaniciId)]
+);
+
+// ——— Gruplar: aile, arkadaşlar, kitap kulübü… ———
+// "grup" gizliliğindeki içerik, sahibiyle en az bir ortak grubu olan herkese görünür.
+
+export const gruplar = pgTable(
+	'gruplar',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		ad: text('ad').notNull(),
+		aciklama: text('aciklama'),
+		/** Davet bağlantısındaki jetonun SHA-256 özeti (null: davet kapalı) */
+		davetOzeti: text('davet_ozeti').unique(),
+		davetBitis: zamanDamgasi('davet_bitis'),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [check('gruplar_ad_kontrol', sql`length(${t.ad}) between 1 and 80`)]
+);
+
+export const grupUyeleri = pgTable(
+	'grup_uyeleri',
+	{
+		grupId: uuid('grup_id')
+			.notNull()
+			.references(() => gruplar.id, { onDelete: 'cascade' }),
+		kullaniciId: uuid('kullanici_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		/** yonetici: davet, üye çıkarma, grubu düzenleme/silme */
+		rol: text('rol').notNull().default('uye'),
+		katilma: zamanDamgasi('katilma').notNull().defaultNow()
+	},
+	(t) => [
+		primaryKey({ columns: [t.grupId, t.kullaniciId] }),
+		index('grup_uyeleri_kullanici_idx').on(t.kullaniciId),
+		check('grup_uyeleri_rol_kontrol', sql`${t.rol} in ('yonetici', 'uye')`)
+	]
 );
 
 /** Tek kullanımlık e-posta bağlantıları (şifre sıfırlama, e-posta doğrulama) */
@@ -245,6 +283,8 @@ export const izler = pgTable(
 		guncelleme: zamanDamgasi('guncelleme').notNull().defaultNow(),
 		/** Doluysa iz çöp kutusundadır */
 		silinme: zamanDamgasi('silinme'),
+		/** Ortak iz: bu grubun üyeleri izi görür ve kendi düğümlerinden durak ekleyebilir */
+		ortakGrupId: uuid('ortak_grup_id').references(() => gruplar.id, { onDelete: 'set null' }),
 		aramaMetni: text('arama_metni').generatedAlwaysAs((): SQL =>
 			sadelestirSql(sql`${izler.baslik} || ' ' || coalesce(${izler.aciklama}, '')`)
 		)

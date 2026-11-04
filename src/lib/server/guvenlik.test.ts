@@ -19,6 +19,13 @@ describe('gorebilirMi', () => {
 		expect(gorebilirMi({ sahipId: sahip, gizlilik: 'ozel' }, null)).toBe(false);
 		expect(gorebilirMi({ sahipId: sahip, gizlilik: 'herkes' }, null)).toBe(true);
 	});
+
+	it('"grup" içeriğini yalnızca sahibin grup arkadaşları görür', () => {
+		expect(gorebilirMi({ sahipId: sahip, gizlilik: 'grup' }, baska, true)).toBe(true);
+		expect(gorebilirMi({ sahipId: sahip, gizlilik: 'grup' }, baska, false)).toBe(false);
+		expect(gorebilirMi({ sahipId: sahip, gizlilik: 'grup' }, null, true)).toBe(false);
+		expect(gorebilirMi({ sahipId: sahip, gizlilik: 'ozel' }, baska, true)).toBe(false);
+	});
 });
 
 describe('HizSiniri', () => {

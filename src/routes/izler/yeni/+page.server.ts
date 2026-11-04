@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { izDogrula, uuidMu } from '#lib/server/dogrulama.ts';
 import { dugumGetir } from '#lib/server/dugumler.ts';
+import { gruplarim } from '#lib/server/gruplar.ts';
 import { izOlustur } from '#lib/server/izler.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -16,7 +17,11 @@ async function ilkDugum(dugumId: string | null, kullaniciId: string) {
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const kullanici = girisGerekli(locals, url);
-	return { ilkDugum: await ilkDugum(url.searchParams.get('dugum'), kullanici.id) };
+	const [ilk, gruplar] = await Promise.all([
+		ilkDugum(url.searchParams.get('dugum'), kullanici.id),
+		gruplarim(kullanici.id)
+	]);
+	return { ilkDugum: ilk, gruplar: gruplar.map((g) => ({ id: g.id, ad: g.ad })) };
 };
 
 export const actions: Actions = {

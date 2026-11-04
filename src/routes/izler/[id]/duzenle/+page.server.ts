@@ -11,9 +11,9 @@ import {
 	izGetir,
 	izGuncelle,
 	izCopeAt,
-	sonrakiDurakOnerileri,
-	type IzDuragi
+	sonrakiDurakOnerileri
 } from '#lib/server/izler.ts';
+import { gruplarim } from '#lib/server/gruplar.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -23,21 +23,32 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const kullanici = girisGerekli(locals, url);
 	if (!uuidMu(params.id)) error(404, BULUNAMADI);
 	const iz = await izGetir(params.id, kullanici.id);
-	if (!iz || !iz.sahibiMi) error(404, BULUNAMADI);
+	if (!iz || !iz.duzenleyebilir) error(404, BULUNAMADI);
 
-	// Sahibi tüm duraklarını görür; tip daraltma için yine de süz
-	const duraklar = iz.duraklar
-		.filter((d): d is IzDuragi => !gizliMi(d))
-		.map((d) => ({
-			adimId: d.adimId,
-			not: d.not,
-			dugum: {
-				id: d.dugum.id,
-				baslik: d.dugum.baslik,
-				tur: d.dugum.tur,
-				eserTuru: d.dugum.eserTuru
-			}
-		}));
+	// Ortak izde başka bir üyenin özel düğümü "gizli durak" olarak gelir: yine sırada yer alır
+	// (sıralama tüm durakları ister) ama başlığı ve notu gösterilmez, düzenlenemez
+	const duraklar = iz.duraklar.map((d) =>
+		gizliMi(d)
+			? {
+					adimId: d.adimId,
+					not: null,
+					gizli: true,
+					duzenlenebilir: iz.sahibiMi,
+					dugum: { id: '', baslik: 'Gizli durak', tur: 'ani' as const, eserTuru: null }
+				}
+			: {
+					adimId: d.adimId,
+					not: d.not,
+					gizli: false,
+					duzenlenebilir: iz.sahibiMi || d.kendiDugumu,
+					dugum: {
+						id: d.dugum.id,
+						baslik: d.dugum.baslik,
+						tur: d.dugum.tur,
+						eserTuru: d.dugum.eserTuru
+					}
+				}
+	);
 	const izdekiler = new Set(duraklar.map((d) => d.dugum.id));
 	const [tumSecenekler, oneriler] = await Promise.all([
 		dugumSecenekleri(kullanici.id),
@@ -49,7 +60,10 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		duraklar,
 		eklenebilir: tumSecenekler.filter((s) => !izdekiler.has(s.id)),
 		oneriler,
-		yeni: url.searchParams.has('yeni')
+		yeni: url.searchParams.has('yeni'),
+		sahibiMi: iz.sahibiMi,
+		ortakGrup: iz.ortakGrup,
+		gruplar: iz.sahibiMi ? (await gruplarim(kullanici.id)).map((g) => ({ id: g.id, ad: g.ad })) : []
 	};
 };
 

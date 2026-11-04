@@ -31,6 +31,7 @@
 			degerler={form?.degerler as Record<string, string> | undefined}
 			hatalar={form?.hatalar as Record<string, string> | undefined}
 			gonderMetni="İzi oluştur"
+			gruplar={data.gruplar}
 		/>
 	</div>
 </div>

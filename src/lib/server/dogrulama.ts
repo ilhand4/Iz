@@ -338,10 +338,16 @@ export function bagBilgisiDogrula(fd: FormData): Sonuc<BagBilgisi> {
 
 // ——— İz ———
 
-export type IzVerisi = { baslik: string; aciklama: string | null; gizlilik: Gizlilik };
+export type IzVerisi = {
+	baslik: string;
+	aciklama: string | null;
+	gizlilik: Gizlilik;
+	/** Ortak iz grubu; üyelik veri katmanında doğrulanır (üye değilse yok sayılır) */
+	ortakGrupId?: string | null;
+};
 
 export function izDogrula(fd: FormData): Sonuc<IzVerisi> {
-	const d = degerleriAl(fd, ['baslik', 'aciklama', 'gizlilik']);
+	const d = degerleriAl(fd, ['baslik', 'aciklama', 'gizlilik', 'ortakGrupId']);
 	const hatalar: Hatalar = {};
 	if (!d.baslik) hatalar.baslik = 'İze bir ad ver.';
 	else if (d.baslik.length > 120) hatalar.baslik = 'İzin adı en fazla 120 karakter olabilir.';
@@ -352,8 +358,25 @@ export function izDogrula(fd: FormData): Sonuc<IzVerisi> {
 	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: d };
 	return {
 		tamam: true,
-		veri: { baslik: d.baslik, aciklama: d.aciklama || null, gizlilik: gizlilik as Gizlilik }
+		veri: {
+			baslik: d.baslik,
+			aciklama: d.aciklama || null,
+			gizlilik: gizlilik as Gizlilik,
+			ortakGrupId: uuidMu(d.ortakGrupId) ? d.ortakGrupId : null
+		}
 	};
+}
+
+export type GrupVerisi = { ad: string; aciklama: string | null };
+
+export function grupDogrula(fd: FormData): Sonuc<GrupVerisi> {
+	const d = degerleriAl(fd, ['ad', 'aciklama']);
+	const hatalar: Hatalar = {};
+	if (!d.ad) hatalar.ad = 'Gruba bir ad ver.';
+	else if (d.ad.length > 80) hatalar.ad = 'Grup adı en fazla 80 karakter olabilir.';
+	if (d.aciklama.length > 300) hatalar.aciklama = 'Açıklama en fazla 300 karakter olabilir.';
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: d };
+	return { tamam: true, veri: { ad: d.ad, aciklama: d.aciklama || null } };
 }
 
 /** Bir durağın anlatı notu */

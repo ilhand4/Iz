@@ -60,6 +60,11 @@
 			{#if !data.sahibiMi}
 				<a href="/@{data.sahip.kullaniciAdi}">{data.sahip.ad} (@{data.sahip.kullaniciAdi})</a>
 			{/if}
+			{#if data.ortakGrup}
+				<span class="rozet ortak-rozet"
+					><Simge ad="grup" boyut={12} /> {data.ortakGrup.ad} ile ortak</span
+				>
+			{/if}
 		</div>
 		{#snippet eylemler()}
 			{#if iz.gizlilik === 'herkes'}
@@ -68,9 +73,10 @@
 					{kopyalandi ? 'Kopyalandı' : 'Bağlantıyı kopyala'}
 				</button>
 			{/if}
-			{#if data.sahibiMi}
+			{#if data.duzenleyebilir}
 				<a class="dugme dugme-birincil" href="/izler/{iz.id}/duzenle">
-					<Simge ad="kalem" boyut={18} /> Düzenle
+					<Simge ad="kalem" boyut={18} />
+					{data.sahibiMi ? 'Düzenle' : 'Durak ekle'}
 				</a>
 			{/if}
 		{/snippet}
@@ -192,6 +198,10 @@
 </div>
 
 <style>
+	.ortak-rozet {
+		background: var(--vurgu-zemin);
+		color: var(--metin);
+	}
 	.gomme-kodu summary {
 		cursor: pointer;
 		font-weight: 600;

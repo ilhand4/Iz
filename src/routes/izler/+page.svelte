@@ -25,6 +25,7 @@
 		aciklama="Düğümlerinden seçip sıraya dizdiğin yollar. Her durağa bir not yaz; izi bir hikâye gibi oku ya da paylaş."
 	>
 		{#snippet eylemler()}
+			<a class="dugme" href="/gruplar"><Simge ad="grup" boyut={18} /> Gruplar</a>
 			<a class="dugme dugme-birincil" href="/izler/yeni"><Simge ad="ekle" boyut={18} /> Yeni iz</a>
 		{/snippet}
 	</SayfaBasligi>
@@ -74,9 +75,27 @@
 			{/snippet}
 		</BosDurum>
 	{/if}
+
+	{#if data.ortak.length}
+		<section class="yigin ortak" aria-labelledby="ortak-baslik">
+			<h2 id="ortak-baslik">Gruplarımın ortak izleri</h2>
+			<div class="izgara">
+				{#each data.ortak as iz (iz.id)}
+					<IzKarti {iz} />
+				{/each}
+			</div>
+		</section>
+	{/if}
 </div>
 
 <style>
+	.ortak {
+		padding-top: var(--a-5);
+		border-top: 1px solid var(--cizgi);
+	}
+	.ortak h2 {
+		margin: 0;
+	}
 	.arama {
 		display: flex;
 		gap: var(--a-2);

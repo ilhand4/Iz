@@ -2,7 +2,7 @@
 
 export const DUGUM_TURLERI = ['eser', 'kisi', 'yer', 'karar', 'ani'] as const;
 export const ESER_TURLERI = ['kitap', 'film', 'dizi', 'muzik', 'oyun', 'podcast'] as const;
-/** ozel: yalnızca sahibi; grup: aile/grup üyeleri (gruplar gelene kadar yalnızca sahibi); herkes: herkese açık */
+/** ozel: yalnızca sahibi; grup: sahiple en az bir ortak grubu olanlar; herkes: herkese açık */
 export const GIZLILIK_DUZEYLERI = ['ozel', 'grup', 'herkes'] as const;
 export const TARIH_HASSASIYETLERI = ['gun', 'ay', 'yil'] as const;
 /** Yalnızca eserler için: merak listesi ve okuma/izleme durumu */
@@ -66,13 +66,13 @@ export const ESER_TURU_ETIKETI: Record<EserTuru, string> = {
 
 export const GIZLILIK_ETIKETI: Record<Gizlilik, string> = {
 	ozel: 'Özel',
-	grup: 'Aile / grup',
+	grup: 'Gruplarım',
 	herkes: 'Herkese açık'
 };
 
 export const GIZLILIK_ACIKLAMASI: Record<Gizlilik, string> = {
 	ozel: 'Yalnızca sen görürsün.',
-	grup: 'Aile ve grupların görür (gruplar yakında; şimdilik yalnızca sen).',
+	grup: 'Üye olduğun gruplardaki herkes görür (aile, arkadaşlar, kulüp…).',
 	herkes: 'Bağlantıyı bilen herkes görebilir.'
 };
 

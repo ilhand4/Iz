@@ -4,10 +4,12 @@ import type { Gizlilik } from '../sabitler';
 /** Bir düğümü (ya da izi) kimin görebileceği kuralı. SQL karşılığı: dugumler.ts → gorunurluk() */
 export function gorebilirMi(
 	kayit: { sahipId: string; gizlilik: Gizlilik },
-	izleyenId: string | null
+	izleyenId: string | null,
+	/** İzleyen, sahiple en az bir ortak grupta mı? */
+	grupArkadasi = false
 ): boolean {
 	if (izleyenId && kayit.sahipId === izleyenId) return true;
-	// "grup" düzeyi, gruplar gelene kadar (Aşama 3) yalnızca sahibine açıktır
+	if (kayit.gizlilik === 'grup') return !!izleyenId && grupArkadasi;
 	return kayit.gizlilik === 'herkes';
 }
 
