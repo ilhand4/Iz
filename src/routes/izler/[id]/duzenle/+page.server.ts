@@ -26,11 +26,18 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	if (!iz || !iz.sahibiMi) error(404, BULUNAMADI);
 
 	// Sahibi tüm duraklarını görür; tip daraltma için yine de süz
-	const duraklar = iz.duraklar.filter((d): d is IzDuragi => !gizliMi(d)).map((d) => ({
-		adimId: d.adimId,
-		not: d.not,
-		dugum: { id: d.dugum.id, baslik: d.dugum.baslik, tur: d.dugum.tur, eserTuru: d.dugum.eserTuru }
-	}));
+	const duraklar = iz.duraklar
+		.filter((d): d is IzDuragi => !gizliMi(d))
+		.map((d) => ({
+			adimId: d.adimId,
+			not: d.not,
+			dugum: {
+				id: d.dugum.id,
+				baslik: d.dugum.baslik,
+				tur: d.dugum.tur,
+				eserTuru: d.dugum.eserTuru
+			}
+		}));
 	const izdekiler = new Set(duraklar.map((d) => d.dugum.id));
 	const [tumSecenekler, oneriler] = await Promise.all([
 		dugumSecenekleri(kullanici.id),
@@ -57,7 +64,8 @@ export const actions: Actions = {
 	bilgi: async ({ params, request, locals, url }) => {
 		const kullanici = await kullaniciVeIz(params.id, locals, url);
 		const sonuc = izDogrula(await request.formData());
-		if (!sonuc.tamam) return fail(400, { bilgi: { hatalar: sonuc.hatalar, degerler: sonuc.degerler } });
+		if (!sonuc.tamam)
+			return fail(400, { bilgi: { hatalar: sonuc.hatalar, degerler: sonuc.degerler } });
 		if (!(await izGuncelle(params.id, kullanici.id, sonuc.veri))) error(404, BULUNAMADI);
 		return { bilgiKaydedildi: true };
 	},

@@ -13,7 +13,11 @@
 	let { data, form }: PageProps = $props();
 	const d = $derived(data.dugum);
 
-	type BagFormu = { yon: string; hatalar: Record<string, string>; degerler: Record<string, string> };
+	type BagFormu = {
+		yon: string;
+		hatalar: Record<string, string>;
+		degerler: Record<string, string>;
+	};
 	const bagFormu = $derived((form?.bag ?? null) as BagFormu | null);
 	const gidenHata = $derived(bagFormu?.yon === 'giden' ? bagFormu : null);
 	const gelenHata = $derived(bagFormu?.yon === 'gelen' ? bagFormu : null);
@@ -47,7 +51,9 @@
 
 	<div aria-live="polite" class="bildirimler">
 		{#if data.eklendi && !form}
-			<p class="bildirim bildirim-basari">Düğüm eklendi. Şimdi onu başka düğümlere bağlayabilirsin.</p>
+			<p class="bildirim bildirim-basari">
+				Düğüm eklendi. Şimdi onu başka düğümlere bağlayabilirsin.
+			</p>
 		{/if}
 		{#if form?.bagKuruldu}<p class="bildirim bildirim-basari">Bağ kuruldu.</p>{/if}
 		{#if form?.bagGuncellendi}<p class="bildirim bildirim-basari">Bağ güncellendi.</p>{/if}
@@ -138,7 +144,11 @@
 					{#if data.secenekler.length}
 						<form method="POST" action="?/bagKur" class="yigin" use:enhance>
 							<input type="hidden" name="yon" value="giden" />
-							<Alan id="gidenHedef" etiket="“{d.baslik}” beni şuna götürdü:" hata={gidenHata?.hatalar.digerId}>
+							<Alan
+								id="gidenHedef"
+								etiket="“{d.baslik}” beni şuna götürdü:"
+								hata={gidenHata?.hatalar.digerId}
+							>
 								<DugumSecici
 									id="gidenHedef"
 									ad="digerId"
@@ -153,9 +163,19 @@
 								hata={gidenHata?.hatalar.not}
 								ipucu="İsteğe bağlı: “arkadaşım hediye etti”, “filmin müziğiydi”…"
 							>
-								<input id="gidenNot" name="not" maxlength="1000" value={gidenHata?.degerler.not ?? ''} />
+								<input
+									id="gidenNot"
+									name="not"
+									maxlength="1000"
+									value={gidenHata?.degerler.not ?? ''}
+								/>
 							</Alan>
-							<Alan id="gidenTarih" etiket="Ne zaman?" hata={gidenHata?.hatalar.tarih} ipucu="İsteğe bağlı: 2021 · 2021-03 · 14.03.2021">
+							<Alan
+								id="gidenTarih"
+								etiket="Ne zaman?"
+								hata={gidenHata?.hatalar.tarih}
+								ipucu="İsteğe bağlı: 2021 · 2021-03 · 14.03.2021"
+							>
 								<input
 									id="gidenTarih"
 									name="tarih"
@@ -201,7 +221,11 @@
 					<summary>Seni buraya ne getirdi?</summary>
 					<form method="POST" action="?/bagKur" class="yigin" use:enhance>
 						<input type="hidden" name="yon" value="gelen" />
-						<Alan id="gelenKaynak" etiket="Beni “{d.baslik}” düğümüne getiren:" hata={gelenHata?.hatalar.digerId}>
+						<Alan
+							id="gelenKaynak"
+							etiket="Beni “{d.baslik}” düğümüne getiren:"
+							hata={gelenHata?.hatalar.digerId}
+						>
 							<DugumSecici
 								id="gelenKaynak"
 								ad="digerId"
@@ -211,7 +235,12 @@
 							/>
 						</Alan>
 						<Alan id="gelenNot" etiket="Nasıl?" hata={gelenHata?.hatalar.not}>
-							<input id="gelenNot" name="not" maxlength="1000" value={gelenHata?.degerler.not ?? ''} />
+							<input
+								id="gelenNot"
+								name="not"
+								maxlength="1000"
+								value={gelenHata?.degerler.not ?? ''}
+							/>
 						</Alan>
 						<Alan id="gelenTarih" etiket="Ne zaman?" hata={gelenHata?.hatalar.tarih}>
 							<input

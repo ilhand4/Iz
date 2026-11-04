@@ -218,6 +218,8 @@
 	}
 
 	function elemanlar(): cytoscape.ElementDefinition[] {
+		// Fonksiyon içinde bir kez kullanılan geçici sayaç; tepkisel olması gerekmiyor
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const derece = new Map<string, number>();
 		for (const b of baglar) {
 			derece.set(b.kaynakId, (derece.get(b.kaynakId) ?? 0) + 1);
@@ -232,7 +234,12 @@
 				.filter((b) => dugumHaritasi.has(b.kaynakId) && dugumHaritasi.has(b.hedefId))
 				.map((b) => ({
 					group: 'edges' as const,
-					data: { id: b.id, source: b.kaynakId, target: b.hedefId, not: b.not ? kisalt(b.not, 42) : '' }
+					data: {
+						id: b.id,
+						source: b.kaynakId,
+						target: b.hedefId,
+						not: b.not ? kisalt(b.not, 42) : ''
+					}
 				}))
 		];
 	}
@@ -311,7 +318,10 @@
 	function sigdir() {
 		const ag = cy;
 		if (!ag) return;
-		ag.animate({ fit: { eles: ag.elements(':visible'), padding: 56 }, duration: azHareket() ? 0 : 300 });
+		ag.animate({
+			fit: { eles: ag.elements(':visible'), padding: 56 },
+			duration: azHareket() ? 0 : 300
+		});
 	}
 
 	function yenidenYerlestir() {
@@ -402,7 +412,11 @@
 				if (odakId && dugumHaritasi.has(odakId)) odakla(odakId);
 
 				// Tema değişince renkleri yeniden oku
-				const yenidenBoya = () => ag.style().fromJson(stilKur(renkleriOku(tuval))).update();
+				const yenidenBoya = () =>
+					ag
+						.style()
+						.fromJson(stilKur(renkleriOku(tuval)))
+						.update();
 				const gozlemci = new MutationObserver(yenidenBoya);
 				gozlemci.observe(document.documentElement, {
 					attributes: true,
@@ -488,16 +502,31 @@
 		{/if}
 
 		<div class="kontroller" aria-label="Görünüm denetimleri" role="toolbar">
-			<button type="button" onclick={() => yakinlas(1.25)} aria-label="Yakınlaştır" title="Yakınlaştır (+)">
+			<button
+				type="button"
+				onclick={() => yakinlas(1.25)}
+				aria-label="Yakınlaştır"
+				title="Yakınlaştır (+)"
+			>
 				<Simge ad="ekle" boyut={18} />
 			</button>
-			<button type="button" onclick={() => yakinlas(0.8)} aria-label="Uzaklaştır" title="Uzaklaştır (−)">
+			<button
+				type="button"
+				onclick={() => yakinlas(0.8)}
+				aria-label="Uzaklaştır"
+				title="Uzaklaştır (−)"
+			>
 				<Simge ad="eksi" boyut={18} />
 			</button>
 			<button type="button" onclick={sigdir} aria-label="Tümünü sığdır" title="Tümünü sığdır (0)">
 				<Simge ad="sigdir" boyut={18} />
 			</button>
-			<button type="button" onclick={yenidenYerlestir} aria-label="Yeniden yerleştir" title="Yeniden yerleştir">
+			<button
+				type="button"
+				onclick={yenidenYerlestir}
+				aria-label="Yeniden yerleştir"
+				title="Yeniden yerleştir"
+			>
 				<Simge ad="yenile" boyut={18} />
 			</button>
 		</div>

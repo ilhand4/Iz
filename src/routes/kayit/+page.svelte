@@ -32,9 +32,22 @@
 			{#if h?.genel}<p class="bildirim bildirim-hata" role="alert">{h.genel}</p>{/if}
 
 			<Alan id="ad" etiket="Adın" hata={h?.ad}>
-				<input id="ad" name="ad" autocomplete="name" value={d?.ad ?? ''} aria-invalid={!!h?.ad} required maxlength="80" />
+				<input
+					id="ad"
+					name="ad"
+					autocomplete="name"
+					value={d?.ad ?? ''}
+					aria-invalid={!!h?.ad}
+					required
+					maxlength="80"
+				/>
 			</Alan>
-			<Alan id="kullaniciAdi" etiket="Kullanıcı adı" hata={h?.kullaniciAdi} ipucu="3–30 karakter: a-z, rakam, nokta, alt çizgi.">
+			<Alan
+				id="kullaniciAdi"
+				etiket="Kullanıcı adı"
+				hata={h?.kullaniciAdi}
+				ipucu="3–30 karakter: a-z, rakam, nokta, alt çizgi."
+			>
 				<input
 					id="kullaniciAdi"
 					name="kullaniciAdi"
@@ -48,13 +61,41 @@
 				/>
 			</Alan>
 			<Alan id="eposta" etiket="E-posta" hata={h?.eposta}>
-				<input id="eposta" name="eposta" type="email" autocomplete="email" value={d?.eposta ?? ''} aria-invalid={!!h?.eposta} required />
+				<input
+					id="eposta"
+					name="eposta"
+					type="email"
+					autocomplete="email"
+					value={d?.eposta ?? ''}
+					aria-invalid={!!h?.eposta}
+					required
+				/>
 			</Alan>
-			<Alan id="sifre" etiket="Şifre" hata={h?.sifre} ipucu="En az 10 karakter. Uzun bir cümle iyi bir şifredir.">
-				<input id="sifre" name="sifre" type="password" autocomplete="new-password" aria-invalid={!!h?.sifre} required minlength="10" />
+			<Alan
+				id="sifre"
+				etiket="Şifre"
+				hata={h?.sifre}
+				ipucu="En az 10 karakter. Uzun bir cümle iyi bir şifredir."
+			>
+				<input
+					id="sifre"
+					name="sifre"
+					type="password"
+					autocomplete="new-password"
+					aria-invalid={!!h?.sifre}
+					required
+					minlength="10"
+				/>
 			</Alan>
 			<Alan id="sifreTekrar" etiket="Şifre (tekrar)" hata={h?.sifreTekrar}>
-				<input id="sifreTekrar" name="sifreTekrar" type="password" autocomplete="new-password" aria-invalid={!!h?.sifreTekrar} required />
+				<input
+					id="sifreTekrar"
+					name="sifreTekrar"
+					type="password"
+					autocomplete="new-password"
+					aria-invalid={!!h?.sifreTekrar}
+					required
+				/>
 			</Alan>
 
 			<button class="dugme dugme-birincil" disabled={gonderiliyor}>

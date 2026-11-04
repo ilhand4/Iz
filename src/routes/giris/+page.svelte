@@ -41,7 +41,14 @@
 				/>
 			</Alan>
 			<Alan id="sifre" etiket="Şifre" hata={h?.sifre}>
-				<input id="sifre" name="sifre" type="password" autocomplete="current-password" aria-invalid={!!h?.sifre} required />
+				<input
+					id="sifre"
+					name="sifre"
+					type="password"
+					autocomplete="current-password"
+					aria-invalid={!!h?.sifre}
+					required
+				/>
 			</Alan>
 
 			<button class="dugme dugme-birincil" disabled={gonderiliyor}>

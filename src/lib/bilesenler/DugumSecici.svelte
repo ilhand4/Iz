@@ -58,7 +58,9 @@
 	// Seçili bir düğümün adı kutudaysa tüm seçenekleri göster; yazılmaya başlanınca süz
 	const suzgec = $derived(seciliId && sorgu === seciliBaslik ? '' : sorgu.trim());
 	const eslesenler = $derived(
-		suzgec ? secenekler.filter((s) => eslesir(`${s.baslik} ${s.altBaslik ?? ''}`, suzgec)) : secenekler
+		suzgec
+			? secenekler.filter((s) => eslesir(`${s.baslik} ${s.altBaslik ?? ''}`, suzgec))
+			: secenekler
 	);
 	const gosterilen = $derived(eslesenler.slice(0, EN_FAZLA));
 

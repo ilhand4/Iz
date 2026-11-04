@@ -47,8 +47,14 @@ export const actions: Actions = {
 			kullaniciId = yeni.id;
 		} catch (hata) {
 			// Aynı anda iki kayıt: tekil dizin ihlali
-			if ((hata as { code?: string }).code === '23505' || (hata as { cause?: { code?: string } }).cause?.code === '23505') {
-				return fail(400, { hatalar: { genel: 'Bu kullanıcı adı ya da e-posta az önce alındı.' }, degerler });
+			if (
+				(hata as { code?: string }).code === '23505' ||
+				(hata as { cause?: { code?: string } }).cause?.code === '23505'
+			) {
+				return fail(400, {
+					hatalar: { genel: 'Bu kullanıcı adı ya da e-posta az önce alındı.' },
+					degerler
+				});
 			}
 			throw hata;
 		}

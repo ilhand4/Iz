@@ -21,11 +21,35 @@
 	];
 
 	const moduller = [
-		{ ad: 'Kültür İzi', aciklama: 'Kitap, film, dizi, müzik, oyun ve podcast arasındaki gerçek keşif bağları. Öneriler puandan değil, insanların yürüdüğü yollardan gelir.', durum: 'Şimdi' },
-		{ ad: 'Karar Defteri', aciklama: 'Gerekçe, beklenti ve yüzde kaç emin olduğun. Zamanı gelince sonucu sorar, ne kadar isabetli tahmin ettiğini gösterir.', durum: 'Yakında' },
-		{ ad: 'Bir Zamanlar Burası', aciklama: 'Haritada aynı yerin eski ve yeni fotoğrafları; kaydırarak önce/sonra karşılaştırması.', durum: 'Yakında' },
-		{ ad: 'Aile Hafızası', aciklama: 'Sesli anlatılan anılar Türkçe yazıya dökülür; kişiler, yerler ve yıllar kendiliğinden düğüm olur. Basılı kitap olarak da alınabilir.', durum: 'Yakında' },
-		{ ad: 'Çeviri Masası', aciklama: 'Aynı paragrafın farklı Türkçe çevirileri yan yana; okurlar oylar, tartışır.', durum: 'Yakında' }
+		{
+			ad: 'Kültür İzi',
+			aciklama:
+				'Kitap, film, dizi, müzik, oyun ve podcast arasındaki gerçek keşif bağları. Öneriler puandan değil, insanların yürüdüğü yollardan gelir.',
+			durum: 'Şimdi'
+		},
+		{
+			ad: 'Karar Defteri',
+			aciklama:
+				'Gerekçe, beklenti ve yüzde kaç emin olduğun. Zamanı gelince sonucu sorar, ne kadar isabetli tahmin ettiğini gösterir.',
+			durum: 'Yakında'
+		},
+		{
+			ad: 'Bir Zamanlar Burası',
+			aciklama:
+				'Haritada aynı yerin eski ve yeni fotoğrafları; kaydırarak önce/sonra karşılaştırması.',
+			durum: 'Yakında'
+		},
+		{
+			ad: 'Aile Hafızası',
+			aciklama:
+				'Sesli anlatılan anılar Türkçe yazıya dökülür; kişiler, yerler ve yıllar kendiliğinden düğüm olur. Basılı kitap olarak da alınabilir.',
+			durum: 'Yakında'
+		},
+		{
+			ad: 'Çeviri Masası',
+			aciklama: 'Aynı paragrafın farklı Türkçe çevirileri yan yana; okurlar oylar, tartışır.',
+			durum: 'Yakında'
+		}
 	];
 </script>
 
@@ -65,7 +89,15 @@
 				karar da Der Himmel über Berlin filmine götürdü.
 			</title>
 			<defs>
-				<marker id="ok-ucu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+				<marker
+					id="ok-ucu"
+					viewBox="0 0 10 10"
+					refX="9"
+					refY="5"
+					markerWidth="7"
+					markerHeight="7"
+					orient="auto-start-reverse"
+				>
 					<path d="M0 0 10 5 0 10z" fill="var(--vurgu)" />
 				</marker>
 			</defs>
@@ -101,17 +133,24 @@
 		<article class="kart">
 			<span class="rozet" data-tur="eser">Düğüm</span>
 			<h3>Hayatındaki şeyler</h3>
-			<p class="soluk">Eserler, kişiler, yerler, kararlar ve anılar. Her birinin bir tarihi, istersen bir konumu var.</p>
+			<p class="soluk">
+				Eserler, kişiler, yerler, kararlar ve anılar. Her birinin bir tarihi, istersen bir konumu
+				var.
+			</p>
 		</article>
 		<article class="kart">
 			<span class="rozet" data-tur="kisi">Bağ</span>
 			<h3>“Bu beni şuna götürdü”</h3>
-			<p class="soluk">İki düğüm arasındaki yönlü bağ, nasıl olduğunu anlatan kısa bir notla birlikte.</p>
+			<p class="soluk">
+				İki düğüm arasındaki yönlü bağ, nasıl olduğunu anlatan kısa bir notla birlikte.
+			</p>
 		</article>
 		<article class="kart">
 			<span class="rozet" data-tur="yer">İz</span>
 			<h3>Anlatılabilir yollar</h3>
-			<p class="soluk">Düğümlerden seçtiğin sıralı bir yol: bir hikâye gibi anlatılır, istersen paylaşılır.</p>
+			<p class="soluk">
+				Düğümlerden seçtiğin sıralı bir yol: bir hikâye gibi anlatılır, istersen paylaşılır.
+			</p>
 		</article>
 	</div>
 </section>
@@ -119,19 +158,33 @@
 <section class="kap bolum">
 	<h2>Aynı veri, üç görünüm</h2>
 	<div class="izgara">
-		<article class="kart"><h3>Ağ</h3><p class="soluk">Yakınlaştırıp uzaklaştırabildiğin bağlantı ağı.</p></article>
-		<article class="kart"><h3>Zaman çizgisi</h3><p class="soluk">Neyin ne zaman olduğunu, neyin neyi izlediğini gösterir.</p></article>
-		<article class="kart"><h3>Harita</h3><p class="soluk">Konumu olan düğümler dünya haritasında.</p></article>
+		<article class="kart">
+			<h3>Ağ</h3>
+			<p class="soluk">Yakınlaştırıp uzaklaştırabildiğin bağlantı ağı.</p>
+		</article>
+		<article class="kart">
+			<h3>Zaman çizgisi</h3>
+			<p class="soluk">Neyin ne zaman olduğunu, neyin neyi izlediğini gösterir.</p>
+		</article>
+		<article class="kart">
+			<h3>Harita</h3>
+			<p class="soluk">Konumu olan düğümler dünya haritasında.</p>
+		</article>
 	</div>
 </section>
 
 <section class="kap bolum">
 	<h2>Modüller</h2>
-	<p class="soluk">Asıl fark modüller arasındaki bağlarda: bir anı bir kitaba, kitap bir karara bağlanabilir.</p>
+	<p class="soluk">
+		Asıl fark modüller arasındaki bağlarda: bir anı bir kitaba, kitap bir karara bağlanabilir.
+	</p>
 	<div class="izgara">
 		{#each moduller as m (m.ad)}
 			<article class="kart modul">
-				<div class="satir"><h3>{m.ad}</h3><span class="rozet">{m.durum}</span></div>
+				<div class="satir">
+					<h3>{m.ad}</h3>
+					<span class="rozet">{m.durum}</span>
+				</div>
 				<p class="soluk">{m.aciklama}</p>
 			</article>
 		{/each}
@@ -143,7 +196,8 @@
 		<h2>Gizlilik her düğümde ayrı</h2>
 		<p class="soluk">
 			Her düğüm ve iz için ayrı ayrı seçersin: <strong>özel</strong> (yalnızca sen),
-			<strong>aile / grup</strong> ya da <strong>herkese açık</strong>. Varsayılan her zaman özeldir.
+			<strong>aile / grup</strong> ya da <strong>herkese açık</strong>. Varsayılan her zaman
+			özeldir.
 		</p>
 	</div>
 </section>

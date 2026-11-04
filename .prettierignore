@@ -1,0 +1,10 @@
+# Üretilen ve dışarıdan gelen dosyalar
+build/
+.svelte-kit/
+node_modules/
+drizzle/
+package-lock.json
+yedekler/
+test-results/
+playwright-report/
+static/

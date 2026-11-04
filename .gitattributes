@@ -1,0 +1,8 @@
+# Depoda tüm metin dosyaları LF satır sonuyla tutulur (Windows'ta da)
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
+*.dump binary

@@ -25,7 +25,9 @@
 	>
 		{#snippet eylemler()}
 			<a class="dugme" href="/ara"><Simge ad="ara" boyut={18} /> Eser ara</a>
-			<a class="dugme dugme-birincil" href="/dugumler/yeni"><Simge ad="ekle" boyut={18} /> Düğüm ekle</a>
+			<a class="dugme dugme-birincil" href="/dugumler/yeni"
+				><Simge ad="ekle" boyut={18} /> Düğüm ekle</a
+			>
 		{/snippet}
 	</SayfaBasligi>
 
@@ -118,7 +120,9 @@
 				{:else}
 					<div class="kart davet">
 						<p>Düğümlerini sıraya dizip bir hikâye gibi anlatmak için bir iz oluştur.</p>
-						<a class="dugme dugme-kucuk" href="/izler/yeni"><Simge ad="iz" boyut={16} /> İlk izini oluştur</a>
+						<a class="dugme dugme-kucuk" href="/izler/yeni"
+							><Simge ad="iz" boyut={16} /> İlk izini oluştur</a
+						>
 					</div>
 				{/if}
 			</section>
@@ -130,9 +134,13 @@
 						{#each pano.sonBaglar as bag (bag.id)}
 							<li>
 								<span class="bag-uclari">
-									<a href="/dugumler/{bag.kaynak.id}"><TurSekli tur={bag.kaynak.tur} boyut={11} /> {bag.kaynak.baslik}</a>
+									<a href="/dugumler/{bag.kaynak.id}"
+										><TurSekli tur={bag.kaynak.tur} boyut={11} /> {bag.kaynak.baslik}</a
+									>
 									<span class="ok" aria-label="şuna götürdü">→</span>
-									<a href="/dugumler/{bag.hedef.id}"><TurSekli tur={bag.hedef.tur} boyut={11} /> {bag.hedef.baslik}</a>
+									<a href="/dugumler/{bag.hedef.id}"
+										><TurSekli tur={bag.hedef.tur} boyut={11} /> {bag.hedef.baslik}</a
+									>
 								</span>
 								{#if bag.not}<span class="not">“{bag.not}”</span>{/if}
 							</li>

@@ -42,18 +42,18 @@ Kitap araması (Open Library) anahtarsız çalışır. Film/dizi için ücretsiz
 
 ## Komutlar
 
-| Komut                 | Ne yapar                                                       |
-| --------------------- | -------------------------------------------------------------- |
-| `npm run dev`         | Geliştirme sunucusu (http://localhost:5173)                    |
-| `npm run check`       | Svelte + TypeScript tip denetimi                               |
-| `npm test`            | Vitest: birim + PGlite üzerinde entegrasyon testleri            |
-| `npm run build`       | Üretim derlemesi (`build/` klasörü, Node sunucusu)             |
-| `npm run preview`     | Üretim derlemesini yerelde dener (http://localhost:4173)        |
+| Komut                 | Ne yapar                                                                                 |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| `npm run dev`         | Geliştirme sunucusu (http://localhost:5173)                                              |
+| `npm run check`       | Svelte + TypeScript tip denetimi                                                         |
+| `npm test`            | Vitest: birim + PGlite üzerinde entegrasyon testleri                                     |
+| `npm run build`       | Üretim derlemesi (`build/` klasörü, Node sunucusu)                                       |
+| `npm run preview`     | Üretim derlemesini yerelde dener (http://localhost:4173)                                 |
 | `npm start`           | Derlenmiş uygulamayı `.env` ile çalıştırır (port 3000; HTTPS vekil arkasında yayın için) |
-| `npm run db:generate` | Şema değişikliğinden yeni migration üretir (`drizzle/`)        |
-| `npm run db:migrate`  | Bekleyen migration'ları uygular                                |
-| `npm run db:seed`     | Demo hesaplarını ve örnek veriyi (yeniden) yükler              |
-| `npm run db:studio`   | Drizzle Studio ile veritabanını tarayıcıda gezme               |
+| `npm run db:generate` | Şema değişikliğinden yeni migration üretir (`drizzle/`)                                  |
+| `npm run db:migrate`  | Bekleyen migration'ları uygular                                                          |
+| `npm run db:seed`     | Demo hesaplarını ve örnek veriyi (yeniden) yükler                                        |
+| `npm run db:studio`   | Drizzle Studio ile veritabanını tarayıcıda gezme                                         |
 
 Şema değiştirme akışı: `src/lib/server/db/schema.ts` dosyasını düzenle → `npm run db:generate` → üretilen SQL'i gözden geçir → `npm run db:migrate`.
 

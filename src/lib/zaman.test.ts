@@ -38,14 +38,22 @@ describe('zamanCizgisiKur', () => {
 		expect(y1998.yilBoyunca.map((o) => o.baslik)).toEqual(['Yalnızca yılı bilinen']);
 		expect(y1998.aylar.map((a) => a.ay)).toEqual([5]);
 		// Aynı günde, daha belirsiz olan ("Mayıs ayı") önce gelir
-		expect(y1998.aylar[0].ogeler.map((o) => o.baslik)).toEqual(['Mayıs ayı', '1 Mayıs', '12 Mayıs']);
+		expect(y1998.aylar[0].ogeler.map((o) => o.baslik)).toEqual([
+			'Mayıs ayı',
+			'1 Mayıs',
+			'12 Mayıs'
+		]);
 		expect(tarihsizler.map((o) => o.baslik)).toEqual(['Tarihsiz']);
 	});
 
 	it('"yeni" sırasında her düzeyi tersine çevirir', () => {
 		const { yillar } = zamanCizgisiKur(hepsi, [], 'yeni');
 		expect(yillar.map((y) => y.yil)).toEqual([2001, 1998]);
-		expect(yillar[1].aylar[0].ogeler.map((o) => o.baslik)).toEqual(['12 Mayıs', '1 Mayıs', 'Mayıs ayı']);
+		expect(yillar[1].aylar[0].ogeler.map((o) => o.baslik)).toEqual([
+			'12 Mayıs',
+			'1 Mayıs',
+			'Mayıs ayı'
+		]);
 	});
 
 	it('yoğunluğu boş yıllarla birlikte doldurur', () => {

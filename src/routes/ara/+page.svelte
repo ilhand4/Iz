@@ -12,6 +12,8 @@
 	] as const;
 
 	function sekmeAdresi(tur: string) {
+		// Bağlantı adresi üretmek için geçici nesne; tepkisel olması gerekmiyor
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const p = new URLSearchParams({ tur });
 		if (data.q) p.set('q', data.q);
 		if (data.kaynak) p.set('kaynak', data.kaynak.id);
@@ -28,7 +30,9 @@
 		ust="Kültür İzi"
 		baslik="Eser ara"
 		aciklama="Bulduğun eseri tek dokunuşla düğüme dönüştür. Eklediklerin varsayılan olarak özeldir."
-		geri={data.kaynak ? { href: `/dugumler/${data.kaynak.id}`, etiket: data.kaynak.baslik } : undefined}
+		geri={data.kaynak
+			? { href: `/dugumler/${data.kaynak.id}`, etiket: data.kaynak.baslik }
+			: undefined}
 	/>
 	{#if data.kaynak}
 		<p class="bildirim bildirim-uyari kaynak">
@@ -50,11 +54,18 @@
 			<h2>Film ve dizi araması şu an kapalı</h2>
 			<p>
 				Bu özellik için bir TMDB anahtarı gerekiyor. Ücretsiz bir anahtarı
-				<a href="https://www.themoviedb.org/settings/api" rel="noopener noreferrer external" target="_blank">TMDB ayarlarından</a>
-				alıp <code>.env</code> dosyasındaki <code>TMDB_ANAHTARI</code> satırına yazman ve sunucuyu yeniden başlatman yeterli.
+				<a
+					href="https://www.themoviedb.org/settings/api"
+					rel="noopener noreferrer external"
+					target="_blank">TMDB ayarlarından</a
+				>
+				alıp <code>.env</code> dosyasındaki <code>TMDB_ANAHTARI</code> satırına yazman ve sunucuyu yeniden
+				başlatman yeterli.
 			</p>
 			<p class="kucuk">
-				Bu arada filmi ya da diziyi <a href="/dugumler/yeni?tur=eser&eserTuru={data.tur}">elle ekleyebilirsin</a>.
+				Bu arada filmi ya da diziyi <a href="/dugumler/yeni?tur=eser&eserTuru={data.tur}"
+					>elle ekleyebilirsin</a
+				>.
 			</p>
 		</div>
 	{:else}
@@ -69,7 +80,11 @@
 				value={data.q}
 				minlength="2"
 				maxlength="120"
-				placeholder={data.tur === 'kitap' ? 'Kitap adı ya da yazar…' : data.tur === 'film' ? 'Film adı…' : 'Dizi adı…'}
+				placeholder={data.tur === 'kitap'
+					? 'Kitap adı ya da yazar…'
+					: data.tur === 'film'
+						? 'Film adı…'
+						: 'Dizi adı…'}
 				required
 			/>
 			<button class="dugme dugme-birincil"><Simge ad="ara" boyut={18} /> Ara</button>
@@ -84,7 +99,9 @@
 			<div class="kart">
 				<p>“{data.q}” için sonuç bulunamadı.</p>
 				<p class="kucuk soluk">
-					Yazımı kontrol et ya da eseri <a href="/dugumler/yeni?tur=eser&eserTuru={data.tur}">elle ekle</a>.
+					Yazımı kontrol et ya da eseri <a href="/dugumler/yeni?tur=eser&eserTuru={data.tur}"
+						>elle ekle</a
+					>.
 				</p>
 			</div>
 		{/if}
@@ -105,7 +122,9 @@
 							{/if}
 							{#if s.ozet}<p class="kucuk ozet">{s.ozet}</p>{/if}
 							{#if data.mevcut[s.disKimlik]}
-								<a class="dugme dugme-kucuk" href="/dugumler/{data.mevcut[s.disKimlik]}">Düğümüne git</a>
+								<a class="dugme dugme-kucuk" href="/dugumler/{data.mevcut[s.disKimlik]}"
+									>Düğümüne git</a
+								>
 							{:else}
 								<form method="POST" action={eylem}>
 									<input type="hidden" name="kaynak" value={s.kaynak} />
@@ -126,7 +145,8 @@
 			</ul>
 			<p class="kucuk soluk">
 				Veriler: {data.tur === 'kitap' ? 'Open Library' : 'TMDB'}.
-				{#if data.tur !== 'kitap'}Bu ürün TMDB API'sini kullanır ancak TMDB tarafından onaylanmamıştır.{/if}
+				{#if data.tur !== 'kitap'}Bu ürün TMDB API'sini kullanır ancak TMDB tarafından
+					onaylanmamıştır.{/if}
 			</p>
 		{/if}
 	{/if}

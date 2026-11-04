@@ -29,10 +29,18 @@
 	{/if}
 
 	<div class="kart">
-		<DugumFormu {degerler} hatalar={form?.hatalar as Record<string, string> | undefined} gonderMetni="Düğümü ekle">
+		<DugumFormu
+			{degerler}
+			hatalar={form?.hatalar as Record<string, string> | undefined}
+			gonderMetni="Düğümü ekle"
+		>
 			{#snippet ek()}
 				{#if data.kaynak}
-					<Alan id="bagNotu" etiket="Nasıl götürdü?" ipucu="İsteğe bağlı kısa not: “kitabın sonunda adı geçiyordu” gibi.">
+					<Alan
+						id="bagNotu"
+						etiket="Nasıl götürdü?"
+						ipucu="İsteğe bağlı kısa not: “kitabın sonunda adı geçiyordu” gibi."
+					>
 						<input id="bagNotu" name="bagNotu" maxlength="1000" value={degerler.bagNotu ?? ''} />
 					</Alan>
 				{/if}

@@ -8,7 +8,8 @@ export const variables = defineEnvVars({
 		schema: (deger) => deger || undefined
 	},
 	TMDB_ANAHTARI: {
-		description: 'TMDB API anahtarı (v3) ya da okuma jetonu (v4). Boşsa film/dizi araması kapalıdır.',
+		description:
+			'TMDB API anahtarı (v3) ya da okuma jetonu (v4). Boşsa film/dizi araması kapalıdır.',
 		schema: (deger) => deger?.trim() || undefined
 	}
 });

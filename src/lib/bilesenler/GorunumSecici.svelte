@@ -13,7 +13,13 @@
 	}[] = [
 		{ ad: 'liste', etiket: 'Liste', kisa: 'Liste', href: '/dugumler', simge: 'liste' },
 		{ ad: 'ag', etiket: 'Ağ', kisa: 'Ağ', href: '/dugumler/ag', simge: 'dugumler' },
-		{ ad: 'zaman', etiket: 'Zaman çizgisi', kisa: 'Zaman', href: '/dugumler/zaman', simge: 'zaman' },
+		{
+			ad: 'zaman',
+			etiket: 'Zaman çizgisi',
+			kisa: 'Zaman',
+			href: '/dugumler/zaman',
+			simge: 'zaman'
+		},
 		{ ad: 'harita', etiket: 'Harita', kisa: 'Harita', href: null, simge: 'harita' }
 	];
 </script>

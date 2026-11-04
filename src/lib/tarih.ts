@@ -33,7 +33,9 @@ export function tarihCoz(metin: string | null | undefined): CozulmusTarih | null
 	const m = (metin ?? '').trim();
 	if (!m) return null;
 
-	let yil: number, ay = 1, gun = 1;
+	let yil: number,
+		ay = 1,
+		gun = 1;
 	let hassasiyet: TarihHassasiyeti;
 	let parca: RegExpExecArray | null;
 

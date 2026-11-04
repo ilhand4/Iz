@@ -21,7 +21,8 @@
 
 	{#if data.ilkDugum}
 		<p class="bildirim bildirim-uyari ilk">
-			İlk durak: <TurSekli tur={data.ilkDugum.tur} boyut={12} /> <strong>{data.ilkDugum.baslik}</strong>
+			İlk durak: <TurSekli tur={data.ilkDugum.tur} boyut={12} />
+			<strong>{data.ilkDugum.baslik}</strong>
 		</p>
 	{/if}
 

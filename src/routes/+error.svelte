@@ -17,7 +17,9 @@
 		<p class="kod">{page.status}</p>
 		<h1>{BASLIK[page.status] ?? 'Hata'}</h1>
 		<p class="soluk">
-			{page.status === 500 ? 'Beklenmedik bir hata oluştu. Lütfen biraz sonra tekrar dene.' : page.error?.message}
+			{page.status === 500
+				? 'Beklenmedik bir hata oluştu. Lütfen biraz sonra tekrar dene.'
+				: page.error?.message}
 		</p>
 		<div class="satir">
 			<a class="dugme dugme-birincil" href="/">Ana sayfa</a>

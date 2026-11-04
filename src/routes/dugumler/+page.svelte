@@ -11,6 +11,8 @@
 	let { data }: PageProps = $props();
 
 	function turAdresi(tur: string | null) {
+		// Bağlantı adresi üretmek için geçici nesne; tepkisel olması gerekmiyor
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const p = new URLSearchParams();
 		if (tur) p.set('tur', tur);
 		if (data.q) p.set('q', data.q);
@@ -29,7 +31,9 @@
 	>
 		{#snippet eylemler()}
 			<a class="dugme" href="/ara"><Simge ad="ara" boyut={18} /> Eser ara</a>
-			<a class="dugme dugme-birincil" href="/dugumler/yeni"><Simge ad="ekle" boyut={18} /> Düğüm ekle</a>
+			<a class="dugme dugme-birincil" href="/dugumler/yeni"
+				><Simge ad="ekle" boyut={18} /> Düğüm ekle</a
+			>
 		{/snippet}
 	</SayfaBasligi>
 
@@ -68,7 +72,10 @@
 			{/each}
 		</div>
 	{:else if data.q || data.tur}
-		<BosDurum baslik="Bu süzgece uyan düğüm yok" aciklama="Farklı bir arama dene ya da süzgeci temizle.">
+		<BosDurum
+			baslik="Bu süzgece uyan düğüm yok"
+			aciklama="Farklı bir arama dene ya da süzgeci temizle."
+		>
 			{#snippet eylemler()}
 				<a class="dugme" href="/dugumler">Süzgeci temizle</a>
 			{/snippet}

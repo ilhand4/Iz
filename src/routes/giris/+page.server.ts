@@ -28,7 +28,10 @@ export const actions: Actions = {
 		// Önce IP, sonra IP + e-posta sınırı
 		for (const sinir of [ipGirisSiniri.dene(ip), girisSiniri.dene(anahtar)]) {
 			if (!sinir.izin) {
-				return fail(429, { hatalar: { genel: beklemeMesaji(sinir.beklemeSaniye) }, degerler: { eposta } });
+				return fail(429, {
+					hatalar: { genel: beklemeMesaji(sinir.beklemeSaniye) },
+					degerler: { eposta }
+				});
 			}
 		}
 

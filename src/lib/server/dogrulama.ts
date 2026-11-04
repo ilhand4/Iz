@@ -12,8 +12,7 @@ import { tarihCoz } from '../tarih';
 
 export type Hatalar = Record<string, string>;
 export type Sonuc<T> =
-	| { tamam: true; veri: T }
-	| { tamam: false; hatalar: Hatalar; degerler: Record<string, string> };
+	{ tamam: true; veri: T } | { tamam: false; hatalar: Hatalar; degerler: Record<string, string> };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -161,8 +160,7 @@ export function dugumDogrula(fd: FormData): Sonuc<DugumVerisi> {
 	if (d.yerAdi.length > 200) hatalar.yerAdi = 'Yer adı en fazla 200 karakter olabilir.';
 
 	const tarih = tarihCoz(d.tarih);
-	if (tarih === 'gecersiz')
-		hatalar.tarih = TARIH_HATASI;
+	if (tarih === 'gecersiz') hatalar.tarih = TARIH_HATASI;
 
 	let yil: number | null = null;
 	if (d.yil) {
@@ -215,7 +213,10 @@ export type BagBilgisi = {
 export type BagVerisi = BagBilgisi & { kaynakId: string; hedefId: string };
 
 /** Bağın notu ve tarihi (kurarken ve düzenlerken ortak) */
-function bagBilgisiAl(fd: FormData, hatalar: Hatalar): BagBilgisi & { metin: Record<string, string> } {
+function bagBilgisiAl(
+	fd: FormData,
+	hatalar: Hatalar
+): BagBilgisi & { metin: Record<string, string> } {
 	const metin = degerleriAl(fd, ['not', 'tarih']);
 	if (metin.not.length > 1000) hatalar.not = 'Not en fazla 1000 karakter olabilir.';
 	const tarih = tarihCoz(metin.tarih);
@@ -288,6 +289,10 @@ export function izDogrula(fd: FormData): Sonuc<IzVerisi> {
 export function adimNotuDogrula(fd: FormData): Sonuc<{ not: string | null }> {
 	const not = alan(fd, 'not');
 	if (not.length > 2000)
-		return { tamam: false, hatalar: { not: 'Not en fazla 2000 karakter olabilir.' }, degerler: { not } };
+		return {
+			tamam: false,
+			hatalar: { not: 'Not en fazla 2000 karakter olabilir.' },
+			degerler: { not }
+		};
 	return { tamam: true, veri: { not: not || null } };
 }

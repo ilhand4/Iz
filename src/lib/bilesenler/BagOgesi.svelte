@@ -48,7 +48,11 @@
 						}}
 				>
 					<input type="hidden" name="bagId" value={bag.id} />
-					<Alan id="not-{bag.id}" etiket="Nasıl {yon === 'giden' ? 'götürdü' : 'getirdi'}?" hata={hatalar?.not}>
+					<Alan
+						id="not-{bag.id}"
+						etiket="Nasıl {yon === 'giden' ? 'götürdü' : 'getirdi'}?"
+						hata={hatalar?.not}
+					>
 						<input
 							id="not-{bag.id}"
 							name="not"
@@ -57,7 +61,12 @@
 							aria-invalid={!!hatalar?.not}
 						/>
 					</Alan>
-					<Alan id="tarih-{bag.id}" etiket="Ne zaman?" hata={hatalar?.tarih} ipucu="2021 · 2021-03 · 14.03.2021">
+					<Alan
+						id="tarih-{bag.id}"
+						etiket="Ne zaman?"
+						hata={hatalar?.tarih}
+						ipucu="2021 · 2021-03 · 14.03.2021"
+					>
 						<input
 							id="tarih-{bag.id}"
 							name="tarih"

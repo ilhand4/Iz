@@ -33,7 +33,8 @@ const demoDugumleri: Tohum[] = [
 		anahtar: 'kitaplik',
 		tur: 'ani',
 		baslik: 'Babaannemin kitaplığı',
-		aciklama: 'Kadıköy’deki evin koridorunda, tavana kadar uzanan raflar. Yazları orada kitap seçerdim.',
+		aciklama:
+			'Kadıköy’deki evin koridorunda, tavana kadar uzanan raflar. Yazları orada kitap seçerdim.',
 		...ay('1998-07'),
 		enlem: 40.9903,
 		boylam: 29.0295,
@@ -116,7 +117,8 @@ const demoDugumleri: Tohum[] = [
 		anahtar: 'kulup',
 		tur: 'ani',
 		baslik: 'İlk kitap kulübü buluşması',
-		aciklama: 'Yedi kişiydik; Tutunamayanlar’ın ilk yüz sayfasını konuştuk ve hiçbirimiz bitirememiştik.',
+		aciklama:
+			'Yedi kişiydik; Tutunamayanlar’ın ilk yüz sayfasını konuştuk ve hiçbirimiz bitirememiştik.',
 		...gun('2011-10-02'),
 		yerAdi: 'Moda, Kadıköy'
 	},
@@ -137,7 +139,13 @@ const demoDugumleri: Tohum[] = [
 		...ay('2020-02'),
 		gizlilik: 'herkes'
 	},
-	{ anahtar: 'nickcave', tur: 'kisi', baslik: 'Nick Cave', altBaslik: 'Müzisyen', ...ay('2020-03') },
+	{
+		anahtar: 'nickcave',
+		tur: 'kisi',
+		baslik: 'Nick Cave',
+		altBaslik: 'Müzisyen',
+		...ay('2020-03')
+	},
 	{
 		anahtar: 'boatman',
 		tur: 'eser',

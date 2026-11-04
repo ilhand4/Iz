@@ -10,7 +10,11 @@
 <svelte:head><title>Düzenle: {data.baslik} · İz</title></svelte:head>
 
 <div class="kap kap-dar yigin">
-	<SayfaBasligi ust="Düzenle" baslik={data.baslik} geri={{ href: `/dugumler/${data.id}`, etiket: 'Düğüme dön' }} />
+	<SayfaBasligi
+		ust="Düzenle"
+		baslik={data.baslik}
+		geri={{ href: `/dugumler/${data.id}`, etiket: 'Düğüme dön' }}
+	/>
 
 	<div class="kart">
 		<DugumFormu
@@ -23,7 +27,9 @@
 
 	<section class="kart tehlike">
 		<h2>Düğümü sil</h2>
-		<p class="soluk kucuk">Düğümle birlikte ona bağlı tüm bağlar ve izlerdeki adımları da silinir. Bu geri alınamaz.</p>
+		<p class="soluk kucuk">
+			Düğümle birlikte ona bağlı tüm bağlar ve izlerdeki adımları da silinir. Bu geri alınamaz.
+		</p>
 		<form method="POST" action="?/sil" class="satir">
 			<label class="satir kucuk">
 				<input type="checkbox" name="onay" value="evet" required />

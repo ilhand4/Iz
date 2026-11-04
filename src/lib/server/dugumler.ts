@@ -75,7 +75,10 @@ export type DugumSecenegi = {
 };
 
 /** Bağ kurarken ya da ize durak eklerken seçilebilecek, kullanıcının kendi düğümleri */
-export async function dugumSecenekleri(sahipId: string, haricId?: string): Promise<DugumSecenegi[]> {
+export async function dugumSecenekleri(
+	sahipId: string,
+	haricId?: string
+): Promise<DugumSecenegi[]> {
 	const kosullar: SQL[] = [eq(dugumler.sahipId, sahipId)];
 	if (haricId) kosullar.push(sql`${dugumler.id} <> ${haricId}`);
 	return db

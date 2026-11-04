@@ -76,7 +76,10 @@ export async function izleriListele(sahipId: string, limit = 100): Promise<IzOze
 }
 
 export async function izSayisi(sahipId: string): Promise<number> {
-	const [{ sayi }] = await db.select({ sayi: count() }).from(izler).where(eq(izler.sahipId, sahipId));
+	const [{ sayi }] = await db
+		.select({ sayi: count() })
+		.from(izler)
+		.where(eq(izler.sahipId, sahipId));
 	return sayi;
 }
 
@@ -164,7 +167,12 @@ export async function izGetir(id: string, izleyenId: string | null): Promise<IzA
 	const aradakiler =
 		idler.length > 1
 			? await db
-					.select({ id: baglar.id, kaynakId: baglar.kaynakId, hedefId: baglar.hedefId, not: baglar.not })
+					.select({
+						id: baglar.id,
+						kaynakId: baglar.kaynakId,
+						hedefId: baglar.hedefId,
+						not: baglar.not
+					})
 					.from(baglar)
 					.where(and(inArray(baglar.kaynakId, idler), inArray(baglar.hedefId, idler)))
 			: [];

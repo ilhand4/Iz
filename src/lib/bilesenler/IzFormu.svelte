@@ -27,7 +27,12 @@
 		};
 	}}
 >
-	<Alan id="izBaslik" etiket="İzin adı" hata={hatalar.baslik} ipucu="ör. “Bir kitaplıktan Berlin’e”">
+	<Alan
+		id="izBaslik"
+		etiket="İzin adı"
+		hata={hatalar.baslik}
+		ipucu="ör. “Bir kitaplıktan Berlin’e”"
+	>
 		<input
 			id="izBaslik"
 			name="baslik"
@@ -37,10 +42,21 @@
 			aria-invalid={!!hatalar.baslik}
 		/>
 	</Alan>
-	<Alan id="izAciklama" etiket="Kısa anlatım" hata={hatalar.aciklama} ipucu="İsteğe bağlı: bu yolun hikâyesi bir iki cümleyle.">
-		<textarea id="izAciklama" name="aciklama" rows="3" maxlength="2000">{degerler.aciklama ?? ''}</textarea>
+	<Alan
+		id="izAciklama"
+		etiket="Kısa anlatım"
+		hata={hatalar.aciklama}
+		ipucu="İsteğe bağlı: bu yolun hikâyesi bir iki cümleyle."
+	>
+		<textarea id="izAciklama" name="aciklama" rows="3" maxlength="2000"
+			>{degerler.aciklama ?? ''}</textarea
+		>
 	</Alan>
-	<GizlilikSecici secili={degerler.gizlilik} hata={hatalar.gizlilik} baslik="Bu izi kim görebilir?" />
+	<GizlilikSecici
+		secili={degerler.gizlilik}
+		hata={hatalar.gizlilik}
+		baslik="Bu izi kim görebilir?"
+	/>
 	<div class="satir">
 		<button class="dugme dugme-birincil" disabled={gonderiliyor}>
 			{gonderiliyor ? 'Kaydediliyor…' : gonderMetni}

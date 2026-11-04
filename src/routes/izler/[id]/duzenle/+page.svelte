@@ -73,7 +73,11 @@
 <svelte:head><title>Düzenle: {data.iz.baslik} · İz</title></svelte:head>
 
 <div class="kap yigin">
-	<SayfaBasligi ust="İzi düzenle" baslik={data.iz.baslik} geri={{ href: `/izler/${data.iz.id}`, etiket: 'İze dön' }}>
+	<SayfaBasligi
+		ust="İzi düzenle"
+		baslik={data.iz.baslik}
+		geri={{ href: `/izler/${data.iz.id}`, etiket: 'İze dön' }}
+	>
 		{#snippet eylemler()}
 			<a class="dugme" href="/izler/{data.iz.id}"><Simge ad="iz" boyut={18} /> Okuma görünümü</a>
 		{/snippet}
@@ -128,7 +132,14 @@
 								{#if durak.not}<p class="not-onizleme">{durak.not}</p>{/if}
 								<details class="not-duzenle" open={form?.notHatasi?.adimId === durak.adimId}>
 									<summary>{durak.not ? 'Anlatı notunu düzenle' : 'Anlatı notu ekle'}</summary>
-									<form method="POST" action="?/notKaydet" class="yigin" use:enhance={() => async ({ update }) => update({ reset: false })}>
+									<form
+										method="POST"
+										action="?/notKaydet"
+										class="yigin"
+										use:enhance={() =>
+											async ({ update }) =>
+												update({ reset: false })}
+									>
 										<input type="hidden" name="adimId" value={durak.adimId} />
 										<label class="gorunmez" for="not-{durak.adimId}">{i + 1}. durağın notu</label>
 										<textarea
@@ -137,11 +148,14 @@
 											rows="3"
 											maxlength="2000"
 											placeholder="Bu durakta ne oldu? Seni bir sonrakine ne götürdü?"
-										>{durak.not ?? ''}</textarea>
+											>{durak.not ?? ''}</textarea
+										>
 										{#if form?.notHatasi?.adimId === durak.adimId}
 											<span class="hata-metni">{form.notHatasi.hata}</span>
 										{/if}
-										<div class="satir"><button class="dugme dugme-kucuk dugme-birincil">Notu kaydet</button></div>
+										<div class="satir">
+											<button class="dugme dugme-kucuk dugme-birincil">Notu kaydet</button>
+										</div>
 									</form>
 								</details>
 							</div>
@@ -149,7 +163,12 @@
 								<form method="POST" action="?/tasi" use:enhance>
 									<input type="hidden" name="adimId" value={durak.adimId} />
 									<input type="hidden" name="yon" value="yukari" />
-									<button class="dugme dugme-hayalet dugme-kucuk" disabled={i === 0} aria-label="Yukarı taşı" title="Yukarı taşı">
+									<button
+										class="dugme dugme-hayalet dugme-kucuk"
+										disabled={i === 0}
+										aria-label="Yukarı taşı"
+										title="Yukarı taşı"
+									>
 										<Simge ad="yukari" boyut={16} />
 									</button>
 								</form>
@@ -196,12 +215,19 @@
 					<form method="POST" action="?/durakEkle" class="ekle-formu" use:enhance>
 						<label class="gorunmez" for="yeniDurak">Eklenecek düğüm</label>
 						<div class="secici-alani">
-							<DugumSecici id="yeniDurak" ad="dugumId" secenekler={data.eklenebilir} yerTutucu="Düğüm adını yaz…" />
+							<DugumSecici
+								id="yeniDurak"
+								ad="dugumId"
+								secenekler={data.eklenebilir}
+								yerTutucu="Düğüm adını yaz…"
+							/>
 						</div>
 						<button class="dugme dugme-birincil"><Simge ad="ekle" boyut={16} /> Ekle</button>
 					</form>
 				{:else}
-					<p class="kucuk soluk">Tüm düğümlerin zaten bu izde. <a href="/dugumler/yeni">Yeni düğüm ekle</a>.</p>
+					<p class="kucuk soluk">
+						Tüm düğümlerin zaten bu izde. <a href="/dugumler/yeni">Yeni düğüm ekle</a>.
+					</p>
 				{/if}
 
 				{#if data.oneriler.length}
@@ -231,12 +257,19 @@
 		<aside class="yan yigin">
 			<section class="kart" aria-labelledby="bilgi-baslik">
 				<h2 id="bilgi-baslik">İz bilgileri</h2>
-				<IzFormu degerler={bilgiDegerleri} hatalar={bilgiHatalari} gonderMetni="Bilgileri kaydet" eylem="?/bilgi" />
+				<IzFormu
+					degerler={bilgiDegerleri}
+					hatalar={bilgiHatalari}
+					gonderMetni="Bilgileri kaydet"
+					eylem="?/bilgi"
+				/>
 			</section>
 
 			<section class="kart tehlike" aria-labelledby="sil-baslik">
 				<h2 id="sil-baslik">İzi sil</h2>
-				<p class="soluk kucuk">Yalnızca iz silinir; duraklardaki düğümler ve bağlar yerinde kalır.</p>
+				<p class="soluk kucuk">
+					Yalnızca iz silinir; duraklardaki düğümler ve bağlar yerinde kalır.
+				</p>
 				<form method="POST" action="?/sil" class="satir">
 					<label class="satir kucuk">
 						<input type="checkbox" name="onay" value="evet" required />

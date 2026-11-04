@@ -5,7 +5,6 @@
 	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import TurRozeti from '#lib/bilesenler/TurRozeti.svelte';
-	import TurSekli from '#lib/bilesenler/TurSekli.svelte';
 	import { tarihYaz } from '#lib/tarih.ts';
 	import type { PageProps } from './$types';
 
@@ -14,9 +13,7 @@
 	type GorunurDurak = Extract<Durak, { dugum: unknown }>;
 
 	const iz = $derived(data.iz);
-	const gorunurDuraklar = $derived(
-		data.duraklar.filter((d): d is GorunurDurak => !('gizli' in d))
-	);
+	const gorunurDuraklar = $derived(data.duraklar.filter((d): d is GorunurDurak => !('gizli' in d)));
 	const yillar = $derived(
 		gorunurDuraklar
 			.map((d) => d.dugum.tarih?.slice(0, 4))
@@ -24,7 +21,11 @@
 			.sort()
 	);
 	const aralik = $derived(
-		yillar.length ? (yillar[0] === yillar.at(-1) ? yillar[0] : `${yillar[0]} → ${yillar.at(-1)}`) : null
+		yillar.length
+			? yillar[0] === yillar.at(-1)
+				? yillar[0]
+				: `${yillar[0]} → ${yillar.at(-1)}`
+			: null
 	);
 
 	let kopyalandi = $state(false);
@@ -74,16 +75,20 @@
 
 	{#if data.gorunmeyenDurakSayisi > 0}
 		<p class="bildirim bildirim-uyari">
-			Bu iz herkese açık ama {data.gorunmeyenDurakSayisi} durağındaki düğüm herkese açık değil.
-			Başkaları bu durakları “gizli durak” olarak görür.
+			Bu iz herkese açık ama {data.gorunmeyenDurakSayisi} durağındaki düğüm herkese açık değil. Başkaları
+			bu durakları “gizli durak” olarak görür.
 		</p>
 	{/if}
-	{#if form?.bagKuruldu}<p class="bildirim bildirim-basari" role="status">Duraklar bağlandı.</p>{/if}
+	{#if form?.bagKuruldu}<p class="bildirim bildirim-basari" role="status">
+			Duraklar bağlandı.
+		</p>{/if}
 
 	{#if data.duraklar.length === 0}
 		<BosDurum
 			baslik="Bu izde henüz durak yok"
-			aciklama={data.sahibiMi ? 'Düğümlerinden durak ekleyip sıraya dizerek izini oluştur.' : undefined}
+			aciklama={data.sahibiMi
+				? 'Düğümlerinden durak ekleyip sıraya dizerek izini oluştur.'
+				: undefined}
 		>
 			{#snippet eylemler()}
 				{#if data.sahibiMi}
@@ -105,13 +110,20 @@
 					{:else}
 						<article class="kart durak-karti" aria-label="{i + 1}. durak: {durak.dugum.baslik}">
 							{#if durak.dugum.gorselUrl}
-								<img src={durak.dugum.gorselUrl} alt="" loading="lazy" referrerpolicy="no-referrer" />
+								<img
+									src={durak.dugum.gorselUrl}
+									alt=""
+									loading="lazy"
+									referrerpolicy="no-referrer"
+								/>
 							{/if}
 							<div class="durak-govde">
 								<div class="satir">
 									<TurRozeti tur={durak.dugum.tur} eserTuru={durak.dugum.eserTuru} />
 									{#if durak.dugum.tarih}
-										<span class="kucuk soluk">{tarihYaz(durak.dugum.tarih, durak.dugum.tarihHassasiyeti)}</span>
+										<span class="kucuk soluk"
+											>{tarihYaz(durak.dugum.tarih, durak.dugum.tarihHassasiyeti)}</span
+										>
 									{/if}
 								</div>
 								<h2><a href="/dugumler/{durak.dugum.id}">{durak.dugum.baslik}</a></h2>

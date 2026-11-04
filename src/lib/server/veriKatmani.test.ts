@@ -139,7 +139,11 @@ describe('izler', () => {
 	}
 
 	it('ilk durakla oluşturulur; durak eklemede sahiplik denetlenir', async () => {
-		const iz = await izler.izOlustur(ali, { baslik: 'Test izi', aciklama: null, gizlilik: 'herkes' }, d.ozel1);
+		const iz = await izler.izOlustur(
+			ali,
+			{ baslik: 'Test izi', aciklama: null, gizlilik: 'herkes' },
+			d.ozel1
+		);
 		izId = iz.id;
 		expect(await izler.durakEkle(izId, ali, d.acik)).toBe('eklendi');
 		expect(await izler.durakEkle(izId, ali, d.acik)).toBe('zaten-var');
@@ -187,10 +191,16 @@ describe('izler', () => {
 	});
 
 	it('özel iz başkasına hiç görünmez; başkası düzenleyemez ya da silemez', async () => {
-		const ozel = await izler.izOlustur(ali, { baslik: 'Gizli iz', aciklama: null, gizlilik: 'ozel' });
+		const ozel = await izler.izOlustur(ali, {
+			baslik: 'Gizli iz',
+			aciklama: null,
+			gizlilik: 'ozel'
+		});
 		expect(await izler.izGetir(ozel.id, banu)).toBeNull();
 		expect(await izler.izGetir(ozel.id, null)).toBeNull();
-		expect(await izler.izGuncelle(ozel.id, banu, { baslik: 'x', aciklama: null, gizlilik: 'herkes' })).toBe(false);
+		expect(
+			await izler.izGuncelle(ozel.id, banu, { baslik: 'x', aciklama: null, gizlilik: 'herkes' })
+		).toBe(false);
 		expect(await izler.izSil(ozel.id, banu)).toBe(false);
 		expect(await izler.izSil(ozel.id, ali)).toBe(true);
 	});

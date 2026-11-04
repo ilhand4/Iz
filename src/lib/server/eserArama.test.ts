@@ -60,7 +60,12 @@ describe('tmdbSonucuCevir', () => {
 
 	it('diziyi çevirir; şüpheli poster yolunu kullanmaz', () => {
 		const sonuc = tmdbSonucuCevir(
-			{ id: 1399, name: 'Game of Thrones', original_name: 'Game of Thrones', poster_path: '/../x"onerror=1' },
+			{
+				id: 1399,
+				name: 'Game of Thrones',
+				original_name: 'Game of Thrones',
+				poster_path: '/../x"onerror=1'
+			},
 			'dizi'
 		);
 		expect(sonuc?.disKimlik).toBe('tv/1399');

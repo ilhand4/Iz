@@ -108,18 +108,12 @@ export const dugumler = pgTable(
 		uniqueIndex('dugumler_dis_kaynak_tekil')
 			.on(t.sahipId, t.disKaynak, t.disKimlik)
 			.where(sql`${t.disKimlik} is not null`),
-		check(
-			'dugumler_eser_turu_kontrol',
-			sql`(${t.tur} = 'eser') = (${t.eserTuru} is not null)`
-		),
+		check('dugumler_eser_turu_kontrol', sql`(${t.tur} = 'eser') = (${t.eserTuru} is not null)`),
 		check(
 			'dugumler_konum_kontrol',
 			sql`(${t.enlem} is null) = (${t.boylam} is null) and (${t.enlem} is null or (${t.enlem} between -90 and 90 and ${t.boylam} between -180 and 180))`
 		),
-		check(
-			'dugumler_tarih_kontrol',
-			sql`(${t.tarih} is null) = (${t.tarihHassasiyeti} is null)`
-		),
+		check('dugumler_tarih_kontrol', sql`(${t.tarih} is null) = (${t.tarihHassasiyeti} is null)`),
 		check('dugumler_baslik_kontrol', sql`length(${t.baslik}) between 1 and 200`)
 	]
 );
@@ -152,10 +146,7 @@ export const baglar = pgTable(
 		index('baglar_hedef_idx').on(t.hedefId),
 		index('baglar_sahip_idx').on(t.sahipId),
 		check('baglar_kendine_bag_kontrol', sql`${t.kaynakId} <> ${t.hedefId}`),
-		check(
-			'baglar_tarih_kontrol',
-			sql`(${t.tarih} is null) = (${t.tarihHassasiyeti} is null)`
-		)
+		check('baglar_tarih_kontrol', sql`(${t.tarih} is null) = (${t.tarihHassasiyeti} is null)`)
 	]
 );
 

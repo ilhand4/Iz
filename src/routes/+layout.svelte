@@ -99,9 +99,15 @@
 			<span>İnsanlar ne yaşadığını kaydeder; İz neyin seni neye götürdüğünü kaydeder.</span>
 		</p>
 		<p class="kaynaklar">
-			Eser verileri: <a href="https://openlibrary.org" rel="noopener noreferrer external" target="_blank">Open Library</a>
-			ve <a href="https://www.themoviedb.org" rel="noopener noreferrer external" target="_blank">TMDB</a>.
-			Bu ürün TMDB API'sini kullanır ancak TMDB tarafından onaylanmamış ya da desteklenmemiştir.
+			Eser verileri: <a
+				href="https://openlibrary.org"
+				rel="noopener noreferrer external"
+				target="_blank">Open Library</a
+			>
+			ve
+			<a href="https://www.themoviedb.org" rel="noopener noreferrer external" target="_blank"
+				>TMDB</a
+			>. Bu ürün TMDB API'sini kullanır ancak TMDB tarafından onaylanmamış ya da desteklenmemiştir.
 		</p>
 	</div>
 </footer>

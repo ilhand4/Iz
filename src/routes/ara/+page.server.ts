@@ -20,7 +20,9 @@ import { eserTuruMu } from '#lib/sabitler.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 function aramaTuru(deger: string | null): AramaTuru {
-	return (ARAMA_TURLERI as readonly string[]).includes(deger ?? '') ? (deger as AramaTuru) : 'kitap';
+	return (ARAMA_TURLERI as readonly string[]).includes(deger ?? '')
+		? (deger as AramaTuru)
+		: 'kitap';
 }
 
 async function kaynakDugum(kaynakId: string | null, kullaniciId: string) {
@@ -89,7 +91,12 @@ export const actions: Actions = {
 		const kaynakUygun =
 			(kaynak === 'openlibrary' && eserTuru === 'kitap') ||
 			(kaynak === 'tmdb' && (eserTuru === 'film' || eserTuru === 'dizi'));
-		if (!kaynakUygun || !disKimlikGecerliMi(kaynak, disKimlik) || !eserTuruMu(eserTuru) || !baslik) {
+		if (
+			!kaynakUygun ||
+			!disKimlikGecerliMi(kaynak, disKimlik) ||
+			!eserTuruMu(eserTuru) ||
+			!baslik
+		) {
 			return fail(400, { hata: 'Eser bilgisi geçersiz. Aramayı yenileyip tekrar deneyin.' });
 		}
 		if (gorselUrl && !gorselGuvenliMi(gorselUrl)) error(400, 'Geçersiz görsel adresi.');

@@ -19,7 +19,9 @@
 		aciklama="Neyin seni neye götürdüğü, tek bakışta. Düğümler türlerine göre renk ve şekil alır; büyüklükleri bağ sayılarını gösterir."
 	>
 		{#snippet eylemler()}
-			<a class="dugme dugme-birincil" href="/dugumler/yeni"><Simge ad="ekle" boyut={18} /> Düğüm ekle</a>
+			<a class="dugme dugme-birincil" href="/dugumler/yeni"
+				><Simge ad="ekle" boyut={18} /> Düğüm ekle</a
+			>
 		{/snippet}
 	</SayfaBasligi>
 

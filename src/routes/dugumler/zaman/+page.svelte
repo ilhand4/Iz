@@ -42,6 +42,8 @@
 					<span class="gidenler">
 						<span class="ok" aria-label="Götürdükleri:">→</span>
 						{#each o.gidenler.slice(0, 3) as g, i (g.id)}
+							<!-- Svelte 5 blok içindeki baştaki/sondaki boşluğu siler; ayıraç bu yüzden ifade olarak yazıldı -->
+							<!-- eslint-disable-next-line svelte/no-useless-mustaches -->
 							{#if i > 0}{', '}{/if}<a href="/dugumler/{g.id}">{g.baslik}</a>
 						{/each}
 						{#if o.gidenler.length > 3}<span class="soluk">+{o.gidenler.length - 3}</span>{/if}
@@ -59,7 +61,9 @@
 		aciklama="Düğümlerin yaşandıkları sırayla. Yalnızca yılı ya da ayı bilinenler, o yılın ya da ayın başında ayrıca gösterilir."
 	>
 		{#snippet eylemler()}
-			<a class="dugme dugme-birincil" href="/dugumler/yeni"><Simge ad="ekle" boyut={18} /> Düğüm ekle</a>
+			<a class="dugme dugme-birincil" href="/dugumler/yeni"
+				><Simge ad="ekle" boyut={18} /> Düğüm ekle</a
+			>
 		{/snippet}
 	</SayfaBasligi>
 
@@ -84,7 +88,10 @@
 				{/if}
 				{#if cizgi.tarihsiz.length}· {cizgi.tarihsiz.length} tarihsiz{/if}
 			</p>
-			<a class="dugme dugme-kucuk dugme-hayalet" href="?sira={data.sira === 'eski' ? 'yeni' : 'eski'}">
+			<a
+				class="dugme dugme-kucuk dugme-hayalet"
+				href="?sira={data.sira === 'eski' ? 'yeni' : 'eski'}"
+			>
 				<Simge ad={data.sira === 'eski' ? 'asagi' : 'yukari'} boyut={16} />
 				{data.sira === 'eski' ? 'Eskiden yeniye' : 'Yeniden eskiye'}
 			</a>

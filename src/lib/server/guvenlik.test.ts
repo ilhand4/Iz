@@ -46,8 +46,12 @@ describe('HizSiniri', () => {
 	});
 
 	it('Türkçe bekleme mesajı üretir', () => {
-		expect(beklemeMesaji(30)).toBe('Çok fazla deneme yapıldı. Lütfen 30 saniye sonra tekrar deneyin.');
-		expect(beklemeMesaji(600)).toBe('Çok fazla deneme yapıldı. Lütfen 10 dakika sonra tekrar deneyin.');
+		expect(beklemeMesaji(30)).toBe(
+			'Çok fazla deneme yapıldı. Lütfen 30 saniye sonra tekrar deneyin.'
+		);
+		expect(beklemeMesaji(600)).toBe(
+			'Çok fazla deneme yapıldı. Lütfen 10 dakika sonra tekrar deneyin.'
+		);
 	});
 });
 

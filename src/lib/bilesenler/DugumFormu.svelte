@@ -57,14 +57,23 @@
 		<Alan id="eserTuru" etiket="Eser türü" hata={hatalar.eserTuru}>
 			<select id="eserTuru" name="eserTuru" aria-invalid={!!hatalar.eserTuru}>
 				{#each ESER_TURLERI as et (et)}
-					<option value={et} selected={(d('eserTuru') || 'kitap') === et}>{ESER_TURU_ETIKETI[et]}</option>
+					<option value={et} selected={(d('eserTuru') || 'kitap') === et}
+						>{ESER_TURU_ETIKETI[et]}</option
+					>
 				{/each}
 			</select>
 		</Alan>
 	</div>
 
 	<Alan id="baslik" etiket="Başlık" hata={hatalar.baslik}>
-		<input id="baslik" name="baslik" value={d('baslik')} maxlength="200" required aria-invalid={!!hatalar.baslik} />
+		<input
+			id="baslik"
+			name="baslik"
+			value={d('baslik')}
+			maxlength="200"
+			required
+			aria-invalid={!!hatalar.baslik}
+		/>
 	</Alan>
 
 	<Alan
@@ -77,12 +86,31 @@
 	</Alan>
 
 	<div class="iki">
-		<Alan id="tarih" etiket="Ne zaman?" hata={hatalar.tarih} ipucu="Yıl, ay ya da gün: 1998 · 1998-05 · 12.05.1998">
-			<input id="tarih" name="tarih" value={d('tarih')} inputmode="numeric" placeholder="ör. 2019" aria-invalid={!!hatalar.tarih} />
+		<Alan
+			id="tarih"
+			etiket="Ne zaman?"
+			hata={hatalar.tarih}
+			ipucu="Yıl, ay ya da gün: 1998 · 1998-05 · 12.05.1998"
+		>
+			<input
+				id="tarih"
+				name="tarih"
+				value={d('tarih')}
+				inputmode="numeric"
+				placeholder="ör. 2019"
+				aria-invalid={!!hatalar.tarih}
+			/>
 		</Alan>
 		<div class="eser-alani">
 			<Alan id="yil" etiket="Yayın yılı" hata={hatalar.yil}>
-				<input id="yil" name="yil" value={d('yil')} inputmode="numeric" maxlength="4" aria-invalid={!!hatalar.yil} />
+				<input
+					id="yil"
+					name="yil"
+					value={d('yil')}
+					inputmode="numeric"
+					maxlength="4"
+					aria-invalid={!!hatalar.yil}
+				/>
 			</Alan>
 		</div>
 	</div>
@@ -95,14 +123,34 @@
 		<summary>Konum (isteğe bağlı)</summary>
 		<div class="yigin">
 			<Alan id="yerAdi" etiket="Yer adı" hata={hatalar.yerAdi}>
-				<input id="yerAdi" name="yerAdi" value={d('yerAdi')} maxlength="200" placeholder="ör. Kadıköy, İstanbul" />
+				<input
+					id="yerAdi"
+					name="yerAdi"
+					value={d('yerAdi')}
+					maxlength="200"
+					placeholder="ör. Kadıköy, İstanbul"
+				/>
 			</Alan>
 			<div class="iki">
 				<Alan id="enlem" etiket="Enlem" hata={hatalar.enlem}>
-					<input id="enlem" name="enlem" value={d('enlem')} inputmode="decimal" placeholder="40.9909" aria-invalid={!!hatalar.enlem} />
+					<input
+						id="enlem"
+						name="enlem"
+						value={d('enlem')}
+						inputmode="decimal"
+						placeholder="40.9909"
+						aria-invalid={!!hatalar.enlem}
+					/>
 				</Alan>
 				<Alan id="boylam" etiket="Boylam" hata={hatalar.boylam}>
-					<input id="boylam" name="boylam" value={d('boylam')} inputmode="decimal" placeholder="29.0303" aria-invalid={!!hatalar.boylam} />
+					<input
+						id="boylam"
+						name="boylam"
+						value={d('boylam')}
+						inputmode="decimal"
+						placeholder="29.0303"
+						aria-invalid={!!hatalar.boylam}
+					/>
 				</Alan>
 			</div>
 			<p class="kucuk soluk">Harita görünümü geldiğinde konumu haritadan seçebileceksin.</p>

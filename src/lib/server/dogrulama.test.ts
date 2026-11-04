@@ -150,7 +150,10 @@ describe('bagDogrula', () => {
 		const gelen = bagDogrula(form({ digerId: UUID_B, yon: 'gelen' }), UUID_A);
 		expect(gelen.tamam && gelen.veri).toMatchObject({ kaynakId: UUID_B, hedefId: UUID_A });
 		const varsayilan = bagDogrula(form({ digerId: UUID_B, yon: 'saçma' }), UUID_A);
-		expect(varsayilan.tamam && varsayilan.veri).toMatchObject({ kaynakId: UUID_A, hedefId: UUID_B });
+		expect(varsayilan.tamam && varsayilan.veri).toMatchObject({
+			kaynakId: UUID_A,
+			hedefId: UUID_B
+		});
 	});
 
 	it('yöne göre Türkçe hata verir', () => {

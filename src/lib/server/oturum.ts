@@ -37,7 +37,11 @@ export async function oturumDogrula(jeton: string) {
 	const oturumId = jetonOzeti(jeton);
 	const [sonuc] = await db
 		.select({
-			kullanici: { id: kullanicilar.id, kullaniciAdi: kullanicilar.kullaniciAdi, ad: kullanicilar.ad },
+			kullanici: {
+				id: kullanicilar.id,
+				kullaniciAdi: kullanicilar.kullaniciAdi,
+				ad: kullanicilar.ad
+			},
 			oturum: { id: oturumlar.id, bitis: oturumlar.bitis }
 		})
 		.from(oturumlar)

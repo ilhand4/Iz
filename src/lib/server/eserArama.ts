@@ -122,8 +122,10 @@ async function jsonGetir(url: string, basliklar: Record<string, string> = {}): P
 	} catch {
 		throw new AramaHatasi('Arama hizmetine ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.');
 	}
-	if (yanit.status === 401) throw new AramaHatasi('TMDB anahtarı geçersiz görünüyor. .env dosyasını kontrol edin.');
-	if (yanit.status === 429) throw new AramaHatasi('Arama hizmeti şu an yoğun. Biraz sonra tekrar deneyin.');
+	if (yanit.status === 401)
+		throw new AramaHatasi('TMDB anahtarı geçersiz görünüyor. .env dosyasını kontrol edin.');
+	if (yanit.status === 429)
+		throw new AramaHatasi('Arama hizmeti şu an yoğun. Biraz sonra tekrar deneyin.');
 	if (!yanit.ok) throw new AramaHatasi(`Arama hizmeti hata verdi (${yanit.status}).`);
 	return yanit.json();
 }
@@ -148,7 +150,11 @@ export function kitapAra(sorgu: string): Promise<EserSonucu[]> {
 	});
 }
 
-export function tmdbAra(sorgu: string, tur: 'film' | 'dizi', anahtar: string): Promise<EserSonucu[]> {
+export function tmdbAra(
+	sorgu: string,
+	tur: 'film' | 'dizi',
+	anahtar: string
+): Promise<EserSonucu[]> {
 	return onbellekli(`${tur}:${sorgu}`, async () => {
 		const url = new URL(`https://api.themoviedb.org/3/search/${tur === 'film' ? 'movie' : 'tv'}`);
 		url.searchParams.set('query', sorgu);
