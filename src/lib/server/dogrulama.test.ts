@@ -189,7 +189,12 @@ describe('izDogrula', () => {
 		expect(!bos.tamam && bos.hatalar.baslik).toBe('İze bir ad ver.');
 		expect(izDogrula(form({ baslik: '  Bir kitaplıktan Berlin’e  ' }))).toEqual({
 			tamam: true,
-			veri: { baslik: 'Bir kitaplıktan Berlin’e', aciklama: null, gizlilik: 'ozel' }
+			veri: {
+				baslik: 'Bir kitaplıktan Berlin’e',
+				aciklama: null,
+				gizlilik: 'ozel',
+				ortakGrupId: null
+			}
 		});
 	});
 
