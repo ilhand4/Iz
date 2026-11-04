@@ -41,6 +41,8 @@ type IzOzetSecenekleri = {
 	q?: string;
 	/** Bu izden sonrakiler (yeniden eskiye; aramada kullanılmaz) */
 	imlec?: Imlec | null;
+	/** Yalnızca bu izler (sahipId null iken başka kullanıcıların izlerini listelemek için) */
+	idler?: string[];
 };
 
 /**
@@ -48,7 +50,7 @@ type IzOzetSecenekleri = {
  * önizlemede görmediği düğümlerin başlıkları hiç gönderilmez (durak sayısı yine doğrudur).
  */
 export async function izleriListele(
-	sahipId: string,
+	sahipId: string | null,
 	secenekler: IzOzetSecenekleri | number = {}
 ): Promise<IzOzeti[]> {
 	const {
@@ -56,9 +58,15 @@ export async function izleriListele(
 		izleyenId = sahipId,
 		dugumId,
 		q,
-		imlec
+		imlec,
+		idler
 	} = typeof secenekler === 'number' ? { limit: secenekler } : secenekler;
-	const kosullar = [eq(izler.sahipId, sahipId), gorunurluk(izler, izleyenId)];
+	const kosullar = [gorunurluk(izler, izleyenId)];
+	if (sahipId) kosullar.push(eq(izler.sahipId, sahipId));
+	if (idler) {
+		if (!idler.length) return [];
+		kosullar.push(inArray(izler.id, idler));
+	}
 	if (dugumId) {
 		kosullar.push(
 			inArray(

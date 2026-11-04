@@ -112,6 +112,24 @@ export const epostaJetonlari = pgTable(
 	]
 );
 
+// ——— Kanonik eserler: kişisel düğümlerden bağımsız ortak eser kaydı ———
+// Anahtar önce dış kimlikten ("openlibrary:OL1W", "tmdb:movie/603"), yoksa sadeleştirilmiş
+// tür + başlık + yapımcıdan üretilen parmak izinden ("pi:<md5>"). Eşleme veritabanı
+// tetikleyicisiyle yapılır (drizzle/0007): düğüm hangi yoldan yazılırsa yazılsın bağlanır.
+
+export const kanonikEserler = pgTable('kanonik_eserler', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	anahtar: text('anahtar').notNull().unique(),
+	eserTuru: eserTuru('eser_turu').notNull(),
+	baslik: text('baslik').notNull(),
+	altBaslik: text('alt_baslik'),
+	yil: integer('yil'),
+	gorselUrl: text('gorsel_url'),
+	/** Wikidata kimliği ("Q123"); zenginleştirmeyle doldurulur */
+	wikidata: text('wikidata'),
+	olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+});
+
 // ——— Düğümler: eser, kişi, yer, karar, anı ———
 
 export const dugumler = pgTable(
@@ -151,7 +169,11 @@ export const dugumler = pgTable(
 		silinme: zamanDamgasi('silinme'),
 		aramaMetni: text('arama_metni').generatedAlwaysAs((): SQL =>
 			sadelestirSql(sql`${dugumler.baslik} || ' ' || coalesce(${dugumler.altBaslik}, '')`)
-		)
+		),
+		/** Eserin ortak kaydı (tetikleyiciyle doldurulur; eser değilse null) */
+		kanonikEserId: uuid('kanonik_eser_id').references(() => kanonikEserler.id, {
+			onDelete: 'set null'
+		})
 	},
 	(t) => [
 		index('dugumler_sahip_idx').on(t.sahipId, t.olusturma),
@@ -159,6 +181,7 @@ export const dugumler = pgTable(
 		index('dugumler_sahip_tarih_idx').on(t.sahipId, t.tarih),
 		index('dugumler_gizlilik_idx').on(t.gizlilik),
 		index('dugumler_arama_trgm_idx').using('gin', sql`${t.aramaMetni} gin_trgm_ops`),
+		index('dugumler_kanonik_idx').on(t.kanonikEserId),
 		// Aynı kullanıcı aynı dış eseri iki kez eklemesin (çöp kutusundakiler sayılmaz)
 		uniqueIndex('dugumler_dis_kaynak_tekil')
 			.on(t.sahipId, t.disKaynak, t.disKimlik)

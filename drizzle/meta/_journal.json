@@ -50,6 +50,13 @@
       "when": 1793803584005,
       "tag": "0006_asama3a_arama_onbellegi",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793818350939,
+      "tag": "0007_asama3a_kanonik",
+      "breakpoints": true
     }
   ]
 }

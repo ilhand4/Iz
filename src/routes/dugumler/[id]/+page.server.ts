@@ -9,9 +9,12 @@ import {
 	dugumBaglari,
 	dugumGetir,
 	dugumSecenekleri,
+	dugumVeGetireniKaydet,
 	durumGuncelle,
 	geldigiYol
 } from '#lib/server/dugumler.ts';
+import { gorselGuvenliMi } from '#lib/server/eserArama.ts';
+import { kanonikDugumu, kanonikGetir, kesifYollari, korKesisim } from '#lib/server/kesif.ts';
 import { durakEkle, dugumunIzleri, izSecenekleri } from '#lib/server/izler.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import { tarihGirdisi, tarihYaz } from '#lib/tarih.ts';
@@ -27,14 +30,19 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	if (!sonuc) error(404, BULUNAMADI);
 
 	const sahibiMi = sonuc.dugum.sahipId === izleyenId;
-	const [baglar, yol, kapilar, izler, secenekler, eklenebilirIzler] = await Promise.all([
-		dugumBaglari(params.id, izleyenId),
-		geldigiYol(params.id, izleyenId),
-		actigiKapilar(params.id, izleyenId),
-		dugumunIzleri(params.id, izleyenId),
-		sahibiMi ? dugumSecenekleri(sonuc.dugum.sahipId, params.id) : Promise.resolve([]),
-		sahibiMi ? izSecenekleri(sonuc.dugum.sahipId, params.id) : Promise.resolve([])
-	]);
+	// Keşif bölümleri yalnızca sahibine ve yalnızca eserlerde (başkalarının açık içeriğinden)
+	const kesifVar = sahibiMi && sonuc.dugum.tur === 'eser';
+	const [baglar, yol, kapilar, izler, secenekler, eklenebilirIzler, kesisim, kesifler] =
+		await Promise.all([
+			dugumBaglari(params.id, izleyenId),
+			geldigiYol(params.id, izleyenId),
+			actigiKapilar(params.id, izleyenId),
+			dugumunIzleri(params.id, izleyenId),
+			sahibiMi ? dugumSecenekleri(sonuc.dugum.sahipId, params.id) : Promise.resolve([]),
+			sahibiMi ? izSecenekleri(sonuc.dugum.sahipId, params.id) : Promise.resolve([]),
+			kesifVar ? korKesisim(params.id) : Promise.resolve([]),
+			kesifVar ? kesifYollari(params.id) : Promise.resolve([])
+		]);
 
 	// Sahip kimliği ve iç alanlar sayfaya gönderilmez
 	const { sahipId: _sahipId, silinme: _silinme, ...dugum } = sonuc.dugum;
@@ -48,6 +56,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		izler,
 		secenekler,
 		eklenebilirIzler,
+		kesisim,
+		kesifler,
 		indekslenebilir: dugum.gizlilik === 'herkes' && sonuc.sahip.aramaMotorlari,
 		eklendi: url.searchParams.has('eklendi'),
 		getirenSor: url.searchParams.has('getiren')
@@ -134,6 +144,55 @@ export const actions: Actions = {
 					: durum
 						? `Durum: ${durumEtiketi(durum, sonuc.eserTuru)}.`
 						: 'Durum kaldırıldı.'
+			}
+		};
+	},
+
+	/** Keşif yolundaki eseri merak listesine ekler; bu düğümden ona bağ kurar */
+	kesifEkle: async ({ params, request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const kanonikId = alan(await request.formData(), 'kanonikId');
+		if (!uuidMu(params.id) || !uuidMu(kanonikId)) error(404, BULUNAMADI);
+		const k = await kanonikGetir(kanonikId);
+		if (!k) error(404, 'Eser bulunamadı.');
+		const varolan = await kanonikDugumu(kullanici.id, kanonikId);
+		const kayit = await dugumVeGetireniKaydet(
+			kullanici.id,
+			varolan
+				? { kip: 'mevcut', id: varolan }
+				: {
+						kip: 'yeni',
+						veri: {
+							tur: 'eser',
+							eserTuru: k.eserTuru,
+							baslik: k.baslik,
+							altBaslik: k.altBaslik,
+							aciklama: null,
+							tarih: null,
+							tarihHassasiyeti: null,
+							yil: k.yil,
+							enlem: null,
+							boylam: null,
+							yerAdi: null,
+							gizlilik: 'ozel',
+							durum: 'merak',
+							...(k.disKaynak && k.disKimlik
+								? {
+										disKaynak: k.disKaynak,
+										disKimlik: k.disKimlik,
+										gorselUrl: gorselGuvenliMi(k.gorselUrl) ? k.gorselUrl : null
+									}
+								: {})
+						}
+					},
+			{ kip: 'mevcut', id: params.id },
+			'Keşif yolundan'
+		);
+		if (kayit === 'yetkisiz') error(404, BULUNAMADI);
+		return {
+			bildirim: {
+				mesaj: `“${k.baslik}” merak listene eklendi.`,
+				baglanti: { href: `/dugumler/${kayit.dugumId}`, metin: 'Aç' }
 			}
 		};
 	},

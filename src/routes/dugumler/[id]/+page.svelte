@@ -371,6 +371,65 @@
 			{/if}
 		</section>
 	{/if}
+
+	{#if data.kesifler.length || data.kesisim.length}
+		<section class="kesif yigin" aria-labelledby="kesif-baslik">
+			<div>
+				<h2 id="kesif-baslik">Başkalarının yolları</h2>
+				<p class="kucuk soluk">
+					Bu eseri haritasına ekleyen başkalarının yalnızca herkese açık bağ ve izlerinden. Puan
+					yok; insanların gerçekten yürüdüğü yollar.
+				</p>
+			</div>
+
+			{#if data.kesifler.length}
+				<div class="kart">
+					<h3>Buradan yola çıkanlar şunlara da gitti</h3>
+					<ul class="kesif-listesi">
+						{#each data.kesifler as k (k.kanonikId)}
+							<li>
+								<span class="kesif-eser">
+									<TurSekli tur="eser" boyut={11} />
+									<span>
+										<strong>{k.baslik}</strong>
+										<small class="soluk"
+											>{[k.altBaslik, k.yil].filter(Boolean).join(' · ')}
+											{k.altBaslik || k.yil ? '·' : ''}
+											{k.kisi} kişi</small
+										>
+									</span>
+								</span>
+								<form method="POST" action="?/kesifEkle" use:enhance>
+									<input type="hidden" name="kanonikId" value={k.kanonikId} />
+									<button class="dugme dugme-kucuk" aria-label="{k.baslik}: merak listeme ekle">
+										<Simge ad="yildiz" boyut={14} /> Merak listeme ekle
+									</button>
+								</form>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
+
+			{#if data.kesisim.length}
+				<div>
+					<h3>Bu eserden geçen açık izler</h3>
+					<div class="iz-izgarasi">
+						{#each data.kesisim as iz (iz.id)}
+							<div class="kesisim-izi">
+								<IzKarti {iz} />
+								{#if iz.sahip}
+									<a class="kucuk soluk" href="/@{iz.sahip.kullaniciAdi}"
+										>{iz.sahip.ad} (@{iz.sahip.kullaniciAdi})</a
+									>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</section>
+	{/if}
 </div>
 
 <style>
@@ -578,6 +637,50 @@
 	}
 	.yol p {
 		margin: 0 0 var(--a-3);
+	}
+	.kesif {
+		padding-top: var(--a-4);
+		border-top: 1px solid var(--cizgi);
+	}
+	.kesif h3 {
+		margin: 0 0 var(--a-2);
+		font-size: var(--boyut-lg);
+	}
+	.kesif p {
+		margin: var(--a-1) 0 0;
+	}
+	.kesif-listesi {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-2);
+	}
+	.kesif-listesi li {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--a-3);
+		flex-wrap: wrap;
+	}
+	.kesif-listesi form {
+		margin: 0;
+	}
+	.kesif-eser {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--a-2);
+		min-width: 0;
+	}
+	.kesif-eser > span {
+		display: flex;
+		flex-direction: column;
+	}
+	.kesisim-izi {
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-1);
 	}
 	.iz-izgarasi {
 		display: grid;

@@ -371,10 +371,55 @@ async function tohumla() {
 		gizlilik: 'ozel'
 	});
 
+	// Ayşe'nin, Deniz'in haritasıyla kesişen açık yolu (keşif ve kör kesişim örneği):
+	// aynı eser (Kürk Mantolu Madonna) kanonik kayıtla eşleşir
+	const [aMadonna, aSeytan, aKuyucakli] = await db
+		.insert(dugumler)
+		.values(
+			[
+				['Kürk Mantolu Madonna', 1943],
+				['İçimizdeki Şeytan', 1940],
+				['Kuyucaklı Yusuf', 1937]
+			].map(([baslik, yil]) => ({
+				sahipId: ayse.id,
+				tur: 'eser' as const,
+				eserTuru: 'kitap' as const,
+				baslik: baslik as string,
+				altBaslik: 'Sabahattin Ali',
+				yil: yil as number,
+				durum: 'bitti' as const,
+				gizlilik: 'herkes' as const
+			}))
+		)
+		.returning({ id: dugumler.id });
+	await db.insert(baglar).values([
+		{
+			sahipId: ayse.id,
+			kaynakId: aMadonna.id,
+			hedefId: aSeytan.id,
+			not: 'Aynı yazarın en sert kitabı'
+		},
+		{ sahipId: ayse.id, kaynakId: aMadonna.id, hedefId: aKuyucakli.id }
+	]);
+	const [aIz] = await db
+		.insert(izler)
+		.values({
+			sahipId: ayse.id,
+			baslik: 'Sabahattin Ali’yi baştan okumak',
+			aciklama: 'Madonna’dan sonra bütün romanları.',
+			gizlilik: 'herkes'
+		})
+		.returning({ id: izler.id });
+	await db.insert(izAdimlari).values([
+		{ izId: aIz.id, dugumId: aMadonna.id, sira: 1 },
+		{ izId: aIz.id, dugumId: aSeytan.id, sira: 2 },
+		{ izId: aIz.id, dugumId: aKuyucakli.id, sira: 3 }
+	]);
+
 	console.log('Örnek veri yüklendi.');
 	console.log('  demo@iz.test ve ayse@iz.test hesapları (şifre: .env içindeki SEED_SIFRE)');
 	console.log(
-		`  ${demoDugumleri.length + 2} düğüm, ${demoBaglari.length} bağ, ${demoIzleri.length + 1} iz`
+		`  ${demoDugumleri.length + 5} düğüm, ${demoBaglari.length + 2} bağ, ${demoIzleri.length + 2} iz`
 	);
 }
 
