@@ -194,6 +194,34 @@ const demoDugumleri: Tohum[] = [
 		altBaslik: 'ZA/UM',
 		yil: 2019,
 		...ay('2023-01')
+	},
+	// Merak listesi: önerilen ama henüz bitmemiş eserler (tarihsiz)
+	{
+		anahtar: 'alexanderplatz',
+		tur: 'eser',
+		eserTuru: 'kitap',
+		baslik: 'Berlin Alexanderplatz',
+		altBaslik: 'Alfred Döblin',
+		yil: 1929,
+		durum: 'suruyor'
+	},
+	{
+		anahtar: 'aylak',
+		tur: 'eser',
+		eserTuru: 'kitap',
+		baslik: 'Aylak Adam',
+		altBaslik: 'Yusuf Atılgan',
+		yil: 1959,
+		durum: 'merak'
+	},
+	{
+		anahtar: 'saatler',
+		tur: 'eser',
+		eserTuru: 'kitap',
+		baslik: 'Saatleri Ayarlama Enstitüsü',
+		altBaslik: 'Ahmet Hamdi Tanpınar',
+		yil: 1961,
+		durum: 'merak'
 	}
 ];
 
@@ -215,7 +243,10 @@ const demoBaglari: [string, string, string | null][] = [
 	['yukseklisans', 'kreuzberg', 'Okula yakın bir oda buldum'],
 	['berlin', 'babylon', 'Şehrin eski hâlini merak ettim'],
 	['kreuzberg', 'kis', null],
-	['kis', 'disco', 'Uzun kış akşamları']
+	['kis', 'disco', 'Uzun kış akşamları'],
+	['babylon', 'alexanderplatz', 'Dizinin geçtiği yılların romanı'],
+	['selin', 'aylak', 'Tutunamayanlar’ı sevdiysen bunu da oku, dedi'],
+	['kulup', 'saatler', 'Kulübün bir sonraki kitabı']
 ];
 
 const demoIzleri: {
@@ -268,7 +299,12 @@ async function tohumla() {
 	for (const { anahtar, ...dugum } of demoDugumleri) {
 		const [satir] = await db
 			.insert(dugumler)
-			.values({ ...dugum, sahipId: demo.id })
+			// Eserler aksi belirtilmedikçe "bitti" (okundu/izlendi…)
+			.values({
+				...dugum,
+				durum: dugum.tur === 'eser' ? (dugum.durum ?? 'bitti') : null,
+				sahipId: demo.id
+			})
 			.returning({ id: dugumler.id });
 		kimlikler[anahtar] = satir.id;
 	}

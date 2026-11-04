@@ -8,7 +8,7 @@
 	import { tarihYaz } from '#lib/tarih.ts';
 	import type { PageProps } from './$types';
 
-	let { data, form }: PageProps = $props();
+	let { data }: PageProps = $props();
 	type Durak = (typeof data.duraklar)[number];
 	type GorunurDurak = Extract<Durak, { dugum: unknown }>;
 
@@ -79,9 +79,21 @@
 			bu durakları “gizli durak” olarak görür.
 		</p>
 	{/if}
-	{#if form?.bagKuruldu}<p class="bildirim bildirim-basari" role="status">
-			Duraklar bağlandı.
-		</p>{/if}
+	{#if data.ilk}
+		<section class="ilk-iz" aria-labelledby="ilk-iz-baslik">
+			<Simge ad="iz" boyut={28} />
+			<div>
+				<h2 id="ilk-iz-baslik">İlk izin hazır.</h2>
+				<p class="kucuk">
+					Bir eserin seni nereden alıp nereye götürdüğünü kaydettin. Şimdi
+					<a href="/dugumler/ag">ağında</a> nasıl durduğuna bak, ya da
+					<a href="/dugumler/yeni">bir düğüm daha ekle</a>. Düğümler şimdilik yalnızca sana açık;
+					istersen
+					<a href="/izler/{iz.id}/duzenle">izi paylaşılır yapabilirsin</a>.
+				</p>
+			</div>
+		</section>
+	{/if}
 
 	{#if data.duraklar.length === 0}
 		<BosDurum
@@ -163,6 +175,24 @@
 </div>
 
 <style>
+	.ilk-iz {
+		display: flex;
+		gap: var(--a-4);
+		align-items: flex-start;
+		padding: var(--a-4) var(--a-5);
+		border-radius: var(--yaricap-lg);
+		border: 1px solid color-mix(in srgb, var(--vurgu) 35%, var(--cizgi));
+		background: var(--vurgu-zemin);
+		color: var(--vurgu-guclu);
+	}
+	.ilk-iz h2 {
+		margin: 0 0 var(--a-1);
+		color: var(--metin);
+	}
+	.ilk-iz p {
+		margin: 0;
+		color: var(--metin);
+	}
 	.kap-orta {
 		max-width: 52rem;
 	}

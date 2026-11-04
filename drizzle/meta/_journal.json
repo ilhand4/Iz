@@ -15,6 +15,13 @@
       "when": 1793722168259,
       "tag": "0001_asama2_iz_kisitlari",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793797875807,
+      "tag": "0002_asama25_durum_cop_konum",
+      "breakpoints": true
     }
   ]
 }

@@ -62,6 +62,7 @@ export const actions: Actions = {
 		const jeton = jetonUret();
 		const oturum = await oturumAc(jeton, kullaniciId);
 		oturumCereziYaz(cookies, jeton, oturum.bitis);
-		redirect(303, '/pano?hosgeldin=1');
+		// Yeni kullanıcı ilk izini üç soruda oluştursun
+		redirect(303, '/basla?hosgeldin=1');
 	}
 };

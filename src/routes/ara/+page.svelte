@@ -1,6 +1,7 @@
 <script lang="ts">
 	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
 	import Simge from '#lib/bilesenler/Simge.svelte';
+	import { durumEtiketi } from '#lib/sabitler.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -126,7 +127,7 @@
 									>Düğümüne git</a
 								>
 							{:else}
-								<form method="POST" action={eylem}>
+								<form method="POST" action={eylem} class="ekle-formu">
 									<input type="hidden" name="kaynak" value={s.kaynak} />
 									<input type="hidden" name="disKimlik" value={s.disKimlik} />
 									<input type="hidden" name="eserTuru" value={s.eserTuru} />
@@ -134,8 +135,12 @@
 									<input type="hidden" name="altBaslik" value={s.altBaslik ?? ''} />
 									<input type="hidden" name="yil" value={s.yil ?? ''} />
 									<input type="hidden" name="gorselUrl" value={s.gorselUrl ?? ''} />
-									<button class="dugme dugme-birincil dugme-kucuk">
-										<Simge ad="ekle" boyut={16} /> Düğüm olarak ekle
+									<button class="dugme dugme-birincil dugme-kucuk" name="durum" value="bitti">
+										<Simge ad="onay" boyut={16} />
+										{durumEtiketi('bitti', s.eserTuru)}
+									</button>
+									<button class="dugme dugme-kucuk" name="durum" value="merak">
+										<Simge ad="ekle" boyut={16} /> Merak listeme
 									</button>
 								</form>
 							{/if}
@@ -252,6 +257,11 @@
 		line-clamp: 3;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
+	}
+	.ekle-formu {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--a-2);
 	}
 	.sonuc-govde form,
 	.sonuc-govde .dugme {

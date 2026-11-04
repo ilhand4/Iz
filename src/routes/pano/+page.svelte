@@ -5,12 +5,16 @@
 	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import TurSekli from '#lib/bilesenler/TurSekli.svelte';
-	import { DUGUM_TURLERI, DUGUM_TURU_COGUL } from '#lib/sabitler.ts';
+	import { DUGUM_TURLERI, DUGUM_TURU_COGUL, durumEtiketi } from '#lib/sabitler.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	const pano = $derived(data.pano);
 	const toplam = $derived(Object.values(pano.sayilar).reduce((a, b) => a + (b ?? 0), 0));
+	const k = $derived(data.karakterler);
+	const karakterVar = $derived(
+		!!k && (k.kokler.length > 0 || k.kapiAcanlar.length > 0 || k.kavsaklar.length > 0)
+	);
 </script>
 
 <svelte:head><title>Pano · İz</title></svelte:head>
@@ -36,6 +40,41 @@
 			Hesabın açıldı. Hoş geldin! Bir kitap, film ya da hayatındaki bir anla başlayabilirsin.
 		</p>
 	{/if}
+
+	{#if toplam === 0}
+		<a class="kart sihirbaz-daveti" href="/basla">
+			<span class="sihirbaz-simge"><Simge ad="iz" boyut={28} /></span>
+			<span class="gorunum-metin">
+				<strong>İlk izini üç adımda oluştur</strong>
+				<span
+					>Seni değiştiren bir eser, onu sana getiren şey ve seni götürdüğü yer. İki dakika sürer.</span
+				>
+			</span>
+			<Simge ad="ok" boyut={20} />
+		</a>
+	{/if}
+
+	<form method="GET" action="/hizli" class="hizli-ekle" role="search" aria-label="Hızlı ekle">
+		<label for="hizli-metin" class="hizli-etiket">
+			<Simge ad="simsek" boyut={18} /> Hızlı ekle
+		</label>
+		<div class="hizli-satir">
+			<input
+				id="hizli-metin"
+				name="metin"
+				required
+				maxlength="300"
+				autocomplete="off"
+				placeholder="Ör. Selin Hoca önerdi → Tutunamayanlar"
+				aria-describedby="hizli-ipucu"
+			/>
+			<button class="dugme dugme-birincil">Ekle</button>
+		</div>
+		<p id="hizli-ipucu" class="kucuk soluk">
+			Tek satırda yaz: “Babylon Berlin'i izlerken Berlin Alexanderplatz'ı merak ettim”. Kaydetmeden
+			önce ne anladığımı gösteririm.
+		</p>
+	</form>
 
 	<section aria-label="Türlere göre düğüm sayıları" class="sayilar">
 		{#each DUGUM_TURLERI as tur (tur)}
@@ -81,6 +120,73 @@
 		</section>
 	{/if}
 
+	{#if k && (karakterVar || k.yetimSayisi > 0)}
+		<section class="yigin" aria-labelledby="karakter-baslik">
+			<div class="bolum-baslik">
+				<h2 id="karakter-baslik">Haritanın karakterleri</h2>
+				<a href="/dugumler/ag" class="kucuk">Ağda gör</a>
+			</div>
+			<div class="karakterler">
+				{#if k.kokler.length}
+					<div class="kart karakter">
+						<h3>Kökler</h3>
+						<p class="kucuk soluk">Hiçbir şeyin getirmediği, her şeyin başladığı yerler.</p>
+						<ol>
+							{#each k.kokler as d (d.id)}
+								<li>
+									<a href="/dugumler/{d.id}"><TurSekli tur={d.tur} boyut={11} /> {d.baslik}</a>
+									<span class="deger">{d.deger} kapı</span>
+								</li>
+							{/each}
+						</ol>
+					</div>
+				{/if}
+				{#if k.kapiAcanlar.length}
+					<div class="kart karakter">
+						<h3>Kapı açanlar</h3>
+						<p class="kucuk soluk">Bağlar boyunca en çok şeye götürenler.</p>
+						<ol>
+							{#each k.kapiAcanlar as d (d.id)}
+								<li>
+									<a href="/dugumler/{d.id}"><TurSekli tur={d.tur} boyut={11} /> {d.baslik}</a>
+									<span class="deger">{d.deger} şey</span>
+								</li>
+							{/each}
+						</ol>
+					</div>
+				{/if}
+				{#if k.kavsaklar.length}
+					<div class="kart karakter">
+						<h3>Kavşaklar</h3>
+						<p class="kucuk soluk">Hayatının ayrı köşelerini birbirine bağlayanlar.</p>
+						<ol>
+							{#each k.kavsaklar as d (d.id)}
+								<li>
+									<a href="/dugumler/{d.id}"><TurSekli tur={d.tur} boyut={11} /> {d.baslik}</a>
+								</li>
+							{/each}
+						</ol>
+					</div>
+				{/if}
+				{#if k.yetimSayisi > 0}
+					<div class="kart karakter yetimler">
+						<h3>Bağsızlar <span class="soluk">({k.yetimSayisi})</span></h3>
+						<p class="kucuk soluk">Henüz hiçbir şeye bağlanmamış. Seni buraya ne getirdi?</p>
+						<ul>
+							{#each k.yetimler as d (d.id)}
+								<li>
+									<a href="/dugumler/{d.id}?getiren=1"
+										><TurSekli tur={d.tur} boyut={11} /> {d.baslik}</a
+									>
+								</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+			</div>
+		</section>
+	{/if}
+
 	<div class="iki-sutun">
 		<section class="yigin" aria-labelledby="son-baslik">
 			<div class="bolum-baslik">
@@ -106,6 +212,28 @@
 		</section>
 
 		<div class="yigin genis-aralik">
+			{#if data.merak.length}
+				<section class="yigin" aria-labelledby="merak-baslik">
+					<div class="bolum-baslik">
+						<h2 id="merak-baslik">Merak listen</h2>
+						<a href="/dugumler?durum=merak" class="kucuk">Tümü</a>
+					</div>
+					<ul class="merak">
+						{#each data.merak as m (m.id)}
+							<li>
+								<a href="/dugumler/{m.id}" class="merak-baslik">{m.baslik}</a>
+								<span class="kucuk soluk">
+									{m.durum ? durumEtiketi(m.durum, m.eserTuru) : ''}
+									{#if m.getiren}
+										· <a href="/dugumler/{m.getiren.id}">{m.getiren.baslik}</a> getirdi
+									{/if}
+								</span>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
+
 			<section class="yigin" aria-labelledby="izler-baslik">
 				<div class="bolum-baslik">
 					<h2 id="izler-baslik">İzlerin</h2>
@@ -245,6 +373,147 @@
 	.gorunum-metin span {
 		font-size: var(--boyut-sm);
 		color: var(--metin-soluk);
+	}
+
+	.sihirbaz-daveti {
+		display: flex;
+		align-items: center;
+		gap: var(--a-4);
+		padding: var(--a-5);
+		color: var(--metin);
+		text-decoration: none;
+		border-color: color-mix(in srgb, var(--vurgu) 40%, var(--cizgi));
+		background: var(--vurgu-zemin);
+	}
+	.sihirbaz-daveti:hover {
+		color: var(--metin);
+		box-shadow: var(--golge-2);
+	}
+	.sihirbaz-daveti strong {
+		font-family: var(--yazi-baslik);
+		font-size: var(--boyut-xl);
+	}
+	.sihirbaz-simge {
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 3.25rem;
+		height: 3.25rem;
+		border-radius: var(--yaricap-tam);
+		background: var(--vurgu);
+		color: var(--vurgu-uzeri);
+	}
+
+	.hizli-ekle {
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-2);
+		padding: var(--a-4);
+		border: 1px solid var(--cizgi);
+		border-radius: var(--yaricap-lg);
+		background: var(--yuzey);
+		box-shadow: var(--golge-1);
+	}
+	.hizli-etiket {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-2);
+		font-weight: 650;
+		color: var(--vurgu);
+	}
+	.hizli-satir {
+		display: flex;
+		gap: var(--a-2);
+	}
+	.hizli-satir input {
+		flex: 1;
+		min-width: 0;
+		font-size: var(--boyut-md);
+	}
+	.hizli-ekle p {
+		margin: 0;
+	}
+
+	.karakterler {
+		display: grid;
+		gap: var(--a-3);
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+	}
+	.karakter {
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-2);
+	}
+	.karakter h3 {
+		margin: 0;
+		font-size: var(--boyut-lg);
+	}
+	.karakter p {
+		margin: 0;
+	}
+	.karakter ol,
+	.karakter ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-1);
+	}
+	.karakter li {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: var(--a-2);
+	}
+	.karakter li a {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-1);
+		min-width: 0;
+		font-weight: 600;
+		color: var(--metin);
+		text-decoration: none;
+	}
+	.karakter li a:hover {
+		color: var(--vurgu);
+	}
+	.deger {
+		flex: none;
+		font-size: var(--boyut-xs);
+		font-weight: 600;
+		color: var(--vurgu);
+		font-variant-numeric: tabular-nums;
+	}
+	.yetimler {
+		border-style: dashed;
+	}
+
+	.merak {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		border: 1px dashed var(--cizgi-guclu);
+		border-radius: var(--yaricap-lg);
+	}
+	.merak li {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: var(--a-3) var(--a-4);
+	}
+	.merak li + li {
+		border-top: 1px dashed var(--cizgi);
+	}
+	.merak-baslik {
+		font-weight: 600;
+		color: var(--metin);
+		text-decoration: none;
+	}
+	.merak-baslik:hover {
+		color: var(--vurgu);
 	}
 
 	.iki-sutun {

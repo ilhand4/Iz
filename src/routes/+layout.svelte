@@ -3,6 +3,7 @@
 	import '@fontsource-variable/fraunces';
 	import '#lib/stiller/tasarim.css';
 	import { page } from '$app/state';
+	import Bildirimler from '#lib/bilesenler/Bildirimler.svelte';
 	import Logo from '#lib/bilesenler/Logo.svelte';
 	import Simge, { type SimgeAdi } from '#lib/bilesenler/Simge.svelte';
 	import TemaDugmesi from '#lib/bilesenler/TemaDugmesi.svelte';
@@ -91,6 +92,8 @@
 		{/each}
 	</nav>
 {/if}
+
+<Bildirimler altMenu={!!data.kullanici} />
 
 <footer class="alt" class:alt-menulu={!!data.kullanici}>
 	<div class="kap alt-ic">

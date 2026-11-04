@@ -4,7 +4,7 @@ import { TMDB_ANAHTARI } from '$app/env/private';
 import { db } from '#lib/server/db/index.ts';
 import { dugumler } from '#lib/server/db/schema.ts';
 import { alan, uuidMu } from '#lib/server/dogrulama.ts';
-import { bagKur, disKaynaktanBul, dugumGetir, dugumOlustur } from '#lib/server/dugumler.ts';
+import { dugumGetir, dugumVeGetireniKaydet, etkin } from '#lib/server/dugumler.ts';
 import {
 	AramaHatasi,
 	ARAMA_TURLERI,
@@ -61,6 +61,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			.where(
 				and(
 					eq(dugumler.sahipId, kullanici.id),
+					etkin(dugumler),
 					eq(dugumler.disKaynak, sonuclar[0].kaynak),
 					inArray(
 						dugumler.disKimlik,
@@ -102,12 +103,14 @@ export const actions: Actions = {
 		if (gorselUrl && !gorselGuvenliMi(gorselUrl)) error(400, 'Geçersiz görsel adresi.');
 		const yil = /^\d{4}$/.test(yilMetni) ? Number(yilMetni) : null;
 
+		// "Okudum / İzledim" ya da "Merak listeme"
+		const durum = alan(fd, 'durum') === 'merak' ? 'merak' : 'bitti';
 		const kaynakDugumu = await kaynakDugum(url.searchParams.get('kaynak'), kullanici.id);
-		const varolan = await disKaynaktanBul(kullanici.id, kaynak, disKimlik);
-		const dugumId =
-			varolan?.id ??
-			(
-				await dugumOlustur(kullanici.id, {
+		const kayit = await dugumVeGetireniKaydet(
+			kullanici.id,
+			{
+				kip: 'yeni',
+				veri: {
 					tur: 'eser',
 					eserTuru,
 					baslik,
@@ -120,21 +123,16 @@ export const actions: Actions = {
 					boylam: null,
 					yerAdi: null,
 					gizlilik: 'ozel',
+					durum,
 					disKaynak: kaynak,
 					disKimlik,
 					gorselUrl: gorselUrl || null
-				})
-			).id;
-
-		if (kaynakDugumu && kaynakDugumu.id !== dugumId) {
-			await bagKur(kullanici.id, {
-				kaynakId: kaynakDugumu.id,
-				hedefId: dugumId,
-				not: null,
-				tarih: null,
-				tarihHassasiyeti: null
-			});
-		}
-		redirect(303, `/dugumler/${dugumId}${varolan ? '' : '?eklendi=1'}`);
+				}
+			},
+			kaynakDugumu ? { kip: 'mevcut', id: kaynakDugumu.id } : { kip: 'yok' },
+			null
+		);
+		if (kayit === 'yetkisiz') error(404, 'Düğüm bulunamadı.');
+		redirect(303, `/dugumler/${kayit.dugumId}${kayit.yeniMi ? '?eklendi=1' : ''}`);
 	}
 };

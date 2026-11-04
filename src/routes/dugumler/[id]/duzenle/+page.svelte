@@ -28,15 +28,13 @@
 	<section class="kart tehlike">
 		<h2>Düğümü sil</h2>
 		<p class="soluk kucuk">
-			Düğümle birlikte ona bağlı tüm bağlar ve izlerdeki adımları da silinir. Bu geri alınamaz.
+			Düğüm, bağları ve izlerdeki durakları çöp kutusuna gider; 30 gün içinde geri yükleyebilirsin.
+			Sonra kalıcı olarak silinir.
 		</p>
 		<form method="POST" action="?/sil" class="satir">
-			<label class="satir kucuk">
-				<input type="checkbox" name="onay" value="evet" required />
-				Evet, silmek istiyorum
-			</label>
+			<input type="hidden" name="onay" value="evet" />
 			<button class="dugme dugme-tehlike">
-				<Simge ad="cop" boyut={16} /> Kalıcı olarak sil
+				<Simge ad="cop" boyut={16} /> Çöp kutusuna at
 			</button>
 		</form>
 		{#if form?.hatalar?.genel}<p class="hata-metni kucuk" role="alert">{form.hatalar.genel}</p>{/if}

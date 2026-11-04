@@ -5,11 +5,39 @@ export const ESER_TURLERI = ['kitap', 'film', 'dizi', 'muzik', 'oyun', 'podcast'
 /** ozel: yalnızca sahibi; grup: aile/grup üyeleri (gruplar gelene kadar yalnızca sahibi); herkes: herkese açık */
 export const GIZLILIK_DUZEYLERI = ['ozel', 'grup', 'herkes'] as const;
 export const TARIH_HASSASIYETLERI = ['gun', 'ay', 'yil'] as const;
+/** Yalnızca eserler için: merak listesi ve okuma/izleme durumu */
+export const ESER_DURUMLARI = ['merak', 'suruyor', 'bitti', 'yarim'] as const;
 
 export type DugumTuru = (typeof DUGUM_TURLERI)[number];
 export type EserTuru = (typeof ESER_TURLERI)[number];
 export type Gizlilik = (typeof GIZLILIK_DUZEYLERI)[number];
 export type TarihHassasiyeti = (typeof TARIH_HASSASIYETLERI)[number];
+export type EserDurumu = (typeof ESER_DURUMLARI)[number];
+
+/** Durum etiketleri eser türüne göre fiil alır: "Okuyorum", "İzledim", "Dinliyorum"… */
+const FIILLER: Record<EserTuru, { suruyor: string; bitti: string }> = {
+	kitap: { suruyor: 'Okuyorum', bitti: 'Okudum' },
+	film: { suruyor: 'İzliyorum', bitti: 'İzledim' },
+	dizi: { suruyor: 'İzliyorum', bitti: 'İzledim' },
+	muzik: { suruyor: 'Dinliyorum', bitti: 'Dinledim' },
+	oyun: { suruyor: 'Oynuyorum', bitti: 'Oynadım' },
+	podcast: { suruyor: 'Dinliyorum', bitti: 'Dinledim' }
+};
+
+export function durumEtiketi(durum: EserDurumu, eserTuru: EserTuru | null): string {
+	if (durum === 'merak') return 'Merak ediyorum';
+	if (durum === 'yarim') return 'Yarım bıraktım';
+	const fiil = eserTuru ? FIILLER[eserTuru] : null;
+	if (durum === 'suruyor') return fiil?.suruyor ?? 'Sürüyor';
+	return fiil?.bitti ?? 'Bitti';
+}
+
+export function eserDurumuMu(deger: unknown): deger is EserDurumu {
+	return typeof deger === 'string' && (ESER_DURUMLARI as readonly string[]).includes(deger);
+}
+
+/** Çöp kutusundaki öğeler bu kadar gün sonra kalıcı olarak silinir */
+export const COP_KUTUSU_GUN = 30;
 
 export const DUGUM_TURU_ETIKETI: Record<DugumTuru, string> = {
 	eser: 'Eser',

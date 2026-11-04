@@ -10,7 +10,7 @@ import {
 	gizliMi,
 	izGetir,
 	izGuncelle,
-	izSil,
+	izCopeAt,
 	sonrakiDurakOnerileri,
 	type IzDuragi
 } from '#lib/server/izler.ts';
@@ -67,7 +67,7 @@ export const actions: Actions = {
 		if (!sonuc.tamam)
 			return fail(400, { bilgi: { hatalar: sonuc.hatalar, degerler: sonuc.degerler } });
 		if (!(await izGuncelle(params.id, kullanici.id, sonuc.veri))) error(404, BULUNAMADI);
-		return { bilgiKaydedildi: true };
+		return { bildirim: { mesaj: 'İz bilgileri kaydedildi.' } };
 	},
 
 	durakEkle: async ({ params, request, locals, url }) => {
@@ -77,14 +77,42 @@ export const actions: Actions = {
 		const durum = await durakEkle(params.id, kullanici.id, dugumId);
 		if (durum === 'yetkisiz') error(404, BULUNAMADI);
 		if (durum === 'zaten-var') return fail(400, { durakHatasi: 'Bu düğüm zaten bu izde.' });
-		return { durakEklendi: true };
+		return { bildirim: { mesaj: 'Durak eklendi.' } };
 	},
 
 	durakCikar: async ({ params, request, locals, url }) => {
 		const kullanici = await kullaniciVeIz(params.id, locals, url);
 		const adimId = alan(await request.formData(), 'adimId');
-		if (!uuidMu(adimId) || !(await durakCikar(adimId, kullanici.id))) error(404, BULUNAMADI);
-		return { durakCikarildi: true };
+		const cikan = uuidMu(adimId) ? await durakCikar(adimId, kullanici.id) : null;
+		if (!cikan) error(404, BULUNAMADI);
+		// "Geri al" durağı aynı yere, aynı notla geri koyar
+		return {
+			bildirim: {
+				mesaj: 'Durak çıkarıldı.',
+				geriAl: {
+					eylem: `/izler/${cikan.izId}/duzenle?/durakGeriYukle`,
+					alanlar: { dugumId: cikan.dugumId, not: cikan.not ?? '', sira: String(cikan.sira) }
+				}
+			}
+		};
+	},
+
+	durakGeriYukle: async ({ params, request, locals, url }) => {
+		const kullanici = await kullaniciVeIz(params.id, locals, url);
+		const fd = await request.formData();
+		const dugumId = alan(fd, 'dugumId');
+		const sira = Number.parseInt(alan(fd, 'sira'), 10);
+		if (!uuidMu(dugumId)) error(404, BULUNAMADI);
+		const durum = await durakEkle(
+			params.id,
+			kullanici.id,
+			dugumId,
+			alan(fd, 'not').slice(0, 1000) || null,
+			Number.isInteger(sira) && sira > 0 ? sira : undefined
+		);
+		if (durum === 'yetkisiz') error(404, BULUNAMADI);
+		if (durum === 'zaten-var') return fail(400, { durakHatasi: 'Bu düğüm zaten bu izde.' });
+		return {};
 	},
 
 	tasi: async ({ params, request, locals, url }) => {
@@ -93,7 +121,7 @@ export const actions: Actions = {
 		const adimId = alan(fd, 'adimId');
 		const yon = alan(fd, 'yon') === 'yukari' ? 'yukari' : 'asagi';
 		if (!uuidMu(adimId) || !(await durakTasi(adimId, kullanici.id, yon))) error(404, BULUNAMADI);
-		return { siralandi: true };
+		return { bildirim: { mesaj: 'Sıra kaydedildi.' } };
 	},
 
 	/** Sürükle-bırak sonrası tüm sıra birden gönderilir */
@@ -103,7 +131,7 @@ export const actions: Actions = {
 		if (!sirali.every(uuidMu) || !(await duraklariSirala(params.id, kullanici.id, sirali))) {
 			return fail(400, { durakHatasi: 'Sıralama kaydedilemedi; sayfayı yenileyip tekrar dene.' });
 		}
-		return { siralandi: true };
+		return { bildirim: { mesaj: 'Sıra kaydedildi.' } };
 	},
 
 	notKaydet: async ({ params, request, locals, url }) => {
@@ -114,7 +142,7 @@ export const actions: Actions = {
 		const sonuc = adimNotuDogrula(fd);
 		if (!sonuc.tamam) return fail(400, { notHatasi: { adimId, hata: sonuc.hatalar.not } });
 		if (!(await durakNotuKaydet(adimId, kullanici.id, sonuc.veri.not))) error(404, BULUNAMADI);
-		return { notKaydedildi: adimId };
+		return { bildirim: { mesaj: 'Not kaydedildi.' } };
 	},
 
 	sil: async ({ params, request, locals, url }) => {
@@ -122,7 +150,7 @@ export const actions: Actions = {
 		if (alan(await request.formData(), 'onay') !== 'evet') {
 			return fail(400, { silHatasi: 'Silmek için onay kutusunu işaretle.' });
 		}
-		if (!(await izSil(params.id, kullanici.id))) error(404, BULUNAMADI);
-		redirect(303, '/izler?silindi=1');
+		if (!(await izCopeAt(params.id, kullanici.id))) error(404, BULUNAMADI);
+		redirect(303, `/izler?silindi=${params.id}`);
 	}
 };

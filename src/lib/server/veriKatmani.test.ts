@@ -76,10 +76,11 @@ describe('düğüm görünürlüğü ve yazma yetkisi', () => {
 			enlem: null,
 			boylam: null,
 			yerAdi: null,
+			durum: null,
 			gizlilik: 'herkes' as const
 		};
 		expect(await veri.dugumGuncelle(d.acik, banu, degisiklik)).toBe(false);
-		expect(await veri.dugumSil(d.acik, banu)).toBe(false);
+		expect(await veri.dugumuCopeAt(d.acik, banu)).toBeNull();
 		expect((await veri.dugumGetir(d.acik, ali))?.dugum.baslik).toBe('Ali açık');
 	});
 
@@ -103,7 +104,7 @@ describe('bağlar', () => {
 		const bagId = gelen[0].id;
 		const bilgi = { not: 'değişti', tarih: null, tarihHassasiyeti: null };
 		expect(await veri.bagGuncelle(bagId, banu, bilgi)).toBe(false);
-		expect(await veri.bagSil(bagId, banu)).toBe(false);
+		expect(await veri.bagSil(bagId, banu)).toBeNull();
 		expect(await veri.bagGuncelle(bagId, ali, bilgi)).toBe(true);
 		expect((await veri.dugumBaglari(d.acik, ali)).gelen[0].not).toBe('değişti');
 	});
@@ -169,7 +170,7 @@ describe('izler', () => {
 		expect(await izler.durakTasi(ilk, ali, 'asagi')).toBe(true);
 		expect((await siralar()).map((s) => s.dugumId)).toEqual([d.acik, d.ozel2, d.ozel1]);
 		expect(await izler.durakTasi(ilk, banu, 'asagi')).toBe(false);
-		expect(await izler.durakCikar(ilk, ali)).toBe(true);
+		expect(await izler.durakCikar(ilk, ali)).toMatchObject({ izId, dugumId: d.ozel2, sira: 2 });
 		expect(await siralar()).toEqual([
 			{ dugumId: d.acik, sira: 1 },
 			{ dugumId: d.ozel1, sira: 2 }
@@ -201,8 +202,10 @@ describe('izler', () => {
 		expect(
 			await izler.izGuncelle(ozel.id, banu, { baslik: 'x', aciklama: null, gizlilik: 'herkes' })
 		).toBe(false);
-		expect(await izler.izSil(ozel.id, banu)).toBe(false);
-		expect(await izler.izSil(ozel.id, ali)).toBe(true);
+		expect(await izler.izCopeAt(ozel.id, banu)).toBeNull();
+		expect(await izler.izCopeAt(ozel.id, ali)).toMatchObject({ baslik: 'Gizli iz' });
+		// Çöp kutusundaki iz sahibine de görünmez
+		expect(await izler.izGetir(ozel.id, ali)).toBeNull();
 	});
 
 	it('öneriler son duraktan giden ve izde olmayan düğümlerdir', async () => {

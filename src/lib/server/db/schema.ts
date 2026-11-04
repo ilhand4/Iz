@@ -16,6 +16,7 @@ import {
 
 import {
 	DUGUM_TURLERI,
+	ESER_DURUMLARI,
 	ESER_TURLERI,
 	GIZLILIK_DUZEYLERI,
 	TARIH_HASSASIYETLERI
@@ -27,6 +28,7 @@ export const dugumTuru = pgEnum('dugum_turu', DUGUM_TURLERI);
 export const eserTuru = pgEnum('eser_turu', ESER_TURLERI);
 export const gizlilik = pgEnum('gizlilik', GIZLILIK_DUZEYLERI);
 export const tarihHassasiyeti = pgEnum('tarih_hassasiyeti', TARIH_HASSASIYETLERI);
+export const eserDurumu = pgEnum('eser_durumu', ESER_DURUMLARI);
 
 const zamanDamgasi = (ad: string) => timestamp(ad, { withTimezone: true, mode: 'date' });
 
@@ -96,18 +98,23 @@ export const dugumler = pgTable(
 		/** Dış kaynaktaki kimlik: 'OL27448W', 'movie/603' … */
 		disKimlik: text('dis_kimlik'),
 		gorselUrl: text('gorsel_url'),
+		/** Yalnızca eserler: merak ediyorum / sürüyor / bitti / yarım bıraktım */
+		durum: eserDurumu('durum'),
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow(),
-		guncelleme: zamanDamgasi('guncelleme').notNull().defaultNow()
+		guncelleme: zamanDamgasi('guncelleme').notNull().defaultNow(),
+		/** Doluysa düğüm çöp kutusundadır; 30 gün sonra kalıcı olarak silinir */
+		silinme: zamanDamgasi('silinme')
 	},
 	(t) => [
 		index('dugumler_sahip_idx').on(t.sahipId, t.olusturma),
 		// Zaman çizgisi sıralaması için
 		index('dugumler_sahip_tarih_idx').on(t.sahipId, t.tarih),
 		index('dugumler_gizlilik_idx').on(t.gizlilik),
-		// Aynı kullanıcı aynı dış eseri iki kez eklemesin
+		// Aynı kullanıcı aynı dış eseri iki kez eklemesin (çöp kutusundakiler sayılmaz)
 		uniqueIndex('dugumler_dis_kaynak_tekil')
 			.on(t.sahipId, t.disKaynak, t.disKimlik)
-			.where(sql`${t.disKimlik} is not null`),
+			.where(sql`${t.disKimlik} is not null and ${t.silinme} is null`),
+		check('dugumler_durum_kontrol', sql`${t.durum} is null or ${t.tur} = 'eser'`),
 		check('dugumler_eser_turu_kontrol', sql`(${t.tur} = 'eser') = (${t.eserTuru} is not null)`),
 		check(
 			'dugumler_konum_kontrol',
@@ -163,7 +170,9 @@ export const izler = pgTable(
 		aciklama: text('aciklama'),
 		gizlilik: gizlilik('gizlilik').notNull().default('ozel'),
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow(),
-		guncelleme: zamanDamgasi('guncelleme').notNull().defaultNow()
+		guncelleme: zamanDamgasi('guncelleme').notNull().defaultNow(),
+		/** Doluysa iz çöp kutusundadır */
+		silinme: zamanDamgasi('silinme')
 	},
 	(t) => [
 		index('izler_sahip_idx').on(t.sahipId),
@@ -194,8 +203,29 @@ export const izAdimlari = pgTable(
 	]
 );
 
+// ——— Ağ görünümünde düğüm konumları ———
+// Harita her açılışta aynı yerleşimle açılsın diye kaydedilir (zihinsel haritanın korunması)
+
+export const agKonumlari = pgTable(
+	'ag_konumlari',
+	{
+		dugumId: uuid('dugum_id')
+			.primaryKey()
+			.references(() => dugumler.id, { onDelete: 'cascade' }),
+		x: doublePrecision('x').notNull(),
+		y: doublePrecision('y').notNull(),
+		guncelleme: zamanDamgasi('guncelleme').notNull().defaultNow()
+	},
+	(t) => [
+		check(
+			'ag_konumlari_sinir_kontrol',
+			sql`${t.x} between -10000000 and 10000000 and ${t.y} between -10000000 and 10000000`
+		)
+	]
+);
+
 export type Kullanici = typeof kullanicilar.$inferSelect;
 export type Dugum = typeof dugumler.$inferSelect;
 export type YeniDugum = typeof dugumler.$inferInsert;
 export type Bag = typeof baglar.$inferSelect;
-export type { DugumTuru, EserTuru, Gizlilik, TarihHassasiyeti } from '../../sabitler';
+export type { DugumTuru, EserDurumu, EserTuru, Gizlilik, TarihHassasiyeti } from '../../sabitler';

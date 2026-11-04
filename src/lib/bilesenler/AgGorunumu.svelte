@@ -23,14 +23,17 @@
 	// Cytoscape yalnızca bu sayfada ve tarayıcıda, dinamik içe aktarmayla yüklenir.
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { bildirimler } from '#lib/bildirim.svelte.ts';
 	import { kisalt } from '#lib/metin.ts';
 	import {
 		DUGUM_TURLERI,
 		DUGUM_TURU_COGUL,
+		type EserDurumu,
 		type EserTuru,
 		type TarihHassasiyeti
 	} from '#lib/sabitler.ts';
 	import { tarihYaz } from '#lib/tarih.ts';
+	import { eksikKonumlariYerlestir, type Nokta } from '#lib/yerlesim.ts';
 	import DugumSecici from './DugumSecici.svelte';
 	import Simge from './Simge.svelte';
 	import TurRozeti from './TurRozeti.svelte';
@@ -44,6 +47,10 @@
 		altBaslik: string | null;
 		tarih: string | null;
 		tarihHassasiyeti: TarihHassasiyeti | null;
+		durum?: EserDurumu | null;
+		/** Kayıtlı konum (yoksa null) */
+		x?: number | null;
+		y?: number | null;
 	};
 	type AgBagi = { id: string; kaynakId: string; hedefId: string; not: string | null };
 	type Props = { dugumler: AgDugumu[]; baglar: AgBagi[]; odakId?: string | null };
@@ -152,6 +159,16 @@
 				style: { 'background-color': r[tur], shape: CYTOSCAPE_SEKLI[tur] }
 			})),
 			{
+				// Merak edilen eser henüz yaşanmadı: içi boş, kesik kenarlı
+				selector: 'node[durum = "merak"]',
+				style: {
+					'background-opacity': 0.18,
+					'border-color': r.eser,
+					'border-width': 2.5,
+					'border-style': 'dashed'
+				}
+			},
+			{
 				selector: 'edge',
 				style: {
 					width: 1.6,
@@ -217,7 +234,7 @@
 		} as unknown as cytoscape.LayoutOptions;
 	}
 
-	function elemanlar(): cytoscape.ElementDefinition[] {
+	function elemanlar(konumlar: Map<string, Nokta> | null): cytoscape.ElementDefinition[] {
 		// Fonksiyon içinde bir kez kullanılan geçici sayaç; tepkisel olması gerekmiyor
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const derece = new Map<string, number>();
@@ -228,7 +245,14 @@
 		return [
 			...dugumler.map((d) => ({
 				group: 'nodes' as const,
-				data: { id: d.id, tur: d.tur, etiket: kisalt(d.baslik, 30), derece: derece.get(d.id) ?? 0 }
+				data: {
+					id: d.id,
+					tur: d.tur,
+					durum: d.durum ?? '',
+					etiket: kisalt(d.baslik, 30),
+					derece: derece.get(d.id) ?? 0
+				},
+				position: konumlar?.get(d.id)
 			})),
 			...baglar
 				.filter((b) => dugumHaritasi.has(b.kaynakId) && dugumHaritasi.has(b.hedefId))
@@ -324,8 +348,87 @@
 		});
 	}
 
+	// ——— Kalıcı konumlar: sürükleme ve yeniden yerleştirme sunucuya kaydedilir ———
+
+	let kayitHatasiGosterildi = false;
+	async function konumlariKaydet(idler: Iterable<string>) {
+		const ag = cy;
+		if (!ag) return;
+		const konumlar = [...idler]
+			.map((id) => ag.getElementById(id))
+			.filter((n) => n.nonempty())
+			.map((n) => {
+				const p = n.position();
+				return { id: n.id(), x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10 };
+			});
+		if (!konumlar.length) return;
+		try {
+			const yanit = await fetch('/api/ag/konumlar', {
+				method: 'PUT',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ konumlar })
+			});
+			if (!yanit.ok) throw new Error(String(yanit.status));
+		} catch {
+			// Kaydedilemese de ağ çalışmaya devam eder; uyarı bir kez gösterilir
+			if (!kayitHatasiGosterildi) {
+				kayitHatasiGosterildi = true;
+				bildirimler.goster({
+					mesaj: 'Yerleşim kaydedilemedi; bir sonraki açılışta değişebilir.',
+					tur: 'hata'
+				});
+			}
+		}
+	}
+
+	// Sürüklenen düğümler kısa bir beklemeden sonra topluca kaydedilir
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- tepkisel olması gerekmeyen kuyruk
+	const surukleKuyrugu = new Set<string>();
+	let surukleZamanlayici: ReturnType<typeof setTimeout> | undefined;
+	function surukleKaydet(id: string) {
+		surukleKuyrugu.add(id);
+		clearTimeout(surukleZamanlayici);
+		surukleZamanlayici = setTimeout(() => {
+			const idler = [...surukleKuyrugu];
+			surukleKuyrugu.clear();
+			konumlariKaydet(idler);
+		}, 600);
+	}
+
+	function konumlariAl(): Map<string, Nokta> {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- geçici anlık görüntü
+		const m = new Map<string, Nokta>();
+		cy?.nodes().forEach((n) => {
+			m.set(n.id(), { ...n.position() });
+		});
+		return m;
+	}
+
+	function konumlaraDon(eski: Map<string, Nokta>) {
+		const ag = cy;
+		if (!ag) return;
+		ag.nodes().forEach((n) => {
+			const p = eski.get(n.id());
+			if (!p) return;
+			if (azHareket()) n.position(p);
+			else n.animate({ position: p, duration: 450 });
+		});
+		konumlariKaydet(eski.keys());
+	}
+
 	function yenidenYerlestir() {
-		cy?.elements(':visible').layout(yerlesim(true)).run();
+		const ag = cy;
+		if (!ag) return;
+		const eski = konumlariAl();
+		const yerlesimIsi = ag.elements(':visible').layout(yerlesim(true));
+		yerlesimIsi.one('layoutstop', () => {
+			konumlariKaydet(ag.nodes(':visible').map((n) => n.id()));
+			bildirimler.goster({
+				mesaj: 'Ağ yeniden yerleştirildi.',
+				geriAl: { fn: () => konumlaraDon(eski) }
+			});
+		});
+		yerlesimIsi.run();
 	}
 
 	function turDegistir(tur: DugumTuru) {
@@ -377,9 +480,15 @@
 					fcoseKayitli = true;
 				}
 
+				// Kayıtlı konumlar varsa harita aynen kurulur; yeni düğümler komşularının yanına konur.
+				// Hiç kayıtlı konum yoksa (ilk açılış) yerleşim baştan hesaplanır ve kaydedilir.
+				const yerlesik = eksikKonumlariYerlestir(
+					dugumler.map((d) => ({ id: d.id, x: d.x ?? null, y: d.y ?? null })),
+					baglar
+				);
 				const ag = cytoscape({
 					container: tuval,
-					elements: elemanlar(),
+					elements: elemanlar(yerlesik?.konumlar ?? null),
 					style: stilKur(renkleriOku(tuval)),
 					layout: { name: 'preset' },
 					minZoom: 0.15,
@@ -400,8 +509,15 @@
 				ag.on('dbltap', 'node', (e) => goto(`/dugumler/${e.target.id()}`));
 				ag.on('mouseover', 'node', () => (tuval.style.cursor = 'pointer'));
 				ag.on('mouseout', 'node', () => (tuval.style.cursor = ''));
+				ag.on('dragfree', 'node', (e) => surukleKaydet(e.target.id()));
 
-				ag.layout(yerlesim(false)).run();
+				if (yerlesik) {
+					ag.fit(undefined, 40);
+					if (yerlesik.yeniler.length) konumlariKaydet(yerlesik.yeniler);
+				} else {
+					ag.layout(yerlesim(false)).run();
+					konumlariKaydet(dugumler.map((d) => d.id));
+				}
 				// Dar ekranda tüm ağı sığdırmak etiketleri okunmaz kılar: okunur yakınlıkta ortala,
 				// gerisi sürükleyerek gezilir ("Tümünü sığdır" yine genel görünümü verir)
 				if (ag.zoom() < EN_AZ_OKUNUR_YAKINLIK) {
@@ -439,6 +555,8 @@
 
 		return () => {
 			iptal = true;
+			clearTimeout(surukleZamanlayici);
+			if (surukleKuyrugu.size) konumlariKaydet([...surukleKuyrugu]);
 			for (const f of temizlik) f();
 			cy?.destroy();
 			cy = null;
@@ -587,8 +705,9 @@
 		{/if}
 	</div>
 	<p class="ipucu" id="ag-ipucu">
-		Bir düğüme dokun: bağlarını vurgular. Çift tıkla: ayrıntısına git. Sürükle: yerini değiştir.
-		Klavye: + / − yakınlaştır, 0 sığdır, Esc seçimi kaldır.
+		Bir düğüme dokun: bağlarını vurgular. Çift tıkla: ayrıntısına git. Sürükle: yerini değiştir
+		(yerleşim kaydedilir). Kesik kenarlılar merak listendekiler. Klavye: + / − yakınlaştır, 0
+		sığdır, Esc seçimi kaldır.
 	</p>
 </div>
 

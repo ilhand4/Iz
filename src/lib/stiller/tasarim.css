@@ -19,7 +19,7 @@
 	/* Metin */
 	--metin: light-dark(#1f1b16, #efe8dd);
 	--metin-soluk: light-dark(#665d51, #a89e90);
-	--metin-silik: light-dark(#8e8478, #7d7468);
+	--metin-silik: light-dark(#71675b, #948a7c);
 
 	/* Vurgu: kiremit kırmızısı (iz rengi) */
 	--vurgu: light-dark(#b0432a, #e8805f);
@@ -36,7 +36,7 @@
 	--uyari-zemin: light-dark(#fbf0d5, #352a12);
 
 	/* Düğüm türü renkleri */
-	--tur-eser: light-dark(#a8670a, #f0b44c);
+	--tur-eser: light-dark(#95580a, #f0b44c);
 	--tur-eser-zemin: light-dark(#fbefd9, #362a14);
 	--tur-kisi: light-dark(#a83a63, #f08bb0);
 	--tur-kisi-zemin: light-dark(#f9e2ea, #3a1c27);

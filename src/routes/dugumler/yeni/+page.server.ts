@@ -1,28 +1,28 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { dugumTuruMu, eserTuruMu } from '#lib/sabitler.ts';
-import { alan, dugumDogrula, uuidMu } from '#lib/server/dogrulama.ts';
-import { bagKur, dugumGetir, dugumOlustur } from '#lib/server/dugumler.ts';
+import { dugumDogrula, getirenDogrula, uuidMu, type Hatalar } from '#lib/server/dogrulama.ts';
+import { dugumSecenekleri, dugumVeGetireniKaydet } from '#lib/server/dugumler.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import type { Actions, PageServerLoad } from './$types';
-
-/** ?kaynak=<id> ile gelindiyse yeni düğüm o düğüme "götürdü" bağıyla eklenir */
-async function kaynakDugum(kaynakId: string | null, kullaniciId: string) {
-	if (!uuidMu(kaynakId)) return null;
-	const sonuc = await dugumGetir(kaynakId, kullaniciId);
-	return sonuc && sonuc.dugum.sahipId === kullaniciId
-		? { id: sonuc.dugum.id, baslik: sonuc.dugum.baslik }
-		: null;
-}
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const kullanici = girisGerekli(locals, url);
 	const tur = url.searchParams.get('tur');
 	const eserTuru = url.searchParams.get('eserTuru');
+	const secenekler = await dugumSecenekleri(kullanici.id);
+
+	// ?kaynak=<id>: bir düğümün sayfasından "Yeni düğüm ekle" ile gelindi; o düğüm getiren olur
+	const kaynakId = url.searchParams.get('kaynak');
+	const kaynak = uuidMu(kaynakId) ? (secenekler.find((s) => s.id === kaynakId) ?? null) : null;
+
 	return {
-		kaynak: await kaynakDugum(url.searchParams.get('kaynak'), kullanici.id),
+		secenekler,
+		kaynak,
 		baslangic: {
 			tur: dugumTuruMu(tur) ? tur : 'eser',
-			eserTuru: eserTuruMu(eserTuru) ? eserTuru : 'kitap'
+			eserTuru: eserTuruMu(eserTuru) ? eserTuru : 'kitap',
+			durum: 'bitti',
+			...(kaynak ? { getirenKip: 'mevcut', getirenId: kaynak.id } : {})
 		} as Record<string, string>
 	};
 };
@@ -32,22 +32,23 @@ export const actions: Actions = {
 		const kullanici = girisGerekli(locals, url);
 		const fd = await request.formData();
 		const sonuc = dugumDogrula(fd);
-		const bagNotu = alan(fd, 'bagNotu').slice(0, 1000);
-		if (!sonuc.tamam) {
-			return fail(400, { hatalar: sonuc.hatalar, degerler: { ...sonuc.degerler, bagNotu } });
-		}
+		const getirenHatalari: Hatalar = {};
+		const { getiren, not, degerler: getirenDegerleri } = getirenDogrula(fd, getirenHatalari);
 
-		const yeni = await dugumOlustur(kullanici.id, sonuc.veri);
-		const kaynak = await kaynakDugum(url.searchParams.get('kaynak'), kullanici.id);
-		if (kaynak) {
-			await bagKur(kullanici.id, {
-				kaynakId: kaynak.id,
-				hedefId: yeni.id,
-				not: bagNotu || null,
-				tarih: null,
-				tarihHassasiyeti: null
+		if (!sonuc.tamam || Object.keys(getirenHatalari).length) {
+			return fail(400, {
+				hatalar: { ...(sonuc.tamam ? {} : sonuc.hatalar), ...getirenHatalari },
+				degerler: { ...(sonuc.tamam ? {} : sonuc.degerler), ...getirenDegerleri }
 			});
 		}
-		redirect(303, `/dugumler/${yeni.id}?eklendi=1`);
+
+		const kayit = await dugumVeGetireniKaydet(
+			kullanici.id,
+			{ kip: 'yeni', veri: sonuc.veri },
+			getiren,
+			not
+		);
+		if (kayit === 'yetkisiz') error(404, 'Seçilen düğüm bulunamadı.');
+		redirect(303, `/dugumler/${kayit.dugumId}?eklendi=1`);
 	}
 };

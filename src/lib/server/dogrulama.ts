@@ -1,14 +1,17 @@
 // Form doğrulama: saf fonksiyonlar, Türkçe hata mesajları (birim testleri: dogrulama.test.ts)
 import {
 	dugumTuruMu,
+	eserDurumuMu,
 	eserTuruMu,
 	gizlilikMi,
 	type DugumTuru,
+	type EserDurumu,
 	type EserTuru,
 	type Gizlilik,
 	type TarihHassasiyeti
 } from '../sabitler';
 import { tarihCoz } from '../tarih';
+import { disKimlikGecerliMi } from './eserArama';
 
 export type Hatalar = Record<string, string>;
 export type Sonuc<T> =
@@ -116,6 +119,8 @@ export type DugumVerisi = {
 	boylam: number | null;
 	yerAdi: string | null;
 	gizlilik: Gizlilik;
+	/** Yalnızca eserler için; diğer türlerde null */
+	durum: EserDurumu | null;
 };
 
 const DUGUM_ALANLARI = [
@@ -129,7 +134,8 @@ const DUGUM_ALANLARI = [
 	'enlem',
 	'boylam',
 	'yerAdi',
-	'gizlilik'
+	'gizlilik',
+	'durum'
 ];
 
 const TARIH_HATASI = 'Tarihi 1998, 1998-05, 1998-05-12 ya da 12.05.1998 biçiminde yazın.';
@@ -180,6 +186,12 @@ export function dugumDogrula(fd: FormData): Sonuc<DugumVerisi> {
 	const gizlilik = d.gizlilik || 'ozel';
 	if (!gizlilikMi(gizlilik)) hatalar.gizlilik = 'Geçerli bir gizlilik düzeyi seçin.';
 
+	let durum: EserDurumu | null = null;
+	if (tur === 'eser' && d.durum) {
+		if (eserDurumuMu(d.durum)) durum = d.durum;
+		else hatalar.durum = 'Geçerli bir durum seçin.';
+	}
+
 	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: d };
 
 	const konumVar = typeof enlem === 'number' && typeof boylam === 'number';
@@ -197,7 +209,8 @@ export function dugumDogrula(fd: FormData): Sonuc<DugumVerisi> {
 			enlem: konumVar ? enlem : null,
 			boylam: konumVar ? boylam : null,
 			yerAdi: d.yerAdi || null,
-			gizlilik: gizlilik as Gizlilik
+			gizlilik: gizlilik as Gizlilik,
+			durum
 		}
 	};
 }
@@ -295,4 +308,238 @@ export function adimNotuDogrula(fd: FormData): Sonuc<{ not: string | null }> {
 			degerler: { not }
 		};
 	return { tamam: true, veri: { not: not || null } };
+}
+
+// ——— "Seni buraya ne getirdi?" ———
+
+export type GetirenGirdisi =
+	| { kip: 'yok' }
+	| { kip: 'mevcut'; id: string }
+	| { kip: 'yeni'; tur: DugumTuru; eserTuru: EserTuru | null; baslik: string };
+
+/**
+ * Düğüm eklerken getiren düğümü okur: haritadan seçilmiş (getirenId), yeni yazılmış (getirenBaslik)
+ * ya da hiç (yok). Kip alanı yoksa doldurulmuş alanlardan çıkarılır (JavaScript'siz kullanım için).
+ */
+export function getirenDogrula(
+	fd: FormData,
+	hatalar: Hatalar
+): { getiren: GetirenGirdisi; not: string | null; degerler: Record<string, string> } {
+	const d = degerleriAl(fd, [
+		'getirenKip',
+		'getirenId',
+		'getirenBaslik',
+		'getirenTur',
+		'getirenEserTuru',
+		'getirenNot'
+	]);
+	let kip = d.getirenKip;
+	if (kip !== 'mevcut' && kip !== 'yeni' && kip !== 'yok') {
+		kip = uuidMu(d.getirenId) ? 'mevcut' : d.getirenBaslik ? 'yeni' : 'yok';
+	}
+
+	// Seçim yapılmadan bırakılan bölüm "bilmiyorum" sayılır; soru zorunlu değildir
+	let getiren: GetirenGirdisi = { kip: 'yok' };
+	if (kip === 'mevcut' && d.getirenId) {
+		if (uuidMu(d.getirenId)) getiren = { kip: 'mevcut', id: d.getirenId };
+		else hatalar.getiren = 'Haritandan seni buraya getiren düğümü seç ya da “Bilmiyorum” de.';
+	} else if (kip === 'yeni' && d.getirenBaslik) {
+		const tur = dugumTuruMu(d.getirenTur) ? d.getirenTur : 'kisi';
+		const eserTuru =
+			tur === 'eser' ? (eserTuruMu(d.getirenEserTuru) ? d.getirenEserTuru : 'kitap') : null;
+		if (d.getirenBaslik.length > 200) hatalar.getirenBaslik = 'Ad en fazla 200 karakter olabilir.';
+		else getiren = { kip: 'yeni', tur, eserTuru, baslik: d.getirenBaslik };
+	}
+	if (d.getirenNot.length > 1000) hatalar.getirenNot = 'Not en fazla 1000 karakter olabilir.';
+
+	return { getiren, not: d.getirenNot || null, degerler: { ...d, getirenKip: kip } };
+}
+
+// ——— İlk iz sihirbazı ———
+
+export type SihirbazDugumu = {
+	tur: DugumTuru;
+	eserTuru: EserTuru | null;
+	baslik: string;
+	not: string | null;
+};
+
+export type IlkIzVerisi = {
+	eser: { eserTuru: EserTuru; baslik: string; altBaslik: string | null };
+	getiren: SihirbazDugumu | null;
+	giden: SihirbazDugumu | null;
+	izBaslik: string;
+};
+
+const SIHIRBAZ_ALANLARI = [
+	'eserTuru',
+	'eserBaslik',
+	'eserAlt',
+	'getirenTur',
+	'getirenEserTuru',
+	'getirenBaslik',
+	'getirenNot',
+	'gidenTur',
+	'gidenEserTuru',
+	'gidenBaslik',
+	'gidenNot',
+	'izBaslik'
+];
+
+export function ilkIzDogrula(fd: FormData): Sonuc<IlkIzVerisi> {
+	const d = degerleriAl(fd, SIHIRBAZ_ALANLARI);
+	const hatalar: Hatalar = {};
+
+	if (!eserTuruMu(d.eserTuru)) hatalar.eserTuru = 'Eserin türünü seç.';
+	if (!d.eserBaslik) hatalar.eserBaslik = 'Hayatında iz bırakan bir eserin adını yaz.';
+	else if (d.eserBaslik.length > 200) hatalar.eserBaslik = 'Ad en fazla 200 karakter olabilir.';
+	if (d.eserAlt.length > 200) hatalar.eserAlt = 'En fazla 200 karakter olabilir.';
+
+	function yanDugum(on: 'getiren' | 'giden'): SihirbazDugumu | null {
+		const baslik = d[`${on}Baslik`];
+		if (!baslik) return null;
+		if (baslik.length > 200) {
+			hatalar[`${on}Baslik`] = 'Ad en fazla 200 karakter olabilir.';
+			return null;
+		}
+		const tur = dugumTuruMu(d[`${on}Tur`]) ? (d[`${on}Tur`] as DugumTuru) : 'kisi';
+		const eserTuruHam = d[`${on}EserTuru`];
+		const eserTuru = tur === 'eser' ? (eserTuruMu(eserTuruHam) ? eserTuruHam : 'kitap') : null;
+		const not = d[`${on}Not`];
+		if (not.length > 1000) hatalar[`${on}Not`] = 'Not en fazla 1000 karakter olabilir.';
+		return { tur, eserTuru, baslik, not: not || null };
+	}
+	const getiren = yanDugum('getiren');
+	const giden = yanDugum('giden');
+	if (!getiren && !giden && !hatalar.getirenBaslik && !hatalar.gidenBaslik)
+		hatalar.getirenBaslik =
+			'Bir iz en az iki duraktan oluşur: seni bu esere neyin getirdiğini ya da onun seni nereye götürdüğünü yaz.';
+	if (d.izBaslik.length > 120) hatalar.izBaslik = 'İzin adı en fazla 120 karakter olabilir.';
+
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: d };
+	return {
+		tamam: true,
+		veri: {
+			eser: {
+				eserTuru: d.eserTuru as EserTuru,
+				baslik: d.eserBaslik,
+				altBaslik: d.eserAlt || null
+			},
+			getiren,
+			giden,
+			izBaslik: d.izBaslik || 'İlk izim'
+		}
+	};
+}
+
+// ——— Ağ konumları (JSON) ———
+
+export type Konum = { id: string; x: number; y: number };
+export const EN_FAZLA_KONUM = 5000;
+
+/** Ağ görünümünden gelen konum listesini doğrular; geçersizse null */
+export function konumlarDogrula(govde: unknown): Konum[] | null {
+	const liste = (govde as { konumlar?: unknown } | null)?.konumlar;
+	if (!Array.isArray(liste) || liste.length > EN_FAZLA_KONUM) return null;
+	const sonuc: Konum[] = [];
+	for (const k of liste) {
+		const { id, x, y } = (k ?? {}) as Record<string, unknown>;
+		if (!uuidMu(id) || typeof x !== 'number' || typeof y !== 'number') return null;
+		if (!Number.isFinite(x) || !Number.isFinite(y) || Math.abs(x) > 1e7 || Math.abs(y) > 1e7)
+			return null;
+		sonuc.push({ id, x, y });
+	}
+	return sonuc;
+}
+
+// ——— Hızlı ekle onayı ———
+
+export type HizliAna =
+	| { kip: 'mevcut'; id: string }
+	| { kip: 'dis'; kaynak: 'openlibrary' | 'tmdb'; disKimlik: string }
+	| { kip: 'yeni'; tur: DugumTuru; eserTuru: EserTuru | null; baslik: string };
+
+export type HizliSecim = {
+	ana: HizliAna;
+	getiren: GetirenGirdisi;
+	not: string | null;
+	durum: EserDurumu | null;
+	tarih: string | null;
+	tarihHassasiyeti: TarihHassasiyeti | null;
+};
+
+/**
+ * Hızlı ekle onay formunu okur. Seçimler "mevcut:<id>", "dis:<kaynak>:<kimlik>", "yeni" ve
+ * "yok" biçimindedir. Dış eserin bilgileri burada değil, eylemde arama yeniden yapılarak alınır
+ * (istemciden gelen başlık/görsel verisine güvenilmez).
+ */
+export function hizliSecimDogrula(fd: FormData): Sonuc<HizliSecim> {
+	const d = degerleriAl(fd, [
+		'ana',
+		'tur',
+		'eserTuru',
+		'baslik',
+		'getiren',
+		'getirenTur',
+		'getirenEserTuru',
+		'getirenBaslik',
+		'not',
+		'durum',
+		'tarih'
+	]);
+	const hatalar: Hatalar = {};
+
+	let ana: HizliAna | null = null;
+	if (d.ana.startsWith('mevcut:')) {
+		const id = d.ana.slice(7);
+		if (uuidMu(id)) ana = { kip: 'mevcut', id };
+	} else if (d.ana.startsWith('dis:')) {
+		const [, kaynak, ...kimlik] = d.ana.split(':');
+		const disKimlik = kimlik.join(':');
+		if ((kaynak === 'openlibrary' || kaynak === 'tmdb') && disKimlikGecerliMi(kaynak, disKimlik))
+			ana = { kip: 'dis', kaynak, disKimlik };
+	} else if (d.ana === 'yeni') {
+		const tur = dugumTuruMu(d.tur) ? d.tur : null;
+		if (!tur) hatalar.tur = 'Bir tür seç.';
+		if (!d.baslik) hatalar.baslik = 'Eklenecek şeyin adını yaz.';
+		else if (d.baslik.length > 200) hatalar.baslik = 'Ad en fazla 200 karakter olabilir.';
+		if (tur && d.baslik && d.baslik.length <= 200) {
+			const eserTuru = tur === 'eser' ? (eserTuruMu(d.eserTuru) ? d.eserTuru : 'kitap') : null;
+			ana = { kip: 'yeni', tur, eserTuru, baslik: d.baslik };
+		}
+	}
+	if (!ana && !hatalar.tur && !hatalar.baslik) hatalar.ana = 'Neyi eklemek istediğini seç.';
+
+	let getiren: GetirenGirdisi = { kip: 'yok' };
+	if (d.getiren.startsWith('mevcut:')) {
+		const id = d.getiren.slice(7);
+		if (uuidMu(id)) getiren = { kip: 'mevcut', id };
+		else hatalar.getiren = 'Geçerli bir düğüm seç.';
+	} else if (d.getiren === 'yeni') {
+		const tur = dugumTuruMu(d.getirenTur) ? d.getirenTur : 'kisi';
+		const eserTuru =
+			tur === 'eser' ? (eserTuruMu(d.getirenEserTuru) ? d.getirenEserTuru : 'kitap') : null;
+		if (!d.getirenBaslik) hatalar.getirenBaslik = 'Seni buraya getirenin adını yaz.';
+		else if (d.getirenBaslik.length > 200)
+			hatalar.getirenBaslik = 'Ad en fazla 200 karakter olabilir.';
+		else getiren = { kip: 'yeni', tur, eserTuru, baslik: d.getirenBaslik };
+	}
+
+	if (d.not.length > 1000) hatalar.not = 'Not en fazla 1000 karakter olabilir.';
+	const durum = eserDurumuMu(d.durum) ? d.durum : null;
+	const tarih = tarihCoz(d.tarih);
+	if (tarih === 'gecersiz') hatalar.tarih = TARIH_HATASI;
+
+	if (Object.keys(hatalar).length || !ana) return { tamam: false, hatalar, degerler: d };
+	return {
+		tamam: true,
+		veri: {
+			ana,
+			getiren,
+			not: d.not || null,
+			durum,
+			tarih: tarih && tarih !== 'gecersiz' ? tarih.tarih : null,
+			tarihHassasiyeti: tarih && tarih !== 'gecersiz' ? tarih.hassasiyet : null
+		}
+	};
 }

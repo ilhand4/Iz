@@ -83,17 +83,10 @@
 		{/snippet}
 	</SayfaBasligi>
 
-	<div aria-live="polite" class="bildirimler">
-		{#if data.yeni && !form}
-			<p class="bildirim bildirim-basari">İz oluşturuldu. Şimdi duraklarını ekle ve sırala.</p>
-		{/if}
-		{#if form?.bilgiKaydedildi}<p class="bildirim bildirim-basari">İz bilgileri kaydedildi.</p>{/if}
-		{#if form?.durakEklendi}<p class="bildirim bildirim-basari">Durak eklendi.</p>{/if}
-		{#if form?.durakCikarildi}<p class="bildirim bildirim-basari">Durak çıkarıldı.</p>{/if}
-		{#if form?.siralandi}<p class="bildirim bildirim-basari">Sıra kaydedildi.</p>{/if}
-		{#if form?.notKaydedildi}<p class="bildirim bildirim-basari">Not kaydedildi.</p>{/if}
-		{#if form?.durakHatasi}<p class="bildirim bildirim-hata">{form.durakHatasi}</p>{/if}
-	</div>
+	{#if data.yeni && !form}
+		<p class="bildirim bildirim-basari">İz oluşturuldu. Şimdi duraklarını ekle ve sırala.</p>
+	{/if}
+	{#if form?.durakHatasi}<p class="bildirim bildirim-hata" role="alert">{form.durakHatasi}</p>{/if}
 
 	<div class="duzen">
 		<section class="yigin" aria-labelledby="duraklar-baslik">
@@ -284,12 +277,6 @@
 </div>
 
 <style>
-	.bildirimler:empty {
-		display: none;
-	}
-	.bildirimler p {
-		margin: 0;
-	}
 	.duzen {
 		display: grid;
 		gap: var(--a-6);

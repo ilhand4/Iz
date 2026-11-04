@@ -3,6 +3,7 @@
 	import DugumKarti from '#lib/bilesenler/DugumKarti.svelte';
 	import GorunumSecici from '#lib/bilesenler/GorunumSecici.svelte';
 	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
+	import SilindiBildirimi from '#lib/bilesenler/SilindiBildirimi.svelte';
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import TurSekli from '#lib/bilesenler/TurSekli.svelte';
 	import { DUGUM_TURLERI, DUGUM_TURU_COGUL } from '#lib/sabitler.ts';
@@ -19,6 +20,9 @@
 		const s = p.toString();
 		return s ? `/dugumler?${s}` : '/dugumler';
 	}
+	const merakAdresi = $derived(
+		data.q ? `/dugumler?durum=merak&q=${encodeURIComponent(data.q)}` : '/dugumler?durum=merak'
+	);
 </script>
 
 <svelte:head><title>Düğümler · İz</title></svelte:head>
@@ -37,10 +41,13 @@
 		{/snippet}
 	</SayfaBasligi>
 
+	<SilindiBildirimi silinen={data.silinen} />
+
 	<GorunumSecici etkin="liste" />
 
 	<div class="suzme">
 		<form method="GET" class="arama" role="search">
+			{#if data.merak}<input type="hidden" name="durum" value="merak" />{/if}
 			{#if data.tur}<input type="hidden" name="tur" value={data.tur} />{/if}
 			<label class="gorunmez" for="q">Düğümlerde ara</label>
 			<input
@@ -55,13 +62,18 @@
 		</form>
 
 		<nav class="suzgecler" aria-label="Türe göre süz">
-			<a href={turAdresi(null)} aria-current={!data.tur ? 'true' : undefined}>Tümü</a>
+			<a href={turAdresi(null)} aria-current={!data.tur && !data.merak ? 'true' : undefined}>Tümü</a
+			>
 			{#each DUGUM_TURLERI as tur (tur)}
 				<a href={turAdresi(tur)} aria-current={data.tur === tur ? 'true' : undefined}>
 					<TurSekli {tur} boyut={11} />
 					{DUGUM_TURU_COGUL[tur]}
 				</a>
 			{/each}
+			<span class="ayrac" aria-hidden="true"></span>
+			<a href={merakAdresi} aria-current={data.merak ? 'true' : undefined}>
+				<Simge ad="yildiz" boyut={14} /> Merak listesi
+			</a>
 		</nav>
 	</div>
 
@@ -71,7 +83,17 @@
 				<DugumKarti {dugum} />
 			{/each}
 		</div>
-	{:else if data.q || data.tur}
+	{:else if data.merak && !data.q}
+		<BosDurum
+			baslik="Merak listen boş"
+			aciklama="Biri bir kitap ya da film önerdiğinde “Merak ediyorum” diye ekle; kimin önerdiği de kaydolsun. Bitirdiğinde tek tıkla haritana katılır."
+		>
+			{#snippet eylemler()}
+				<a class="dugme dugme-birincil" href="/ara">Eser ara</a>
+				<a class="dugme" href="/dugumler">Tüm düğümler</a>
+			{/snippet}
+		</BosDurum>
+	{:else if data.q || data.tur || data.merak}
 		<BosDurum
 			baslik="Bu süzgece uyan düğüm yok"
 			aciklama="Farklı bir arama dene ya da süzgeci temizle."
@@ -90,6 +112,14 @@
 				<a class="dugme" href="/ara">Eser ara</a>
 			{/snippet}
 		</BosDurum>
+	{/if}
+
+	{#if data.copta > 0}
+		<p class="cop-baglantisi kucuk">
+			<a href="/cop-kutusu"
+				><Simge ad="cop" boyut={14} /> Çöp kutusu <span class="soluk">({data.copta})</span></a
+			>
+		</p>
 	{/if}
 </div>
 
@@ -123,6 +153,22 @@
 		text-decoration: none;
 		font-size: var(--boyut-sm);
 		font-weight: 550;
+	}
+	.ayrac {
+		flex: none;
+		width: 1px;
+		margin: var(--a-1);
+		background: var(--cizgi-guclu);
+	}
+	.cop-baglantisi {
+		margin: 0;
+		text-align: center;
+	}
+	.cop-baglantisi a {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-1);
+		color: var(--metin-soluk);
 	}
 	.suzgecler a:hover {
 		color: var(--metin);

@@ -90,3 +90,17 @@ const GUN_BICIMI = new Intl.DateTimeFormat('tr-TR', {
 export function gunYaz(zaman: Date | string): string {
 	return GUN_BICIMI.format(typeof zaman === 'string' ? new Date(zaman) : zaman);
 }
+
+const AY_PARCALARI = new Intl.DateTimeFormat('en-CA', {
+	timeZone: 'Europe/Istanbul',
+	year: 'numeric',
+	month: '2-digit'
+});
+
+/** İstanbul saatine göre içinde bulunulan ayın ilk günü: "2026-11-01" (ay hassasiyetli tarih için) */
+export function buAyinTarihi(simdi: Date = new Date()): string {
+	const parcalar = Object.fromEntries(
+		AY_PARCALARI.formatToParts(simdi).map((p) => [p.type, p.value])
+	);
+	return `${parcalar.year}-${parcalar.month}-01`;
+}

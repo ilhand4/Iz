@@ -2,12 +2,13 @@
 // Okuma: sahibi her izi görür; başkaları yalnızca "herkes" izlerini ve bu izlerde yalnızca
 // kendilerine görünür düğümleri (diğer duraklar "gizli durak" olarak döner).
 // Yazma: yalnızca sahibi; duraklar yalnızca sahibin kendi düğümlerinden oluşur.
+// Çöp kutusundaki izler hiç görünmez; çöp kutusundaki düğümler izlerde durak olarak gösterilmez.
 import { and, asc, count, desc, eq, inArray, max, notInArray, sql } from 'drizzle-orm';
 import type { DugumTuru, EserTuru, Gizlilik, TarihHassasiyeti } from '../sabitler';
 import { db } from './db';
 import { baglar, dugumler, izAdimlari, izler, kullanicilar } from './db/schema';
-import type { IzVerisi } from './dogrulama';
-import { gorunurluk } from './dugumler';
+import type { IlkIzVerisi, IzVerisi, SihirbazDugumu } from './dogrulama';
+import { etkin, gorunurluk } from './dugumler';
 import { gorebilirMi } from './yetki';
 
 type Islem = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -37,7 +38,7 @@ export async function izleriListele(sahipId: string, limit = 100): Promise<IzOze
 			guncelleme: izler.guncelleme
 		})
 		.from(izler)
-		.where(eq(izler.sahipId, sahipId))
+		.where(and(eq(izler.sahipId, sahipId), etkin(izler)))
 		.orderBy(desc(izler.guncelleme))
 		.limit(limit);
 	if (!liste.length) return [];
@@ -50,9 +51,12 @@ export async function izleriListele(sahipId: string, limit = 100): Promise<IzOze
 		.from(izAdimlari)
 		.innerJoin(dugumler, eq(izAdimlari.dugumId, dugumler.id))
 		.where(
-			inArray(
-				izAdimlari.izId,
-				liste.map((i) => i.id)
+			and(
+				inArray(
+					izAdimlari.izId,
+					liste.map((i) => i.id)
+				),
+				etkin(dugumler)
 			)
 		)
 		.orderBy(asc(izAdimlari.izId), asc(izAdimlari.sira));
@@ -79,8 +83,18 @@ export async function izSayisi(sahipId: string): Promise<number> {
 	const [{ sayi }] = await db
 		.select({ sayi: count() })
 		.from(izler)
-		.where(eq(izler.sahipId, sahipId));
+		.where(and(eq(izler.sahipId, sahipId), etkin(izler)));
 	return sayi;
+}
+
+/** Kullanıcının (çöp kutusu dışındaki) izlerinde durak olan düğümler */
+export async function izdekiDugumler(sahipId: string): Promise<Set<string>> {
+	const satirlar = await db
+		.selectDistinct({ dugumId: izAdimlari.dugumId })
+		.from(izAdimlari)
+		.innerJoin(izler, eq(izAdimlari.izId, izler.id))
+		.where(and(eq(izler.sahipId, sahipId), etkin(izler)));
+	return new Set(satirlar.map((s) => s.dugumId));
 }
 
 // ——— Tek iz ———
@@ -126,7 +140,7 @@ export function gizliMi(durak: IzDuragi | GizliDurak): durak is GizliDurak {
 	return 'gizli' in durak;
 }
 
-/** İzi getirir; izleyen göremiyorsa null */
+/** İzi getirir; izleyen göremiyorsa ya da iz çöp kutusundaysa null */
 export async function izGetir(id: string, izleyenId: string | null): Promise<IzAyrintisi | null> {
 	const [kayit] = await db
 		.select({
@@ -159,7 +173,7 @@ export async function izGetir(id: string, izleyenId: string | null): Promise<IzA
 		})
 		.from(izAdimlari)
 		.innerJoin(dugumler, eq(izAdimlari.dugumId, dugumler.id))
-		.where(eq(izAdimlari.izId, id))
+		.where(and(eq(izAdimlari.izId, id), etkin(dugumler)))
 		.orderBy(asc(izAdimlari.sira));
 
 	// Ardışık duraklar arasındaki bağlar
@@ -195,7 +209,7 @@ export async function izGetir(id: string, izleyenId: string | null): Promise<IzA
 		};
 	});
 
-	const { sahipId: _sahipId, ...iz } = kayit.iz;
+	const { sahipId: _sahipId, silinme: _silinme, ...iz } = kayit.iz;
 	return {
 		iz,
 		sahip: kayit.sahip,
@@ -222,10 +236,67 @@ export async function izOlustur(sahipId: string, veri: IzVerisi, ilkDugumId?: st
 			const [dugum] = await tx
 				.select({ id: dugumler.id })
 				.from(dugumler)
-				.where(and(eq(dugumler.id, ilkDugumId), eq(dugumler.sahipId, sahipId)));
+				.where(and(eq(dugumler.id, ilkDugumId), eq(dugumler.sahipId, sahipId), etkin(dugumler)));
 			if (dugum) await tx.insert(izAdimlari).values({ izId: iz.id, dugumId: dugum.id, sira: 1 });
 		}
 		return iz;
+	});
+}
+
+/**
+ * İlk iz sihirbazı: eser, onu getiren ve onun götürdüğü düğümleri, aralarındaki bağları ve
+ * bu üç durakla bir izi tek işlemde oluşturur. Hepsi özel olarak başlar.
+ */
+export async function ilkIzOlustur(sahipId: string, veri: IlkIzVerisi) {
+	return db.transaction(async (tx) => {
+		async function dugumEkle(
+			d:
+				| SihirbazDugumu
+				| { tur: 'eser'; eserTuru: EserTuru; baslik: string; altBaslik: string | null }
+		) {
+			const [yeni] = await tx
+				.insert(dugumler)
+				.values({
+					sahipId,
+					tur: d.tur,
+					eserTuru: d.eserTuru,
+					baslik: d.baslik,
+					altBaslik: 'altBaslik' in d ? d.altBaslik : null,
+					durum: d.tur === 'eser' ? 'bitti' : null,
+					gizlilik: 'ozel'
+				})
+				.returning({ id: dugumler.id });
+			return yeni.id;
+		}
+
+		const eserId = await dugumEkle({ tur: 'eser', ...veri.eser });
+		const duraklar: { dugumId: string; not: string | null }[] = [];
+		if (veri.getiren) {
+			const getirenId = await dugumEkle(veri.getiren);
+			await tx
+				.insert(baglar)
+				.values({ sahipId, kaynakId: getirenId, hedefId: eserId, not: veri.getiren.not });
+			duraklar.push({ dugumId: getirenId, not: null });
+		}
+		duraklar.push({ dugumId: eserId, not: null });
+		if (veri.giden) {
+			const gidenId = await dugumEkle(veri.giden);
+			await tx
+				.insert(baglar)
+				.values({ sahipId, kaynakId: eserId, hedefId: gidenId, not: veri.giden.not });
+			duraklar.push({ dugumId: gidenId, not: null });
+		}
+
+		const [iz] = await tx
+			.insert(izler)
+			.values({ sahipId, baslik: veri.izBaslik, gizlilik: 'ozel' })
+			.returning({ id: izler.id });
+		await tx
+			.insert(izAdimlari)
+			.values(
+				duraklar.map((d, i) => ({ izId: iz.id, dugumId: d.dugumId, sira: i + 1, not: d.not }))
+			);
+		return { izId: iz.id, eserId };
 	});
 }
 
@@ -233,17 +304,19 @@ export async function izGuncelle(id: string, sahipId: string, veri: IzVerisi) {
 	const sonuc = await db
 		.update(izler)
 		.set({ ...veri, guncelleme: new Date() })
-		.where(and(eq(izler.id, id), eq(izler.sahipId, sahipId)))
+		.where(and(eq(izler.id, id), eq(izler.sahipId, sahipId), etkin(izler)))
 		.returning({ id: izler.id });
 	return sonuc.length > 0;
 }
 
-export async function izSil(id: string, sahipId: string) {
-	const sonuc = await db
-		.delete(izler)
-		.where(and(eq(izler.id, id), eq(izler.sahipId, sahipId)))
-		.returning({ id: izler.id });
-	return sonuc.length > 0;
+/** İzi çöp kutusuna atar (30 gün içinde geri yüklenebilir) */
+export async function izCopeAt(id: string, sahipId: string) {
+	const [sonuc] = await db
+		.update(izler)
+		.set({ silinme: new Date() })
+		.where(and(eq(izler.id, id), eq(izler.sahipId, sahipId), etkin(izler)))
+		.returning({ id: izler.id, baslik: izler.baslik });
+	return sonuc ?? null;
 }
 
 /** İzi kilitleyerek sahipliğini doğrular (aynı ize eşzamanlı durak eklemeleri sıraya girer) */
@@ -251,7 +324,7 @@ async function iziKilitle(tx: Islem, izId: string, sahipId: string) {
 	const [iz] = await tx
 		.select({ id: izler.id })
 		.from(izler)
-		.where(and(eq(izler.id, izId), eq(izler.sahipId, sahipId)))
+		.where(and(eq(izler.id, izId), eq(izler.sahipId, sahipId), etkin(izler)))
 		.for('update');
 	return !!iz;
 }
@@ -286,18 +359,23 @@ async function siraliAdimIdleri(tx: Islem, izId: string) {
 	return adimlar.map((a) => a.id);
 }
 
+/**
+ * İze durak ekler. Sıra verilirse durak o konuma yerleştirilir (çıkarılan bir durağı
+ * "Geri al" ile eski yerine koymak için); verilmezse sona eklenir.
+ */
 export async function durakEkle(
 	izId: string,
 	sahipId: string,
 	dugumId: string,
-	not: string | null = null
+	not: string | null = null,
+	sira?: number
 ): Promise<IzEklemeSonucu> {
 	return db.transaction(async (tx) => {
 		if (!(await iziKilitle(tx, izId, sahipId))) return 'yetkisiz';
 		const [dugum] = await tx
 			.select({ id: dugumler.id })
 			.from(dugumler)
-			.where(and(eq(dugumler.id, dugumId), eq(dugumler.sahipId, sahipId)));
+			.where(and(eq(dugumler.id, dugumId), eq(dugumler.sahipId, sahipId), etkin(dugumler)));
 		if (!dugum) return 'yetkisiz';
 
 		const [{ enBuyuk }] = await tx
@@ -310,6 +388,13 @@ export async function durakEkle(
 			.onConflictDoNothing({ target: [izAdimlari.izId, izAdimlari.dugumId] })
 			.returning({ id: izAdimlari.id });
 		if (!eklenen.length) return 'zaten-var';
+
+		if (sira !== undefined) {
+			const sirali = (await siraliAdimIdleri(tx, izId)).filter((id) => id !== eklenen[0].id);
+			const konum = Math.min(Math.max(sira - 1, 0), sirali.length);
+			sirali.splice(konum, 0, eklenen[0].id);
+			await siraYaz(tx, izId, sirali);
+		}
 		await guncellendi(tx, izId);
 		return 'eklendi';
 	});
@@ -321,19 +406,28 @@ async function durakIzi(adimId: string, sahipId: string) {
 		.select({ izId: izAdimlari.izId })
 		.from(izAdimlari)
 		.innerJoin(izler, eq(izAdimlari.izId, izler.id))
-		.where(and(eq(izAdimlari.id, adimId), eq(izler.sahipId, sahipId)));
+		.where(and(eq(izAdimlari.id, adimId), eq(izler.sahipId, sahipId), etkin(izler)));
 	return adim?.izId ?? null;
 }
 
+/** Durağı izden çıkarır; "Geri al" için çıkarılan durağın bilgisini (düğüm, sıra, not) döner */
 export async function durakCikar(adimId: string, sahipId: string) {
 	const izId = await durakIzi(adimId, sahipId);
-	if (!izId) return false;
+	if (!izId) return null;
 	return db.transaction(async (tx) => {
-		if (!(await iziKilitle(tx, izId, sahipId))) return false;
-		await tx.delete(izAdimlari).where(eq(izAdimlari.id, adimId));
-		await siraYaz(tx, izId, await siraliAdimIdleri(tx, izId));
+		if (!(await iziKilitle(tx, izId, sahipId))) return null;
+		const sirali = await siraliAdimIdleri(tx, izId);
+		const [silinen] = await tx
+			.delete(izAdimlari)
+			.where(eq(izAdimlari.id, adimId))
+			.returning({ dugumId: izAdimlari.dugumId, not: izAdimlari.not });
+		await siraYaz(
+			tx,
+			izId,
+			sirali.filter((id) => id !== adimId)
+		);
 		await guncellendi(tx, izId);
-		return true;
+		return { izId, dugumId: silinen.dugumId, not: silinen.not, sira: sirali.indexOf(adimId) + 1 };
 	});
 }
 
@@ -400,7 +494,7 @@ export async function izSecenekleri(sahipId: string, dugumId: string) {
 	return db
 		.select({ id: izler.id, baslik: izler.baslik })
 		.from(izler)
-		.where(and(eq(izler.sahipId, sahipId), notInArray(izler.id, icerenler)))
+		.where(and(eq(izler.sahipId, sahipId), etkin(izler), notInArray(izler.id, icerenler)))
 		.orderBy(desc(izler.guncelleme))
 		.limit(100);
 }
@@ -411,7 +505,10 @@ export async function sonrakiDurakOnerileri(izId: string, sahipId: string) {
 		.select({ dugumId: izAdimlari.dugumId })
 		.from(izAdimlari)
 		.innerJoin(izler, eq(izAdimlari.izId, izler.id))
-		.where(and(eq(izAdimlari.izId, izId), eq(izler.sahipId, sahipId)))
+		.innerJoin(dugumler, eq(izAdimlari.dugumId, dugumler.id))
+		.where(
+			and(eq(izAdimlari.izId, izId), eq(izler.sahipId, sahipId), etkin(izler), etkin(dugumler))
+		)
 		.orderBy(desc(izAdimlari.sira))
 		.limit(1);
 	if (!son) return [];
@@ -427,6 +524,7 @@ export async function sonrakiDurakOnerileri(izId: string, sahipId: string) {
 			and(
 				eq(baglar.kaynakId, son.dugumId),
 				eq(baglar.sahipId, sahipId),
+				etkin(dugumler),
 				notInArray(baglar.hedefId, izdekiler)
 			)
 		)

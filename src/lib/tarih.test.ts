@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tarihCoz, tarihGirdisi, tarihYaz } from './tarih';
+import { buAyinTarihi, tarihCoz, tarihGirdisi, tarihYaz } from './tarih';
 
 describe('tarihCoz', () => {
 	it('boş metin için null döner', () => {
@@ -44,5 +44,13 @@ describe('tarihYaz / tarihGirdisi', () => {
 		expect(tarihGirdisi('1998-01-01', 'yil')).toBe('1998');
 		expect(tarihGirdisi('1998-05-01', 'ay')).toBe('1998-05');
 		expect(tarihGirdisi('1998-05-12', 'gun')).toBe('1998-05-12');
+	});
+});
+
+describe('buAyinTarihi', () => {
+	it('İstanbul saatine göre ayın ilk günü', () => {
+		expect(buAyinTarihi(new Date('2026-03-15T10:00:00Z'))).toBe('2026-03-01');
+		// UTC'de 31 Ocak 22:30, İstanbul'da 1 Şubat 01:30
+		expect(buAyinTarihi(new Date('2026-01-31T22:30:00Z'))).toBe('2026-02-01');
 	});
 });

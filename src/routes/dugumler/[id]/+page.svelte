@@ -7,6 +7,7 @@
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import TurRozeti from '#lib/bilesenler/TurRozeti.svelte';
 	import TurSekli from '#lib/bilesenler/TurSekli.svelte';
+	import { durumEtiketi, ESER_DURUMLARI } from '#lib/sabitler.ts';
 	import { tarihYaz } from '#lib/tarih.ts';
 	import type { PageProps } from './$types';
 
@@ -28,9 +29,14 @@
 			degerler: Record<string, string>;
 		} | null
 	);
-	const eklenenIz = $derived(
-		form?.izeEklendi ? data.izler.find((i) => i.id === form.izeEklendi) : null
+	// Yeni eklenen ya da "?getiren" ile açılan düğümde getiren sorusu öne çıkar
+	const getirenSorusu = $derived(
+		data.sahibiMi &&
+			(data.eklendi || data.getirenSor) &&
+			data.baglar.gelen.length === 0 &&
+			data.secenekler.length > 0
 	);
+	const uzakKapilar = $derived(data.kapilar.filter((k) => k.derinlik > 1));
 
 	const KAYNAK_ADI: Record<string, string> = { openlibrary: 'Open Library', tmdb: 'TMDB' };
 	function disBaglanti(kaynak: string | null, kimlik: string | null) {
@@ -49,21 +55,60 @@
 		<a href="/dugumler" class="geri"><Simge ad="geri" boyut={16} /> Düğümler</a>
 	{/if}
 
-	<div aria-live="polite" class="bildirimler">
-		{#if data.eklendi && !form}
-			<p class="bildirim bildirim-basari">
-				Düğüm eklendi. Şimdi onu başka düğümlere bağlayabilirsin.
+	{#snippet gelenFormu()}
+		<form method="POST" action="?/bagKur" class="yigin" use:enhance>
+			<input type="hidden" name="yon" value="gelen" />
+			<Alan
+				id="gelenKaynak"
+				etiket="Beni “{d.baslik}” düğümüne getiren:"
+				hata={gelenHata?.hatalar.digerId}
+			>
+				<DugumSecici
+					id="gelenKaynak"
+					ad="digerId"
+					secenekler={data.secenekler}
+					secili={gelenHata?.degerler.digerId}
+					hata={gelenHata?.hatalar.digerId}
+				/>
+			</Alan>
+			<Alan
+				id="gelenNot"
+				etiket="Nasıl?"
+				hata={gelenHata?.hatalar.not}
+				ipucu="İsteğe bağlı: “Selin Hoca önerdi”, “filmin müziğiydi”…"
+			>
+				<input id="gelenNot" name="not" maxlength="1000" value={gelenHata?.degerler.not ?? ''} />
+			</Alan>
+			<Alan
+				id="gelenTarih"
+				etiket="Ne zaman?"
+				hata={gelenHata?.hatalar.tarih}
+				ipucu="İsteğe bağlı: 2021 · 2021-03 · 14.03.2021"
+			>
+				<input
+					id="gelenTarih"
+					name="tarih"
+					inputmode="numeric"
+					value={gelenHata?.degerler.tarih ?? ''}
+					aria-invalid={!!gelenHata?.hatalar.tarih}
+				/>
+			</Alan>
+			<div class="satir"><button class="dugme dugme-birincil">Bağı kur</button></div>
+		</form>
+	{/snippet}
+
+	{#if getirenSorusu}
+		<section class="getiren-sorusu" aria-labelledby="getiren-sorusu-baslik">
+			<h2 id="getiren-sorusu-baslik">
+				{data.eklendi ? 'Eklendi. ' : ''}Seni buraya ne getirdi?
+			</h2>
+			<p class="soluk kucuk">
+				İz'in kalbi bu soru: bir kişi, bir başka eser, bir yer ya da bir an olabilir. Haritanda
+				yoksa <a href="/dugumler/yeni?tur=kisi">yeni bir düğüm</a> olarak ekleyebilirsin.
 			</p>
-		{/if}
-		{#if form?.bagKuruldu}<p class="bildirim bildirim-basari">Bağ kuruldu.</p>{/if}
-		{#if form?.bagGuncellendi}<p class="bildirim bildirim-basari">Bağ güncellendi.</p>{/if}
-		{#if form?.bagSilindi}<p class="bildirim bildirim-basari">Bağ kaldırıldı.</p>{/if}
-		{#if eklenenIz}
-			<p class="bildirim bildirim-basari">
-				Düğüm <a href="/izler/{eklenenIz.id}">{eklenenIz.baslik}</a> izine son durak olarak eklendi.
-			</p>
-		{/if}
-	</div>
+			{@render gelenFormu()}
+		</section>
+	{/if}
 
 	<article class="kart dugum" data-tur={d.tur}>
 		{#if d.gorselUrl}
@@ -80,6 +125,27 @@
 					<p class="alt-baslik">{[d.altBaslik, d.yil].filter(Boolean).join(' · ')}</p>
 				{/if}
 			</div>
+			{#if d.tur === 'eser'}
+				{#if data.sahibiMi}
+					<form method="POST" action="?/durum" class="durumlar" use:enhance>
+						<span class="gorunmez" id="durum-baslik">Durum</span>
+						<div class="durum-dugmeleri" role="group" aria-labelledby="durum-baslik">
+							{#each ESER_DURUMLARI as durum (durum)}
+								<button
+									class="durum-dugmesi"
+									name="durum"
+									value={durum}
+									aria-pressed={d.durum === durum}
+								>
+									{durumEtiketi(durum, d.eserTuru)}
+								</button>
+							{/each}
+						</div>
+					</form>
+				{:else if d.durum}
+					<span class="rozet durum-rozeti">{durumEtiketi(d.durum, d.eserTuru)}</span>
+				{/if}
+			{/if}
 			<ul class="ozellikler kucuk soluk">
 				{#if d.tarih}
 					<li><Simge ad="takvim" boyut={16} /> {tarihYaz(d.tarih, d.tarihHassasiyeti)}</li>
@@ -103,6 +169,16 @@
 				{/if}
 			</ul>
 			{#if d.aciklama}<p class="aciklama">{d.aciklama}</p>{/if}
+			{#if data.yol.length || data.kapilar.length}
+				<p class="olcuyler kucuk">
+					{#if data.yol.length}
+						<a href="#gelen-baslik"><strong>{data.yol.length}</strong> şeyden geliniyor</a>
+					{/if}
+					{#if data.kapilar.length}
+						<a href="#giden-baslik"><strong>{data.kapilar.length}</strong> şeye kapı açtı</a>
+					{/if}
+				</p>
+			{/if}
 			{#if data.sahibiMi}
 				<div class="satir eylemler">
 					<a class="dugme dugme-kucuk" href="/dugumler/{d.id}/duzenle">
@@ -196,6 +272,23 @@
 					</p>
 				</div>
 			{/if}
+
+			{#if uzakKapilar.length}
+				<div class="kart yol kapilar">
+					<h3>Açtığı kapılar</h3>
+					<p class="kucuk soluk">
+						Bağları ileriye doğru izleyince “{d.baslik}” dolaylı olarak bunlara da götürmüş:
+					</p>
+					<ol>
+						{#each uzakKapilar as k (k.id)}
+							<li style:--derinlik={k.derinlik - 1}>
+								<span class="kucuk soluk">{k.derinlik} adım sonra</span>
+								<a href="/dugumler/{k.id}"><TurSekli tur={k.tur} boyut={11} /> {k.baslik}</a>
+							</li>
+						{/each}
+					</ol>
+				</div>
+			{/if}
 		</section>
 
 		<section class="yigin" aria-labelledby="gelen-baslik">
@@ -216,43 +309,10 @@
 				<p class="soluk kucuk">Buraya gelen bir bağ yok.</p>
 			{/if}
 
-			{#if data.sahibiMi && data.secenekler.length}
+			{#if data.sahibiMi && data.secenekler.length && !getirenSorusu}
 				<details class="kart bag-formu" open={!!gelenHata}>
 					<summary>Seni buraya ne getirdi?</summary>
-					<form method="POST" action="?/bagKur" class="yigin" use:enhance>
-						<input type="hidden" name="yon" value="gelen" />
-						<Alan
-							id="gelenKaynak"
-							etiket="Beni “{d.baslik}” düğümüne getiren:"
-							hata={gelenHata?.hatalar.digerId}
-						>
-							<DugumSecici
-								id="gelenKaynak"
-								ad="digerId"
-								secenekler={data.secenekler}
-								secili={gelenHata?.degerler.digerId}
-								hata={gelenHata?.hatalar.digerId}
-							/>
-						</Alan>
-						<Alan id="gelenNot" etiket="Nasıl?" hata={gelenHata?.hatalar.not}>
-							<input
-								id="gelenNot"
-								name="not"
-								maxlength="1000"
-								value={gelenHata?.degerler.not ?? ''}
-							/>
-						</Alan>
-						<Alan id="gelenTarih" etiket="Ne zaman?" hata={gelenHata?.hatalar.tarih}>
-							<input
-								id="gelenTarih"
-								name="tarih"
-								inputmode="numeric"
-								value={gelenHata?.degerler.tarih ?? ''}
-								aria-invalid={!!gelenHata?.hatalar.tarih}
-							/>
-						</Alan>
-						<div class="satir"><button class="dugme dugme-birincil">Bağı kur</button></div>
-					</form>
+					{@render gelenFormu()}
 				</details>
 			{/if}
 
@@ -324,11 +384,74 @@
 	.geri:hover {
 		color: var(--vurgu);
 	}
-	.bildirimler:empty {
-		display: none;
+	.getiren-sorusu {
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-3);
+		padding: var(--a-4) var(--a-5);
+		border: 1px solid color-mix(in srgb, var(--vurgu) 35%, var(--cizgi));
+		border-left: 4px solid var(--vurgu);
+		border-radius: var(--yaricap-lg);
+		background: var(--vurgu-zemin);
 	}
-	.bildirimler p {
+	.getiren-sorusu p {
 		margin: 0;
+	}
+	.olcuyler {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--a-1) var(--a-4);
+		margin: 0;
+	}
+	.olcuyler a {
+		color: var(--metin-soluk);
+		text-decoration: none;
+	}
+	.olcuyler a:hover {
+		color: var(--vurgu);
+	}
+	.olcuyler strong {
+		color: var(--vurgu);
+		font-family: var(--yazi-baslik);
+		font-size: var(--boyut-lg);
+	}
+	.durumlar {
+		margin: 0;
+	}
+	.durum-dugmeleri {
+		display: inline-flex;
+		flex-wrap: wrap;
+		gap: 2px;
+		padding: 3px;
+		border-radius: var(--yaricap-lg);
+		border: 1px solid var(--cizgi);
+		background: var(--yuzey-2);
+	}
+	.durum-dugmesi {
+		min-height: 2.25rem;
+		padding: 0 var(--a-3);
+		border: 0;
+		border-radius: var(--yaricap);
+		background: transparent;
+		color: var(--metin-soluk);
+		font: inherit;
+		font-size: var(--boyut-sm);
+		font-weight: 600;
+		cursor: pointer;
+		transition:
+			background var(--gecis),
+			color var(--gecis);
+	}
+	.durum-dugmesi:hover {
+		color: var(--metin);
+	}
+	.durum-dugmesi[aria-pressed='true'] {
+		background: var(--yuzey);
+		color: var(--tur-eser);
+		box-shadow: var(--golge-1);
+	}
+	.durum-rozeti {
+		align-self: flex-start;
 	}
 	.dugum {
 		display: grid;
@@ -440,6 +563,10 @@
 		flex-direction: column;
 		border-left: 2px dotted var(--vurgu);
 		padding-inline-start: calc(var(--a-3) + (var(--derinlik) - 1) * var(--a-3));
+	}
+	.kapilar li {
+		border-left-style: solid;
+		border-left-color: color-mix(in srgb, var(--vurgu) 45%, transparent);
 	}
 	.yol li a {
 		display: inline-flex;

@@ -7,11 +7,11 @@ import type { Actions, PageServerLoad } from './$types';
 
 const BULUNAMADI = 'Bu iz bulunamadı ya da görme iznin yok.';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, url }) => {
 	if (!uuidMu(params.id)) error(404, BULUNAMADI);
 	const iz = await izGetir(params.id, locals.kullanici?.id ?? null);
 	if (!iz) error(404, BULUNAMADI);
-	return iz;
+	return { ...iz, ilk: iz.sahibiMi && url.searchParams.has('ilk') };
 };
 
 export const actions: Actions = {
@@ -31,6 +31,6 @@ export const actions: Actions = {
 			tarihHassasiyeti: null
 		});
 		if (durum === 'yetkisiz') error(404, BULUNAMADI);
-		return { bagKuruldu: true };
+		return { bildirim: { mesaj: 'Duraklar bağlandı.' } };
 	}
 };

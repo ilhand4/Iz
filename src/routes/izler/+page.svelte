@@ -2,6 +2,7 @@
 	import BosDurum from '#lib/bilesenler/BosDurum.svelte';
 	import IzKarti from '#lib/bilesenler/IzKarti.svelte';
 	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
+	import SilindiBildirimi from '#lib/bilesenler/SilindiBildirimi.svelte';
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import type { PageProps } from './$types';
 
@@ -21,9 +22,7 @@
 		{/snippet}
 	</SayfaBasligi>
 
-	{#if data.silindi}
-		<p class="bildirim bildirim-basari" role="status">İz silindi. Düğümlerin yerinde duruyor.</p>
-	{/if}
+	<SilindiBildirimi silinen={data.silinen} />
 
 	{#if data.izler.length}
 		<div class="izgara">

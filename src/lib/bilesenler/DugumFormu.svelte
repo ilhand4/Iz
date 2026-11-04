@@ -1,13 +1,16 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { Snippet } from 'svelte';
 	import {
 		DUGUM_TURLERI,
 		DUGUM_TURU_ETIKETI,
+		ESER_DURUMLARI,
 		ESER_TURLERI,
-		ESER_TURU_ETIKETI
+		ESER_TURU_ETIKETI,
+		durumEtiketi,
+		eserTuruMu
 	} from '#lib/sabitler.ts';
 	import Alan from './Alan.svelte';
+	import DugumSecici, { type SecenekDugum } from './DugumSecici.svelte';
 	import GizlilikSecici from './GizlilikSecici.svelte';
 	import TurSekli from './TurSekli.svelte';
 
@@ -17,12 +20,24 @@
 		gonderMetni: string;
 		/** Form eylemi, ör. "?/kaydet"; boşsa varsayılan eylem */
 		eylem?: string;
-		ek?: Snippet;
+		/**
+		 * Verilirse "Seni buraya ne getirdi?" bölümü gösterilir (yeni düğüm eklerken).
+		 * Kullanıcının haritasındaki, getiren olarak seçilebilecek düğümler.
+		 */
+		getirenSecenekleri?: SecenekDugum[];
 	};
-	let { degerler = {}, hatalar = {}, gonderMetni, eylem, ek }: Props = $props();
+	let { degerler = {}, hatalar = {}, gonderMetni, eylem, getirenSecenekleri }: Props = $props();
 	let gonderiliyor = $state(false);
 
 	const d = (ad: string) => degerler[ad] ?? '';
+
+	// Durum etiketleri seçili eser türüne göre fiil alır ("Okudum", "İzledim"…)
+	// svelte-ignore state_referenced_locally
+	let eserTuru = $state(eserTuruMu(degerler.eserTuru) ? degerler.eserTuru : 'kitap');
+
+	const getirenKip = $derived(
+		d('getirenKip') || (getirenSecenekleri && getirenSecenekleri.length ? 'mevcut' : 'yeni')
+	);
 </script>
 
 <form
@@ -55,7 +70,15 @@
 
 	<div class="eser-alani">
 		<Alan id="eserTuru" etiket="Eser türü" hata={hatalar.eserTuru}>
-			<select id="eserTuru" name="eserTuru" aria-invalid={!!hatalar.eserTuru}>
+			<select
+				id="eserTuru"
+				name="eserTuru"
+				aria-invalid={!!hatalar.eserTuru}
+				onchange={(e) => {
+					const deger = e.currentTarget.value;
+					if (eserTuruMu(deger)) eserTuru = deger;
+				}}
+			>
 				{#each ESER_TURLERI as et (et)}
 					<option value={et} selected={(d('eserTuru') || 'kitap') === et}
 						>{ESER_TURU_ETIKETI[et]}</option
@@ -84,6 +107,113 @@
 	>
 		<input id="altBaslik" name="altBaslik" value={d('altBaslik')} maxlength="200" />
 	</Alan>
+
+	<fieldset class="alan eser-alani">
+		<legend class="etiket">Durum</legend>
+		<div class="secenekler kucuk-secenekler">
+			{#each ESER_DURUMLARI as durum (durum)}
+				<label class="secenek durum-secenegi">
+					<input type="radio" name="durum" value={durum} checked={d('durum') === durum} />
+					<span>{durumEtiketi(durum, eserTuru)}</span>
+				</label>
+			{/each}
+		</div>
+		<span class="ipucu">“Merak ediyorum” dediklerin merak listende toplanır.</span>
+		{#if hatalar.durum}<span class="hata-metni">{hatalar.durum}</span>{/if}
+	</fieldset>
+
+	{#if getirenSecenekleri}
+		<fieldset class="getiren">
+			<legend>Seni buraya ne getirdi?</legend>
+			<p class="getiren-aciklama">
+				İz'in kalbi bu soru: bir kitap, bir kişi, bir yer, bir karar… Bilmiyorsan boş bırak; sonra
+				da ekleyebilirsin.
+			</p>
+			<div class="kipler" role="radiogroup" aria-label="Getireni nasıl belirteceksin?">
+				{#if getirenSecenekleri.length}
+					<label class="kip">
+						<input
+							type="radio"
+							name="getirenKip"
+							value="mevcut"
+							checked={getirenKip === 'mevcut'}
+						/>
+						<span>Haritamdan seç</span>
+					</label>
+				{/if}
+				<label class="kip">
+					<input type="radio" name="getirenKip" value="yeni" checked={getirenKip === 'yeni'} />
+					<span>Yeni ekle</span>
+				</label>
+				<label class="kip">
+					<input type="radio" name="getirenKip" value="yok" checked={getirenKip === 'yok'} />
+					<span>Bilmiyorum</span>
+				</label>
+			</div>
+
+			{#if getirenSecenekleri.length}
+				<div class="kip-mevcut">
+					<Alan id="getirenId" etiket="Haritandaki düğüm" hata={hatalar.getiren}>
+						<DugumSecici
+							id="getirenId"
+							ad="getirenId"
+							secenekler={getirenSecenekleri}
+							secili={d('getirenId') || null}
+							hata={hatalar.getiren}
+							yerTutucu="Kitap, kişi, yer… adını yaz"
+						/>
+					</Alan>
+				</div>
+			{/if}
+
+			<div class="kip-yeni yigin">
+				<div class="secenekler kucuk-secenekler" role="radiogroup" aria-label="Getirenin türü">
+					{#each DUGUM_TURLERI as tur (tur)}
+						<label class="secenek" data-tur={tur}>
+							<input
+								type="radio"
+								name="getirenTur"
+								value={tur}
+								checked={(d('getirenTur') || 'kisi') === tur}
+							/>
+							<span><TurSekli {tur} boyut={11} /> {DUGUM_TURU_ETIKETI[tur]}</span>
+						</label>
+					{/each}
+				</div>
+				<div class="getiren-eser-turu">
+					<label class="gorunmez" for="getirenEserTuru">Getiren eserin türü</label>
+					<select id="getirenEserTuru" name="getirenEserTuru">
+						{#each ESER_TURLERI as et (et)}
+							<option value={et} selected={(d('getirenEserTuru') || 'kitap') === et}
+								>{ESER_TURU_ETIKETI[et]}</option
+							>
+						{/each}
+					</select>
+				</div>
+				<Alan id="getirenBaslik" etiket="Adı" hata={hatalar.getirenBaslik}>
+					<input
+						id="getirenBaslik"
+						name="getirenBaslik"
+						value={d('getirenBaslik')}
+						maxlength="200"
+						placeholder="ör. Selin Hoca"
+						aria-invalid={!!hatalar.getirenBaslik}
+					/>
+				</Alan>
+			</div>
+
+			<div class="kip-not">
+				<Alan
+					id="getirenNot"
+					etiket="Nasıl?"
+					hata={hatalar.getirenNot}
+					ipucu="İsteğe bağlı: “derste bir paragrafını okudu”, “filmin müziğiydi”…"
+				>
+					<input id="getirenNot" name="getirenNot" value={d('getirenNot')} maxlength="1000" />
+				</Alan>
+			</div>
+		</fieldset>
+	{/if}
 
 	<div class="iki">
 		<Alan
@@ -158,8 +288,10 @@
 	</details>
 
 	<GizlilikSecici secili={d('gizlilik')} hata={hatalar.gizlilik} />
-
-	{@render ek?.()}
+	<p class="kisi-uyarisi bildirim bildirim-uyari" role="note">
+		<strong>Bu düğüm gerçek bir kişi hakkında.</strong> Herkese açık yaparsan adı ve yazdıkların herkes
+		tarafından görülebilir. Kişinin onayı olmadan özel bilgilerini paylaşma.
+	</p>
 
 	<div class="satir">
 		<button class="dugme dugme-birincil" disabled={gonderiliyor}>
@@ -174,23 +306,30 @@
 		font-size: var(--boyut-sm);
 		margin-bottom: var(--a-2);
 	}
+	.ipucu {
+		font-size: var(--boyut-xs);
+		color: var(--metin-soluk);
+	}
 	.secenekler {
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--a-2);
 	}
-	.secenek {
+	.secenek,
+	.kip {
 		position: relative;
 		cursor: pointer;
 	}
-	.secenek input {
+	.secenek input,
+	.kip input {
 		position: absolute;
 		opacity: 0;
 		inset: 0;
 		margin: 0;
 		cursor: pointer;
 	}
-	.secenek span {
+	.secenek span,
+	.kip span {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4rem;
@@ -202,12 +341,17 @@
 		font-weight: 550;
 		font-size: var(--boyut-sm);
 	}
-	.secenek input:checked + span {
-		background: var(--renk-zemin);
-		border-color: var(--renk);
-		color: var(--renk);
+	.kucuk-secenekler .secenek span {
+		min-height: 2.25rem;
+		padding: 0 var(--a-3);
 	}
-	.secenek input:focus-visible + span {
+	.secenek input:checked + span {
+		background: var(--renk-zemin, var(--vurgu-zemin));
+		border-color: var(--renk, var(--vurgu));
+		color: var(--renk, var(--vurgu));
+	}
+	.secenek input:focus-visible + span,
+	.kip input:focus-visible + span {
 		outline: 2px solid var(--vurgu);
 		outline-offset: 2px;
 	}
@@ -239,6 +383,69 @@
 	.dugum-formu:has(input[name='tur'][value='eser']:checked) .eser-alani {
 		display: block;
 	}
+	fieldset.eser-alani {
+		border: 0;
+		padding: 0;
+		margin: 0;
+	}
+
+	/* ——— "Seni buraya ne getirdi?" ——— */
+	.getiren {
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-3);
+		margin: 0;
+		padding: var(--a-4);
+		border: 1px solid color-mix(in srgb, var(--vurgu) 35%, var(--cizgi));
+		border-left: 4px solid var(--vurgu);
+		border-radius: var(--yaricap);
+		background: var(--vurgu-zemin);
+	}
+	.getiren legend {
+		float: left;
+		width: 100%;
+		margin-bottom: var(--a-1);
+		font-family: var(--yazi-baslik);
+		font-size: var(--boyut-lg);
+		font-weight: 600;
+	}
+	.getiren-aciklama {
+		margin: 0;
+		font-size: var(--boyut-sm);
+		color: var(--metin-soluk);
+	}
+	.kipler {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--a-2);
+	}
+	.kip input:checked + span {
+		background: var(--metin);
+		border-color: var(--metin);
+		color: var(--zemin);
+	}
+	.kip-mevcut,
+	.kip-yeni,
+	.kip-not {
+		display: none;
+	}
+	.getiren:has(input[name='getirenKip'][value='mevcut']:checked) .kip-mevcut,
+	.getiren:has(input[name='getirenKip'][value='yeni']:checked) .kip-yeni {
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-3);
+	}
+	.getiren:has(input[name='getirenKip'][value='mevcut']:checked) .kip-not,
+	.getiren:has(input[name='getirenKip'][value='yeni']:checked) .kip-not {
+		display: block;
+	}
+	.getiren-eser-turu {
+		display: none;
+		max-width: 14rem;
+	}
+	.getiren:has(input[name='getirenTur'][value='eser']:checked) .getiren-eser-turu {
+		display: block;
+	}
 
 	.iki {
 		display: grid;
@@ -266,5 +473,18 @@
 	}
 	.konum p {
 		margin: 0;
+	}
+
+	/* Kişi düğümü herkese açık yapılırken mahremiyet uyarısı (JavaScript gerekmez) */
+	.kisi-uyarisi {
+		display: none;
+		margin: 0;
+	}
+	/* Gizlilik seçenekleri GizlilikSecici bileşeninde: seçici :global ile ona uzanır */
+	.dugum-formu:has(input[name='tur'][value='kisi']:checked):has(
+			:global(input[name='gizlilik'][value='herkes']:checked)
+		)
+		.kisi-uyarisi {
+		display: block;
 	}
 </style>

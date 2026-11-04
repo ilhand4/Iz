@@ -38,7 +38,10 @@
 		bayrak: 'M5 21V4M5 4h12l-2.5 4.5L17 13H5',
 		baglanti:
 			'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
-		onay: 'M5 12.5l4.5 4.5L19 7.5'
+		onay: 'M5 12.5l4.5 4.5L19 7.5',
+		yildiz: 'M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z',
+		simsek: 'M13 3 5 13.5h6L10 21l8-10.5h-6z',
+		geriAl: 'M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3'
 	} as const;
 
 	export type SimgeAdi = keyof typeof YOLLAR;

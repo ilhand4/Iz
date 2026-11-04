@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Alan from '#lib/bilesenler/Alan.svelte';
 	import DugumFormu from '#lib/bilesenler/DugumFormu.svelte';
 	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
+	import Simge from '#lib/bilesenler/Simge.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -22,35 +22,49 @@
 			: { href: '/dugumler', etiket: 'Düğümler' }}
 	/>
 
-	{#if data.kaynak}
-		<p class="bildirim bildirim-uyari kaynak">
-			Bu düğüm, <strong>{data.kaynak.baslik}</strong> düğümünden “beni şuna götürdü” bağıyla eklenecek.
-		</p>
-	{/if}
+	<form method="GET" action="/hizli" class="hizli-ekle" role="search">
+		<label for="hizliMetin">
+			<Simge ad="ekle" boyut={16} /> Acelen mi var? Tek satırda yaz:
+		</label>
+		<div class="satir">
+			<input
+				id="hizliMetin"
+				name="metin"
+				maxlength="300"
+				placeholder="ör. Tutunamayanlar, Selin Hoca önerdi"
+			/>
+			<button class="dugme">Devam</button>
+		</div>
+	</form>
 
 	<div class="kart">
 		<DugumFormu
 			{degerler}
 			hatalar={form?.hatalar as Record<string, string> | undefined}
 			gonderMetni="Düğümü ekle"
-		>
-			{#snippet ek()}
-				{#if data.kaynak}
-					<Alan
-						id="bagNotu"
-						etiket="Nasıl götürdü?"
-						ipucu="İsteğe bağlı kısa not: “kitabın sonunda adı geçiyordu” gibi."
-					>
-						<input id="bagNotu" name="bagNotu" maxlength="1000" value={degerler.bagNotu ?? ''} />
-					</Alan>
-				{/if}
-			{/snippet}
-		</DugumFormu>
+			getirenSecenekleri={data.secenekler}
+		/>
 	</div>
 </div>
 
 <style>
-	.kaynak {
-		margin: 0;
+	.hizli-ekle {
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-2);
+		padding: var(--a-3) var(--a-4);
+		border: 1px dashed var(--cizgi-guclu);
+		border-radius: var(--yaricap);
+	}
+	.hizli-ekle label {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-1);
+		font-size: var(--boyut-sm);
+		font-weight: 550;
+		color: var(--metin-soluk);
+	}
+	.hizli-ekle .satir {
+		flex-wrap: nowrap;
 	}
 </style>

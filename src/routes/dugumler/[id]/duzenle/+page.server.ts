@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { alan, dugumDogrula, uuidMu } from '#lib/server/dogrulama.ts';
-import { dugumGetir, dugumGuncelle, dugumSil } from '#lib/server/dugumler.ts';
+import { dugumGetir, dugumGuncelle, dugumuCopeAt } from '#lib/server/dugumler.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import { tarihGirdisi } from '#lib/tarih.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -33,7 +33,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			enlem: metin(d.enlem),
 			boylam: metin(d.boylam),
 			yerAdi: metin(d.yerAdi),
-			gizlilik: d.gizlilik
+			gizlilik: d.gizlilik,
+			durum: d.durum ?? ''
 		}
 	};
 };
@@ -53,7 +54,9 @@ export const actions: Actions = {
 		if (alan(await request.formData(), 'onay') !== 'evet') {
 			return fail(400, { hatalar: { genel: 'Silmek için onay kutusunu işaretle.' } });
 		}
-		if (!uuidMu(params.id) || !(await dugumSil(params.id, kullanici.id))) error(404, BULUNAMADI);
-		redirect(303, '/dugumler');
+		if (!uuidMu(params.id) || !(await dugumuCopeAt(params.id, kullanici.id)))
+			error(404, BULUNAMADI);
+		// Liste sayfası "Geri al" baloncuğunu bu parametreden gösterir
+		redirect(303, `/dugumler?silindi=${params.id}`);
 	}
 };

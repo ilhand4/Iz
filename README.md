@@ -54,10 +54,30 @@ Kitap araması (Open Library) anahtarsız çalışır. Film/dizi için ücretsiz
 | `npm run db:migrate`  | Bekleyen migration'ları uygular                                                          |
 | `npm run db:seed`     | Demo hesaplarını ve örnek veriyi (yeniden) yükler                                        |
 | `npm run db:studio`   | Drizzle Studio ile veritabanını tarayıcıda gezme                                         |
+| `npm run db:yedek`    | `pg_dump` ile `yedekler/` klasörüne yedek alır (en yeni 10 yedek tutulur)                |
+| `npm run lint`        | Prettier biçim denetimi + ESLint                                                         |
+| `npm run format`      | Tüm dosyaları Prettier ile biçimlendirir                                                 |
+| `npm run test:e2e`    | Playwright uçtan uca testleri (derler, `preview` ile açar, gerçek veritabanını kullanır) |
 
 Şema değiştirme akışı: `src/lib/server/db/schema.ts` dosyasını düzenle → `npm run db:generate` → üretilen SQL'i gözden geçir → `npm run db:migrate`.
 
 Testler ayrı bir veritabanı sunucusu gerektirmez: entegrasyon testleri, gerçek migration dosyalarıyla kurulan bellek içi bir PostgreSQL'de (PGlite) çalışır.
+
+### Uçtan uca testler
+
+`npm run test:e2e` üretim derlemesini 4180 portunda açar, her çalıştırmada `e2e-…@iz.test` adlı yeni bir deneme hesabı kurar ve testler bitince bu hesapları (verileriyle birlikte) siler. Yerelde kurulu **Microsoft Edge** kullanılır (tarayıcı indirmeye gerek yok); CI'da Playwright'ın Chromium'u. Erişilebilirlik testleri axe-core ile açık/koyu temada, masaüstü ve mobilde çalışır.
+
+### Yedek ve geri yükleme
+
+`npm run db:yedek` bağlantı bilgisini `.env`'deki `DATABASE_URL`'den alır ve şifreyi komut satırına yazmadan `pg_dump`'a verir. `pg_dump` bulunamazsa PostgreSQL'in `bin` klasörünü `PG_BIN` ortam değişkeniyle belirtin. Geri yüklemek için:
+
+```bash
+pg_restore --clean --if-exists --no-owner -h localhost -U iz -d iz_dev yedekler/<dosya>.dump
+```
+
+### Sürekli denetim
+
+`.github/workflows/denetim.yml` her gönderimde lint, tip denetimi, testler ve derlemeyi çalıştırır; ardından PostgreSQL 18 servisiyle uçtan uca testleri koşar.
 
 > `npm start` kökeni `https://` varsayar (adapter-node); yerelde düz http ile denerken formlar CSRF korumasına takılır. Yerel deneme için `npm run preview` kullanın.
 
@@ -68,6 +88,13 @@ Testler ayrı bir veritabanı sunucusu gerektirmez: entegrasyon testleri, gerçe
 - **Görünümler:** Liste, **Ağ** (Cytoscape.js; türe göre renk ve şekil, arama, süzgeç, odaklanma) ve **Zaman çizgisi** (yıl/ay grupları, yoğunluk şeridi).
 - **İzler:** düğümlerden sıralı, anlatılabilir yollar; sürükle-bırak sıralama, durak notları, bağlardan durak önerileri, hikâye gibi okuma sayfası, herkese açık paylaşım.
 - **Eser arama:** Open Library (kitap) ve TMDB (film/dizi).
+- **"Seni buraya ne getirdi?":** düğüm eklerken ilk soru; düğüm ve onu getiren (haritadan ya da yeni) tek adımda kaydedilir.
+- **Hızlı ekle:** tek satır ("Selin Hoca önerdi → Aylak Adam") çözülür, haritadaki eşleşmeler ve dış kaynak adayları onaya sunulur.
+- **İlk iz sihirbazı:** kayıttan hemen sonra üç soruyla ilk iz (eser → onu getiren → götürdüğü yer).
+- **Merak listesi:** eser durumu (merak ediyorum / sürüyor / bitti / yarım bıraktım), kimin önerdiğiyle birlikte; "bitti" denince tarih bu ay olarak yazılır.
+- **Haritanın karakterleri:** panoda kökler, kapı açanlar, kavşaklar ve bağsız düğümler; düğüm sayfasında "Açtığı kapılar".
+- **Kalıcı ağ yerleşimi:** sürüklenen düğümlerin yeri kaydedilir, yeni düğümler komşularının yanına konur.
+- **Bildirimler ve "Geri al":** bağ kaldırma, durak çıkarma, silme ve yeniden yerleştirme geri alınabilir; silinenler 30 gün çöp kutusunda bekler.
 
 ## Klasör yapısı
 
@@ -78,6 +105,10 @@ src/
   lib/
     sabitler.ts, tarih.ts   Ortak sabitler, Türkçe etiketler, tarih çözme/yazma
     metin.ts, zaman.ts      Türkçe arama sadeleştirme, zaman çizgisi gruplama
+    analiz.ts               Haritanın karakterleri (kökler, kapı açanlar, kavşaklar)
+    hizliEkle.ts            Tek satırlık girdiyi çözen Türkçe ayrıştırıcı
+    yerlesim.ts             Ağda yeni düğümleri kayıtlı komşularının yanına yerleştirme
+    bildirim.svelte.ts      Bildirim baloncukları ve "Geri al"
     bilesenler/             Svelte bileşenleri (AgGorunumu, DugumSecici, SayfaBasligi, TurSekli…)
     stiller/tasarim.css     Tasarım sistemi (renk, yazı, aralık değişkenleri)
     server/                 Yalnızca sunucuda çalışan kod
@@ -88,9 +119,13 @@ src/
       dugumler.ts           Düğüm/bağ veri erişimi ve yetki kuralları
       izler.ts              İz ve durak veri erişimi (sıralama, gizli duraklar)
       eserArama.ts          Open Library ve TMDB
+      copKutusu.ts          Çöp kutusu (30 gün), geri yükleme
       test/pglite.ts        Entegrasyon testleri için bellek içi PostgreSQL
-  routes/                   /, /kayit, /giris, /pano, /dugumler (+ /ag, /zaman), /izler, /ara
+  routes/                   /, /kayit, /giris, /basla, /pano, /hizli, /dugumler (+ /ag, /zaman),
+                            /izler, /ara, /cop-kutusu, /api/ag/konumlar
+e2e/                        Playwright uçtan uca ve erişilebilirlik testleri
 drizzle/                    Migration dosyaları
 scripts/seed.ts             Örnek veri
+scripts/yedek.ts            pg_dump yedeği
 db/kurulum.sql              Rol ve veritabanı oluşturma
 ```

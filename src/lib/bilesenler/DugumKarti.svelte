@@ -1,5 +1,12 @@
 <script lang="ts">
-	import type { DugumTuru, EserTuru, Gizlilik, TarihHassasiyeti } from '#lib/sabitler.ts';
+	import {
+		durumEtiketi,
+		type DugumTuru,
+		type EserDurumu,
+		type EserTuru,
+		type Gizlilik,
+		type TarihHassasiyeti
+	} from '#lib/sabitler.ts';
 	import { tarihYaz } from '#lib/tarih.ts';
 	import GizlilikRozeti from './GizlilikRozeti.svelte';
 	import TurRozeti from './TurRozeti.svelte';
@@ -15,12 +22,18 @@
 			gizlilik: Gizlilik;
 			tarih: string | null;
 			tarihHassasiyeti: TarihHassasiyeti | null;
+			durum?: EserDurumu | null;
 		};
 	};
 	let { dugum }: Props = $props();
 </script>
 
-<a class="dugum-karti" href="/dugumler/{dugum.id}" data-tur={dugum.tur}>
+<a
+	class="dugum-karti"
+	href="/dugumler/{dugum.id}"
+	data-tur={dugum.tur}
+	data-durum={dugum.durum ?? undefined}
+>
 	{#if dugum.gorselUrl}
 		<img src={dugum.gorselUrl} alt="" loading="lazy" referrerpolicy="no-referrer" />
 	{:else}
@@ -31,6 +44,9 @@
 		{#if dugum.altBaslik}<span class="alt">{dugum.altBaslik}</span>{/if}
 		<span class="satir">
 			<TurRozeti tur={dugum.tur} eserTuru={dugum.eserTuru} />
+			{#if dugum.durum && dugum.durum !== 'bitti'}
+				<span class="rozet durum">{durumEtiketi(dugum.durum, dugum.eserTuru)}</span>
+			{/if}
 			{#if dugum.gizlilik !== 'ozel'}<GizlilikRozeti gizlilik={dugum.gizlilik} />{/if}
 			{#if dugum.tarih}
 				<span class="kucuk soluk">{tarihYaz(dugum.tarih, dugum.tarihHassasiyeti)}</span>
@@ -40,6 +56,17 @@
 </a>
 
 <style>
+	/* Merak edilen eser henüz yaşanmadı: kesik çizgili, soluk kart */
+	.dugum-karti[data-durum='merak'] {
+		border-style: dashed;
+		border-left-style: dashed;
+		background: transparent;
+	}
+	.durum {
+		background: var(--yuzey-2);
+		color: var(--metin-soluk);
+		box-shadow: inset 0 0 0 1px var(--cizgi-guclu);
+	}
 	.dugum-karti {
 		display: flex;
 		gap: var(--a-3);

@@ -35,23 +35,24 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 - [x] Entegrasyon testleri: **PGlite** (bellek içi PostgreSQL) üzerinde gerçek migration'larla 16 test; toplam 66 test
 - [x] Zengin örnek veri: 1998–2023'e yayılmış 19 düğüm, 18 bağ, notlu 2 iz
 
-## ⏳ Aşama 2.5 — Çekirdek deneyim (Aşama 3a'dan önce)
+## ✅ Aşama 2.5 — Çekirdek deneyim
 
 > Amaç: tek bir kullanıcının İz'i gerçekten sevmesi. Bu tür ürünler genellikle üç sebeple ölür:
 > kaydetmek zahmetlidir, ilk gün harita boştur, geri gelmek için neden yoktur. Bu aşama üçünü de hedefler.
 
-- [ ] **Kalıcı ağ konumları:** düğüm konumları kaydedilir, yeni düğümler komşularının yanına yerleşir; harita her açılışta aynı kalır
-- [ ] **"Seni buraya ne getirdi?"** düğüm ekleme akışının ilk sorusu; düğüm ve gelen bağ tek adımda
-- [ ] **Hızlı ekle:** tek satır ("Tutunamayanlar, Selin Hoca önerdi") → eser araması, kişi eşleştirme, bağ önerisi, onay
-- [ ] **İlk iz sihirbazı:** üç soru ("Hayatını değiştiren bir eser → onu sana ne getirdi → o seni nereye götürdü") → ilk iz
-- [ ] **Açtığı kapılar:** "Geldiğin yol"un ileri yönlüsü ("dolaylı olarak 9 şeye kapı açtı")
-- [ ] **Haritanın karakterleri:** kökler (hiçbir şeyin getirmediği başlangıçlar), kapı açanlar, kavşaklar ve yetim düğümler; panoda içgörü kutusu
-- [ ] **Merak listesi:** düğüm durumu (merak ediyorum / sürüyor / bitti / yarım bıraktım) ve "bunu bana kim önerdi" bağı
-- [ ] **Geri bildirim:** formun yanında bildirim baloncuğu ve "Geri al"; 30 günlük çöp kutusu (silme kalıcı olmasın)
-- [ ] Kişi düğümü herkese açık yapılırken üçüncü kişi mahremiyeti uyarısı
-- [ ] GitHub Actions: her yüklemede check + test + build (testler PGlite kullandığı için veritabanı gerekmez)
-- [ ] Yedek betiği: `npm run db:yedek` (pg_dump)
-- [ ] Playwright ile uçtan uca testler (kayıt → düğüm → bağ → iz); Prettier ve ESLint
+- [x] **Kalıcı ağ konumları:** ilk açılışta yerleşim hesaplanıp kaydedilir; sonra harita her açılışta aynı kalır. Sürüklenen düğümün yeri kaydedilir, yeni düğümler kayıtlı komşularının yanına konur. "Yeniden yerleştir" geri alınabilir (`ag_konumlari` tablosu, `PUT /api/ag/konumlar`)
+- [x] **"Seni buraya ne getirdi?"** düğüm ekleme formunun ilk sorusu (haritadan seç, yeni ekle ya da "bilmiyorum"); düğüm ve gelen bağ tek işlemde. Yeni eklenen düğümde gelen bağ yoksa soru kartı öne çıkar
+- [x] **Hızlı ekle:** panoda ve ekleme sayfasında tek satır ("Selin Hoca önerdi → Aylak Adam", "Babylon Berlin'i izlerken Berlin Alexanderplatz'ı merak ettim") → Türkçe ayrıştırıcı, haritadaki eşleşmeler, Open Library/TMDB adayları, onay ekranı
+- [x] **İlk iz sihirbazı** (`/basla`, kayıttan sonra): eser → onu getiren → götürdüğü yer; canlı önizleme; ilk iz sayfasında karşılama kartı
+- [x] **Açtığı kapılar:** "Geldiğin yol"un ileri yönlüsü; düğüm başlığında "N şeyden geliniyor · N şeye kapı açtı"
+- [x] **Haritanın karakterleri:** panoda kökler, kapı açanlar, kavşaklar (arasındalık) ve bağsız düğümler ("Seni buraya ne getirdi?" bağlantısıyla)
+- [x] **Merak listesi:** eser durumu (merak ediyorum / sürüyor / bitti / yarım bıraktım; esere göre "Okudum", "İzledim"…), düğüm sayfasında tek tıkla değişir, "bitti"de tarih bu ay olur; panoda kimin önerdiğiyle birlikte, listede süzgeç, kartta ve ağda kesik kenar
+- [x] **Geri bildirim:** bildirim baloncukları ve "Geri al" (bağ kaldırma, durak çıkarma, silme, yeniden yerleştirme); 30 günlük çöp kutusu (`/cop-kutusu`: geri yükle, kalıcı sil, boşalt)
+- [x] Kişi düğümü herkese açık yapılırken üçüncü kişi mahremiyeti uyarısı (JavaScript'siz, CSS `:has()`)
+- [x] GitHub Actions: lint + check + test + build; ardından PostgreSQL 18 servisiyle uçtan uca testler
+- [x] Yedek betiği: `npm run db:yedek` (pg_dump, son 10 yedek; şifre komut satırına yazılmaz)
+- [x] Playwright ile uçtan uca testler (sihirbaz, hızlı ekle, durum, çöp kutusu ve geri al, bağ geri alma, ağ konumları, pano) ve axe erişilebilirlik testleri (açık/koyu, masaüstü/mobil); Prettier ve ESLint
+- [x] Testler: 109 birim/entegrasyon testi (PGlite), 37 uçtan uca test (tamamı geçiyor); erişilebilirlik testleri kontrast sorunlarını yakaladı (`--metin-silik`, `--tur-eser` AA düzeyine çekildi)
 
 > Aşama 3, kullanıcının paylaştığı mimari değerlendirmeyle ve sonraki ürün önerileriyle (Kasım 2026) genişletildi; 3a, 3b ve 3c olarak bölündü.
 > Değerlendirmedeki örnek kodlar **olduğu gibi kullanılmayacak**: bizim şemada kimlikler `uuid`,
