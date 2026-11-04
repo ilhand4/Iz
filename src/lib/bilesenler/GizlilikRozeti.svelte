@@ -3,7 +3,7 @@
 	import Simge from './Simge.svelte';
 
 	let { gizlilik }: { gizlilik: Gizlilik } = $props();
-	const SIMGE = { ozel: 'kilit', grup: 'grup', herkes: 'dunya' } as const;
+	const SIMGE = { ozel: 'kilit', grup: 'grup', golge: 'baglanti', herkes: 'dunya' } as const;
 </script>
 
 <span class="rozet" title={GIZLILIK_ACIKLAMASI[gizlilik]}>

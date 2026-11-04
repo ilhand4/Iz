@@ -10,7 +10,7 @@
 
 	let { data }: PageProps = $props();
 	const p = $derived(data.profil);
-	const bagliIdler = $derived(new Set(data.baglar.flatMap((b) => [b.kaynakId, b.hedefId])));
+	const bagliIdler = $derived(new Set(data.ag.baglar.flatMap((b) => [b.kaynakId, b.hedefId])));
 	const turSayilari = $derived(
 		DUGUM_TURLERI.map((tur) => ({
 			tur,
@@ -95,16 +95,17 @@
 			</section>
 		{/if}
 
-		{#if data.baglar.length}
+		{#if data.ag.baglar.length}
 			<section class="yigin" aria-labelledby="ag-baslik">
 				<h2 id="ag-baslik">Açık harita</h2>
 				<p class="kucuk soluk">
-					Herkese açık düğümler ve aralarındaki “götürdü” bağları. Gizli düğümler ve onlara giden
-					bağlar hiç gösterilmez.
+					Herkese açık düğümler ve aralarındaki “götürdü” bağları. Kesikli kontürlü şekiller gölge
+					düğümler (içeriği gizli); noktalı çizgiler, aradaki gizli düğümleri göstermeden dolaylı
+					bağlantıyı işaret eder.
 				</p>
 				<AgGorunumu
-					dugumler={data.dugumler.filter((d) => bagliIdler.has(d.id))}
-					baglar={data.baglar}
+					dugumler={data.ag.dugumler.filter((d) => bagliIdler.has(d.id))}
+					baglar={data.ag.baglar}
 					kaydet={false}
 				/>
 			</section>

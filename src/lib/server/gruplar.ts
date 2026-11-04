@@ -4,6 +4,7 @@
 import { and, asc, count, eq, gt, isNotNull, ne } from 'drizzle-orm';
 import { db } from './db';
 import { grupUyeleri, gruplar, izler, kullanicilar } from './db/schema';
+import { grupKatilimBildir } from './disBaglar';
 import { etkin } from './dugumler';
 import { izleriListele } from './izler';
 import { jetonOzeti, jetonUret } from './oturum';
@@ -156,10 +157,12 @@ export async function davetCoz(jeton: string) {
 export async function davetleKatil(jeton: string, kullaniciId: string) {
 	const g = await davetCoz(jeton);
 	if (!g) return null;
-	await db
+	const eklenen = await db
 		.insert(grupUyeleri)
 		.values({ grupId: g.id, kullaniciId, rol: 'uye' })
-		.onConflictDoNothing();
+		.onConflictDoNothing()
+		.returning({ k: grupUyeleri.kullaniciId });
+	if (eklenen.length) await grupKatilimBildir(g.id, kullaniciId);
 	return g.id;
 }
 

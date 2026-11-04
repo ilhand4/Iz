@@ -13,6 +13,7 @@ import {
 	durumGuncelle,
 	geldigiYol
 } from '#lib/server/dugumler.ts';
+import { disBagKur, disBagSil, gelenDisBaglar, gidenDisBaglar } from '#lib/server/disBaglar.ts';
 import { gorselGuvenliMi } from '#lib/server/eserArama.ts';
 import { kanonikDugumu, kanonikGetir, kesifYollari, korKesisim } from '#lib/server/kesif.ts';
 import { durakEkle, dugumunIzleri, izSecenekleri } from '#lib/server/izler.ts';
@@ -32,17 +33,32 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const sahibiMi = sonuc.dugum.sahipId === izleyenId;
 	// Keşif bölümleri yalnızca sahibine ve yalnızca eserlerde (başkalarının açık içeriğinden)
 	const kesifVar = sahibiMi && sonuc.dugum.tur === 'eser';
-	const [baglar, yol, kapilar, izler, secenekler, eklenebilirIzler, kesisim, kesifler] =
-		await Promise.all([
-			dugumBaglari(params.id, izleyenId),
-			geldigiYol(params.id, izleyenId),
-			actigiKapilar(params.id, izleyenId),
-			dugumunIzleri(params.id, izleyenId),
-			sahibiMi ? dugumSecenekleri(sonuc.dugum.sahipId, params.id) : Promise.resolve([]),
-			sahibiMi ? izSecenekleri(sonuc.dugum.sahipId, params.id) : Promise.resolve([]),
-			kesifVar ? korKesisim(params.id) : Promise.resolve([]),
-			kesifVar ? kesifYollari(params.id) : Promise.resolve([])
-		]);
+	const [
+		baglar,
+		yol,
+		kapilar,
+		izler,
+		secenekler,
+		eklenebilirIzler,
+		kesisim,
+		kesifler,
+		gelenDis,
+		gidenDis,
+		kendiSeceneklerim
+	] = await Promise.all([
+		dugumBaglari(params.id, izleyenId),
+		geldigiYol(params.id, izleyenId),
+		actigiKapilar(params.id, izleyenId),
+		dugumunIzleri(params.id, izleyenId),
+		sahibiMi ? dugumSecenekleri(sonuc.dugum.sahipId, params.id) : Promise.resolve([]),
+		sahibiMi ? izSecenekleri(sonuc.dugum.sahipId, params.id) : Promise.resolve([]),
+		kesifVar ? korKesisim(params.id) : Promise.resolve([]),
+		kesifVar ? kesifYollari(params.id) : Promise.resolve([]),
+		gelenDisBaglar(params.id, izleyenId),
+		gidenDisBaglar(params.id, izleyenId),
+		// Başkasının düğümüne bakan kişi, kendi düğümlerinden birine bağ kurabilir
+		izleyenId && !sahibiMi ? dugumSecenekleri(izleyenId) : Promise.resolve([])
+	]);
 
 	// Sahip kimliği ve iç alanlar sayfaya gönderilmez
 	const { sahipId: _sahipId, silinme: _silinme, ...dugum } = sonuc.dugum;
@@ -58,6 +74,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		eklenebilirIzler,
 		kesisim,
 		kesifler,
+		gelenDis,
+		gidenDis,
+		kendiSeceneklerim,
 		indekslenebilir: dugum.gizlilik === 'herkes' && sonuc.sahip.aramaMotorlari,
 		eklendi: url.searchParams.has('eklendi'),
 		getirenSor: url.searchParams.has('getiren')
@@ -146,6 +165,32 @@ export const actions: Actions = {
 						: 'Durum kaldırıldı.'
 			}
 		};
+	},
+
+	/** Başkasının bu düğümünden kendi düğümüne bağ ("senin izin beni buraya götürdü") */
+	disBagKur: async ({ params, request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const fd = await request.formData();
+		const hedefId = alan(fd, 'digerId');
+		const not = alan(fd, 'not').slice(0, 1000) || null;
+		if (!uuidMu(params.id)) error(404, BULUNAMADI);
+		if (!uuidMu(hedefId)) return fail(400, { disHata: 'Kendi haritandan bir düğüm seç.' });
+		const durum = await disBagKur(kullanici.id, params.id, hedefId, not);
+		if (durum === 'yetkisiz') error(404, BULUNAMADI);
+		if (durum === 'zaten-var') return fail(400, { disHata: 'Bu bağı zaten kurmuşsun.' });
+		return {
+			bildirim: {
+				mesaj: 'Bağ kuruldu; düğümün sahibine haber verildi.',
+				baglanti: { href: `/dugumler/${hedefId}`, metin: 'Düğümüne git' }
+			}
+		};
+	},
+
+	disBagSil: async ({ request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const bagId = alan(await request.formData(), 'bagId');
+		if (!uuidMu(bagId) || !(await disBagSil(kullanici.id, bagId))) error(404, 'Bağ bulunamadı.');
+		return { bildirim: { mesaj: 'Bağ kaldırıldı.' } };
 	},
 
 	/** Keşif yolundaki eseri merak listesine ekler; bu düğümden ona bağ kurar */

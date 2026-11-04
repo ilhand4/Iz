@@ -353,7 +353,8 @@ export function izDogrula(fd: FormData): Sonuc<IzVerisi> {
 	else if (d.baslik.length > 120) hatalar.baslik = 'İzin adı en fazla 120 karakter olabilir.';
 	if (d.aciklama.length > 2000) hatalar.aciklama = 'Açıklama en fazla 2000 karakter olabilir.';
 	const gizlilik = d.gizlilik || 'ozel';
-	if (!gizlilikMi(gizlilik)) hatalar.gizlilik = 'Geçerli bir gizlilik düzeyi seçin.';
+	if (!gizlilikMi(gizlilik) || gizlilik === 'golge')
+		hatalar.gizlilik = 'Geçerli bir gizlilik düzeyi seçin.';
 
 	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: d };
 	return {

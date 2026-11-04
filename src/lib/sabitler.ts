@@ -2,8 +2,13 @@
 
 export const DUGUM_TURLERI = ['eser', 'kisi', 'yer', 'karar', 'ani'] as const;
 export const ESER_TURLERI = ['kitap', 'film', 'dizi', 'muzik', 'oyun', 'podcast'] as const;
-/** ozel: yalnızca sahibi; grup: sahiple en az bir ortak grubu olanlar; herkes: herkese açık */
-export const GIZLILIK_DUZEYLERI = ['ozel', 'grup', 'herkes'] as const;
+/**
+ * ozel: yalnızca sahibi; grup: sahiple en az bir ortak grubu olanlar; golge: başkaları yalnızca
+ * bağlantıyı ve türü görür, içerik gizli (yalnızca düğümler); herkes: herkese açık
+ */
+export const GIZLILIK_DUZEYLERI = ['ozel', 'grup', 'golge', 'herkes'] as const;
+/** İzlerde "gölge" anlamsız: iz ya görünür ya görünmez */
+export const IZ_GIZLILIK_DUZEYLERI = ['ozel', 'grup', 'herkes'] as const;
 export const TARIH_HASSASIYETLERI = ['gun', 'ay', 'yil'] as const;
 /** Yalnızca eserler için: merak listesi ve okuma/izleme durumu */
 export const ESER_DURUMLARI = ['merak', 'suruyor', 'bitti', 'yarim'] as const;
@@ -67,12 +72,15 @@ export const ESER_TURU_ETIKETI: Record<EserTuru, string> = {
 export const GIZLILIK_ETIKETI: Record<Gizlilik, string> = {
 	ozel: 'Özel',
 	grup: 'Gruplarım',
+	golge: 'Gölge',
 	herkes: 'Herkese açık'
 };
 
 export const GIZLILIK_ACIKLAMASI: Record<Gizlilik, string> = {
 	ozel: 'Yalnızca sen görürsün.',
 	grup: 'Üye olduğun gruplardaki herkes görür (aile, arkadaşlar, kulüp…).',
+	golge:
+		'Başkaları açık haritanda yalnızca bir bağlantı ve türünü görür; başlığı ve içeriği gizli kalır.',
 	herkes: 'Bağlantıyı bilen herkes görebilir.'
 };
 

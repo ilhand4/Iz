@@ -1,9 +1,11 @@
 // Herkese açık profil: başkalarının gördüğü hâliyle (sahibi baksa bile) yalnızca "herkes" içerik.
+import { randomUUID } from 'node:crypto';
 import { and, asc, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import { agKonumlari, baglar, dugumler, kullanicilar } from './db/schema';
-import { gorunurluk, type HaritaBagi, type HaritaDugumu } from './dugumler';
+import { dolayliBaglar } from '../dolayli';
+import { etkin, type HaritaBagi, type HaritaDugumu } from './dugumler';
 import { izleriListele } from './izler';
 
 const kaynakD = alias(dugumler, 'kaynak');
@@ -24,7 +26,14 @@ export async function profilGetir(kullaniciAdi: string) {
 	return k ?? null;
 }
 
-/** Profilin açık haritası: herkese açık düğümler (sahibinin ağ yerleşimiyle) ve aralarındaki bağlar */
+export type ProfilAgDugumu = HaritaDugumu & { golge?: boolean };
+export type ProfilAgBagi = HaritaBagi & { dolayli?: boolean };
+
+/**
+ * Profilin açık haritası. Herkese açık düğümler içerikleriyle; "gölge" düğümler yalnızca tür
+ * şekliyle ve her istekte yeniden üretilen anonim kimlikle; gizli düğümlerden geçen yollar tek
+ * bir "dolaylı" bağ olarak (aradaki düğümlerin sayısı, türü ve notları sızmadan).
+ */
 export async function profilVerisi(sahipId: string) {
 	const [dugumListesi, bagListesi, izListesi] = await Promise.all([
 		db
@@ -45,9 +54,10 @@ export async function profilVerisi(sahipId: string) {
 			})
 			.from(dugumler)
 			.leftJoin(agKonumlari, eq(agKonumlari.dugumId, dugumler.id))
-			.where(and(eq(dugumler.sahipId, sahipId), gorunurluk(dugumler, null)))
+			.where(and(eq(dugumler.sahipId, sahipId), etkin(dugumler)))
 			.orderBy(asc(dugumler.tarih), asc(dugumler.baslik))
-			.limit(2000),
+			.limit(5000),
+		// Sahibin tüm bağları yalnızca sunucuda, dolaylı yolları bulmak için okunur
 		db
 			.select({
 				id: baglar.id,
@@ -58,13 +68,59 @@ export async function profilVerisi(sahipId: string) {
 			.from(baglar)
 			.innerJoin(kaynakD, eq(baglar.kaynakId, kaynakD.id))
 			.innerJoin(hedefD, eq(baglar.hedefId, hedefD.id))
-			.where(and(eq(baglar.sahipId, sahipId), gorunurluk(kaynakD, null), gorunurluk(hedefD, null)))
-			.limit(10000),
+			.where(and(eq(baglar.sahipId, sahipId), etkin(kaynakD), etkin(hedefD)))
+			.limit(20000),
 		izleriListele(sahipId, { izleyenId: null, limit: 50 })
 	]);
+
+	const acik = dugumListesi.filter((d) => d.gizlilik === 'herkes') as HaritaDugumu[];
+	const golgeler = dugumListesi.filter((d) => d.gizlilik === 'golge');
+	const anonim = new Map(golgeler.map((d) => [d.id, `g-${randomUUID()}`]));
+	const gorunur = new Set([...acik.map((d) => d.id), ...golgeler.map((d) => d.id)]);
+	const disaKimlik = (id: string) => anonim.get(id) ?? id;
+
+	const agDugumleri: ProfilAgDugumu[] = [
+		...acik,
+		...golgeler.map((d) => ({
+			id: anonim.get(d.id)!,
+			tur: d.tur,
+			eserTuru: null,
+			baslik: '',
+			altBaslik: null,
+			gorselUrl: null,
+			gizlilik: 'golge' as const,
+			tarih: null,
+			tarihHassasiyeti: null,
+			durum: null,
+			yerAdi: null,
+			x: d.x,
+			y: d.y,
+			golge: true
+		}))
+	];
+	const dogrudan: ProfilAgBagi[] = bagListesi
+		.filter((b) => gorunur.has(b.kaynakId) && gorunur.has(b.hedefId))
+		.map((b) => {
+			const ikisiAcik = !anonim.has(b.kaynakId) && !anonim.has(b.hedefId);
+			return {
+				id: ikisiAcik ? b.id : `b-${randomUUID()}`,
+				kaynakId: disaKimlik(b.kaynakId),
+				hedefId: disaKimlik(b.hedefId),
+				not: ikisiAcik ? b.not : null
+			};
+		});
+	const dolaylilar: ProfilAgBagi[] = dolayliBaglar(gorunur, bagListesi).map((b) => ({
+		id: `d-${randomUUID()}`,
+		kaynakId: disaKimlik(b.kaynakId),
+		hedefId: disaKimlik(b.hedefId),
+		not: null,
+		dolayli: true
+	}));
+
 	return {
-		dugumler: dugumListesi as HaritaDugumu[],
-		baglar: bagListesi as HaritaBagi[],
+		/** Kartlarda yalnızca herkese açık düğümler */
+		dugumler: acik,
+		ag: { dugumler: agDugumleri, baglar: [...dogrudan, ...dolaylilar] },
 		izler: izListesi
 	};
 }

@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import Alan from '#lib/bilesenler/Alan.svelte';
+	import GecisAnahtari from '#lib/bilesenler/GecisAnahtari.svelte';
 	import type { PageProps } from './$types';
 
 	let { form }: PageProps = $props();
@@ -64,6 +65,9 @@
 			</button>
 		</form>
 
+		<div class="ya-da" aria-hidden="true"><span>ya da</span></div>
+		<GecisAnahtari kip="giris" donus={page.url.searchParams.get('donus')} />
+
 		<p class="kucuk soluk alt-not">Hesabın yok mu? <a href="/kayit">Kayıt ol</a></p>
 	</div>
 </div>
@@ -79,6 +83,20 @@
 	.sifre-unuttum {
 		margin: calc(-1 * var(--a-2)) 0 0;
 		text-align: right;
+	}
+	.ya-da {
+		display: flex;
+		align-items: center;
+		gap: var(--a-3);
+		margin: var(--a-4) 0 var(--a-3);
+		color: var(--metin-soluk);
+		font-size: var(--boyut-sm);
+	}
+	.ya-da::before,
+	.ya-da::after {
+		content: '';
+		flex: 1;
+		border-top: 1px solid var(--cizgi);
 	}
 	.alt-not {
 		margin: var(--a-4) 0 0;

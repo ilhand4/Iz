@@ -17,6 +17,7 @@ import {
 	sifreDegistir
 } from '#lib/server/hesap.ts';
 import { iceAktar } from '#lib/server/disaIceAktar.ts';
+import { anahtarlariListele, anahtarSil } from '#lib/server/gecisAnahtari.ts';
 import { dogrulamaGonder, epostaDegistiBildir } from '#lib/server/epostaJetonu.ts';
 import {
 	beklemeMesaji,
@@ -31,12 +32,13 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const kullanici = girisGerekli(locals, url);
-	const [hesap, oturumlar] = await Promise.all([
+	const [hesap, oturumlar, anahtarlar] = await Promise.all([
 		hesapGetir(kullanici.id),
-		oturumlariListele(kullanici.id, locals.oturumId)
+		oturumlariListele(kullanici.id, locals.oturumId),
+		anahtarlariListele(kullanici.id)
 	]);
 	if (!hesap) error(404, 'Hesap bulunamadı.');
-	return { hesap, oturumlar };
+	return { hesap, oturumlar, anahtarlar };
 };
 
 const EN_BUYUK_DOSYA = 5 * 1024 * 1024;
@@ -118,6 +120,13 @@ export const actions: Actions = {
 		return {
 			bildirim: { mesaj: 'Şifren değiştirildi. Diğer cihazlardaki oturumlar kapatıldı.' }
 		};
+	},
+
+	gecisSil: async ({ request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const id = alan(await request.formData(), 'id');
+		if (!id || !(await anahtarSil(kullanici.id, id))) error(404, 'Geçiş anahtarı bulunamadı.');
+		return { bildirim: { mesaj: 'Geçiş anahtarı kaldırıldı.' } };
 	},
 
 	oturumKapat: async ({ request, locals, url }) => {

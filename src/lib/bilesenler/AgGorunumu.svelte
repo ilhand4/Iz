@@ -51,8 +51,17 @@
 		/** Kayıtlı konum (yoksa null) */
 		x?: number | null;
 		y?: number | null;
+		/** Gölge düğüm: başkasının açık haritasında yalnızca tür şekli (başlık ve içerik yok) */
+		golge?: boolean;
 	};
-	type AgBagi = { id: string; kaynakId: string; hedefId: string; not: string | null };
+	type AgBagi = {
+		id: string;
+		kaynakId: string;
+		hedefId: string;
+		not: string | null;
+		/** Gizli düğümlerden geçen yolun tek bağa indirilmiş hâli */
+		dolayli?: boolean;
+	};
 	type Props = {
 		dugumler: AgDugumu[];
 		baglar: AgBagi[];
@@ -213,6 +222,27 @@
 					'z-index': 9
 				}
 			},
+			{
+				// Gölge düğüm: buzlu cam görünümü, kesikli kontur, etiket yok
+				selector: 'node[golge = 1]',
+				style: {
+					'background-opacity': 0.12,
+					'border-style': 'dashed',
+					'border-width': 2,
+					'border-color': r.soluk,
+					label: ''
+				}
+			},
+			{
+				// Dolaylı bağ: aradaki gizli düğümler gösterilmez
+				selector: 'edge[dolayli = 1]',
+				style: {
+					'line-style': 'dotted',
+					'line-dash-pattern': [2, 5],
+					'target-arrow-shape': 'triangle-backcurve',
+					opacity: 0.7
+				}
+			},
 			{ selector: '.soluk', style: { opacity: 0.13 } },
 			{ selector: '.gizli', style: { display: 'none' } }
 		];
@@ -255,7 +285,8 @@
 					id: d.id,
 					tur: d.tur,
 					durum: d.durum ?? '',
-					etiket: kisalt(d.baslik, 30),
+					etiket: d.golge ? '' : kisalt(d.baslik, 30),
+					golge: d.golge ? 1 : 0,
 					derece: derece.get(d.id) ?? 0
 				},
 				position: konumlar?.get(d.id)
@@ -268,7 +299,8 @@
 						id: b.id,
 						source: b.kaynakId,
 						target: b.hedefId,
-						not: b.not ? kisalt(b.not, 42) : ''
+						not: b.not ? kisalt(b.not, 42) : '',
+						dolayli: b.dolayli ? 1 : 0
 					}
 				}))
 		];
@@ -512,7 +544,9 @@
 				ag.on('tap', (e) => {
 					if (e.target === ag) sec(null);
 				});
-				ag.on('dbltap', 'node', (e) => goto(`/dugumler/${e.target.id()}`));
+				ag.on('dbltap', 'node', (e) => {
+					if (!e.target.data('golge')) goto(`/dugumler/${e.target.id()}`);
+				});
 				ag.on('mouseover', 'node', () => (tuval.style.cursor = 'pointer'));
 				ag.on('mouseout', 'node', () => (tuval.style.cursor = ''));
 				ag.on('dragfree', 'node', (e) => surukleKaydet(e.target.id()));
@@ -663,7 +697,12 @@
 						<Simge ad="kapat" boyut={18} />
 					</button>
 				</div>
-				<h2><a href="/dugumler/{secili.id}">{secili.baslik}</a></h2>
+				{#if secili.golge}
+					<h2>Gölge düğüm</h2>
+					<p class="alt">Sahibi bu düğümün yalnızca bağlantılarını paylaşıyor; içeriği gizli.</p>
+				{:else}
+					<h2><a href="/dugumler/{secili.id}">{secili.baslik}</a></h2>
+				{/if}
 				{#if secili.altBaslik}<p class="alt">{secili.altBaslik}</p>{/if}
 				{#if secili.tarih}
 					<p class="tarih">
@@ -704,9 +743,11 @@
 					<p class="soluk kucuk">Bu düğümün henüz bir bağı yok.</p>
 				{/if}
 
-				<a class="dugme dugme-birincil dugme-kucuk tam" href="/dugumler/{secili.id}">
-					Ayrıntılar <Simge ad="ok" boyut={16} />
-				</a>
+				{#if !secili.golge}
+					<a class="dugme dugme-birincil dugme-kucuk tam" href="/dugumler/{secili.id}">
+						Ayrıntılar <Simge ad="ok" boyut={16} />
+					</a>
+				{/if}
 			</aside>
 		{/if}
 	</div>

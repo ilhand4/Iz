@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Alan from '#lib/bilesenler/Alan.svelte';
+	import GecisAnahtari from '#lib/bilesenler/GecisAnahtari.svelte';
 	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import { gunYaz } from '#lib/tarih.ts';
@@ -22,6 +23,7 @@
 		['profil', 'Profil'],
 		['eposta', 'E-posta'],
 		['sifre', 'Şifre'],
+		['gecis', 'Geçiş anahtarları'],
 		['oturumlar', 'Oturumlar'],
 		['veriler', 'Verilerin'],
 		['sil', 'Hesabı sil']
@@ -218,6 +220,37 @@
 					</div>
 					<div class="satir"><button class="dugme">Şifreyi değiştir</button></div>
 				</form>
+			</section>
+
+			<section id="gecis" class="kart bolum" aria-labelledby="gecis-baslik">
+				<h2 id="gecis-baslik">Geçiş anahtarları</h2>
+				<p class="kucuk soluk">
+					Şifre yerine cihazının kilidiyle (parmak izi, yüz, PIN) giriş yap. Anahtar cihazında
+					kalır; İz yalnızca açık anahtarı saklar.
+				</p>
+				{#if data.anahtarlar.length}
+					<ul class="oturum-listesi">
+						{#each data.anahtarlar as a (a.id)}
+							<li>
+								<span class="oturum-bilgi">
+									<strong>{a.ad}</strong>
+									<small class="soluk">
+										Eklendi {gunYaz(a.olusturma)}{a.sonKullanim
+											? ` · son kullanım ${zamanYaz(a.sonKullanim)}`
+											: ''}
+									</small>
+								</span>
+								<form method="POST" action="?/gecisSil" use:enhance>
+									<input type="hidden" name="id" value={a.id} />
+									<button class="dugme dugme-kucuk" aria-label="{a.ad} geçiş anahtarını kaldır"
+										>Kaldır</button
+									>
+								</form>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+				<GecisAnahtari kip="kayit" />
 			</section>
 
 			<section id="oturumlar" class="kart bolum" aria-labelledby="oturumlar-baslik">

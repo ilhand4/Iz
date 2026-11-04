@@ -8,7 +8,7 @@
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import TurRozeti from '#lib/bilesenler/TurRozeti.svelte';
 	import TurSekli from '#lib/bilesenler/TurSekli.svelte';
-	import { durumEtiketi, ESER_DURUMLARI } from '#lib/sabitler.ts';
+	import { durumEtiketi, ESER_DURUMLARI, type DugumTuru } from '#lib/sabitler.ts';
 	import { tarihYaz } from '#lib/tarih.ts';
 	import type { PageProps } from './$types';
 
@@ -55,6 +55,35 @@
 	{#if data.sahibiMi}
 		<a href="/dugumler" class="geri"><Simge ad="geri" boyut={16} /> Düğümler</a>
 	{/if}
+
+	{#snippet disOge(
+		bag: {
+			id: string;
+			not: string | null;
+			dugum: { id: string; baslik: string; tur: DugumTuru };
+			kisi: { ad: string; kullaniciAdi: string };
+		},
+		silinebilir: boolean
+	)}
+		<li class="dis-bag">
+			<span class="dis-ust">
+				<a href="/dugumler/{bag.dugum.id}"
+					><TurSekli tur={bag.dugum.tur} boyut={11} /> {bag.dugum.baslik}</a
+				>
+				<a class="kucuk soluk" href="/@{bag.kisi.kullaniciAdi}">@{bag.kisi.kullaniciAdi}</a>
+			</span>
+			{#if bag.not}<span class="kucuk not">“{bag.not}”</span>{/if}
+			{#if silinebilir}
+				<form method="POST" action="?/disBagSil" use:enhance>
+					<input type="hidden" name="bagId" value={bag.id} />
+					<button
+						class="dugme dugme-kucuk dugme-hayalet"
+						aria-label="{bag.dugum.baslik} bağını kaldır">Kaldır</button
+					>
+				</form>
+			{/if}
+		</li>
+	{/snippet}
 
 	{#snippet gelenFormu()}
 		<form method="POST" action="?/bagKur" class="yigin" use:enhance>
@@ -219,6 +248,58 @@
 				<p class="soluk kucuk">Henüz buradan bir yere giden bağ yok.</p>
 			{/if}
 
+			{#if data.gidenDis.gorunur.length || data.gidenDis.gizliSayisi}
+				<div class="kart dis-kart">
+					<h3>Başkalarını da bir yere götürdü</h3>
+					{#if data.gidenDis.gorunur.length}
+						<ul class="dis-listesi">
+							{#each data.gidenDis.gorunur as bag (bag.id)}
+								{@render disOge(bag, false)}
+							{/each}
+						</ul>
+					{/if}
+					{#if data.gidenDis.gizliSayisi}
+						<p class="kucuk soluk">
+							{data.gidenDis.gorunur.length
+								? `${data.gidenDis.gizliSayisi} kişi daha`
+								: `${data.gidenDis.gizliSayisi} kişi`}
+							buradan kendi haritasında bir yere gitti.
+						</p>
+					{/if}
+				</div>
+			{/if}
+
+			{#if data.kendiSeceneklerim.length}
+				<details class="kart bag-formu" open={!!form?.disHata}>
+					<summary>Bu seni de bir yere götürdü mü?</summary>
+					<form method="POST" action="?/disBagKur" class="yigin" use:enhance>
+						<Alan
+							id="disHedef"
+							etiket="Kendi haritandan: “{d.baslik}” beni şuna götürdü"
+							hata={form?.disHata}
+						>
+							<DugumSecici
+								id="disHedef"
+								ad="digerId"
+								secenekler={data.kendiSeceneklerim}
+								hata={form?.disHata}
+							/>
+						</Alan>
+						<Alan
+							id="disNot"
+							etiket="Nasıl?"
+							ipucu="İsteğe bağlı. Notun, düğümünü görebilenlere görünür."
+						>
+							<input id="disNot" name="not" maxlength="1000" />
+						</Alan>
+						<p class="kucuk soluk">
+							{data.sahip.ad} bir bildirim alır. Düğümün özelse adını ve notunu göremez.
+						</p>
+						<div class="satir"><button class="dugme dugme-birincil">Bağı kur</button></div>
+					</form>
+				</details>
+			{/if}
+
 			{#if data.sahibiMi}
 				<div class="kart bag-formu">
 					<h3>Yeni bağ kur</h3>
@@ -310,8 +391,19 @@
 						/>
 					{/each}
 				</ul>
-			{:else}
+			{:else if !data.gelenDis.length}
 				<p class="soluk kucuk">Buraya gelen bir bağ yok.</p>
+			{/if}
+
+			{#if data.gelenDis.length}
+				<div class="kart dis-kart">
+					<h3>Başkalarının haritasından</h3>
+					<ul class="dis-listesi">
+						{#each data.gelenDis as bag (bag.id)}
+							{@render disOge(bag, bag.sahibiBenMiyim)}
+						{/each}
+					</ul>
+				</div>
 			{/if}
 
 			{#if data.sahibiMi && data.secenekler.length && !getirenSorusu}
@@ -681,6 +773,48 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--a-1);
+	}
+	.dis-kart h3 {
+		margin: 0 0 var(--a-2);
+		font-size: var(--boyut-md);
+	}
+	.dis-kart p {
+		margin: var(--a-2) 0 0;
+	}
+	.dis-listesi {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-2);
+	}
+	.dis-bag {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--a-1) var(--a-3);
+	}
+	.dis-bag form {
+		margin: 0;
+	}
+	.dis-ust {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: var(--a-1) var(--a-2);
+	}
+	.dis-ust a:first-child {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-1);
+		font-weight: 600;
+	}
+	.dis-bag .not {
+		flex-basis: 100%;
+		font-style: italic;
+		color: var(--metin-soluk);
 	}
 	.iz-izgarasi {
 		display: grid;

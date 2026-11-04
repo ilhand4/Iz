@@ -44,6 +44,17 @@
 <svelte:head>
 	<title>{iz.baslik} · İz</title>
 	{#if iz.aciklama}<meta name="description" content={iz.aciklama} />{/if}
+	{#if iz.gizlilik === 'herkes'}
+		<!-- Paylaşım kartı: yalnızca herkese açık izlerde -->
+		<meta property="og:type" content="article" />
+		<meta property="og:title" content={iz.baslik} />
+		<meta property="og:description" content={iz.aciklama ?? `${data.sahip.ad} adlı kişinin izi`} />
+		<meta property="og:url" content="{page.url.origin}/izler/{iz.id}" />
+		<meta property="og:image" content="{page.url.origin}/izler/{iz.id}/og.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta name="twitter:card" content="summary_large_image" />
+	{/if}
 </svelte:head>
 
 <div class="kap kap-orta yigin">

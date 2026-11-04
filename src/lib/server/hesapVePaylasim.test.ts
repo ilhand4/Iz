@@ -1,6 +1,6 @@
 // Aşama 3a (ilk parti): hesap ayarları, oturumlar, herkese açık profil ve veri taşıma.
 // PGlite üzerinde gerçek migration'larla.
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('./db/index.ts', async () => {
@@ -83,10 +83,46 @@ describe('herkese açık profil', () => {
 		expect(profil).toMatchObject({ kullaniciAdi: 'ali', aramaMotorlari: false });
 		const veri = await profilVerisi(ali);
 		expect(veri.dugumler.map((x) => x.baslik).sort()).toEqual(['Açık bir', 'Açık iki']);
-		expect(veri.baglar.map((b) => b.not)).toEqual(['açık not']);
+		expect(veri.ag.baglar.map((b) => b.not)).toEqual(['açık not']);
 		expect(veri.izler.map((i) => i.baslik)).toEqual(['Açık iz']);
 		expect(JSON.stringify(veri)).not.toContain('GİZLİ');
 		expect(JSON.stringify(veri)).not.toContain('gizli not');
+	});
+
+	it('gölge düğüm yalnızca anonim şekil; gizliden geçen yol tek dolaylı bağ olur', async () => {
+		const [g] = await db
+			.insert(dugumler)
+			.values({ sahipId: ali, tur: 'kisi', baslik: 'GÖLGEDEKİ KİŞİ', gizlilik: 'golge' })
+			.returning({ id: dugumler.id });
+		const [ara] = await db
+			.insert(dugumler)
+			.values({ sahipId: ali, tur: 'yer', baslik: 'GİZLİ ARA DURAK', gizlilik: 'ozel' })
+			.returning({ id: dugumler.id });
+		await db.insert(baglar).values([
+			{ sahipId: ali, kaynakId: d.acik2, hedefId: g.id, not: 'gölgeye not' },
+			{ sahipId: ali, kaynakId: g.id, hedefId: ara.id },
+			{ sahipId: ali, kaynakId: ara.id, hedefId: d.acik1 }
+		]);
+		const ilk = await profilVerisi(ali);
+		const metin = JSON.stringify(ilk);
+		expect(metin).not.toContain('GÖLGEDEKİ');
+		expect(metin).not.toContain('GİZLİ ARA');
+		expect(metin).not.toContain('gölgeye not');
+		expect(metin).not.toContain(g.id);
+		expect(metin).not.toContain(ara.id);
+		const golge = ilk.ag.dugumler.find((x) => x.golge)!;
+		expect(golge).toMatchObject({ tur: 'kisi', baslik: '' });
+		expect(ilk.ag.baglar.filter((b) => b.dolayli).map((b) => [b.kaynakId, b.hedefId])).toEqual([
+			[golge.id, d.acik1]
+		]);
+		// Anonim kimlik her istekte değişir (izlenemez)
+		const ikinci = await profilVerisi(ali);
+		expect(ikinci.ag.dugumler.find((x) => x.golge)!.id).not.toBe(golge.id);
+		// Gölge düğümün sayfası başkasına kapalı
+		const veriModulu = await import('./dugumler.ts');
+		expect(await veriModulu.dugumGetir(g.id, banu)).toBeNull();
+		// Sonraki testlerin verisini etkilemesin (bağlar zincirleme silinir)
+		await db.delete(dugumler).where(inArray(dugumler.id, [g.id, ara.id]));
 	});
 
 	it('iz önizlemesi başkasına özel durak başlığını göstermez ama sayıyı doğru verir', async () => {

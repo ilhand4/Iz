@@ -125,6 +125,28 @@ export const grupUyeleri = pgTable(
 	]
 );
 
+/** Geçiş anahtarları (passkey / WebAuthn): şifresiz giriş */
+export const gecisAnahtarlari = pgTable(
+	'gecis_anahtarlari',
+	{
+		/** Kimlik bilgisinin kimliği (base64url) */
+		id: text('id').primaryKey(),
+		kullaniciId: uuid('kullanici_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		/** COSE açık anahtarı (base64url) */
+		acikAnahtar: text('acik_anahtar').notNull(),
+		sayac: integer('sayac').notNull().default(0),
+		/** "internal,hybrid" gibi */
+		aktarimlar: text('aktarimlar'),
+		/** Kullanıcının verdiği ad ya da cihaz özeti ("Edge · Windows") */
+		ad: text('ad').notNull(),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow(),
+		sonKullanim: zamanDamgasi('son_kullanim')
+	},
+	(t) => [index('gecis_anahtarlari_kullanici_idx').on(t.kullaniciId)]
+);
+
 /** Tek kullanımlık e-posta bağlantıları (şifre sıfırlama, e-posta doğrulama) */
 export const epostaJetonlari = pgTable(
 	'eposta_jetonlari',
@@ -292,6 +314,8 @@ export const izler = pgTable(
 	(t) => [
 		index('izler_sahip_idx').on(t.sahipId),
 		index('izler_arama_trgm_idx').using('gin', sql`${t.aramaMetni} gin_trgm_ops`),
+		// "gölge" yalnızca düğümler için (metne çevirerek: aynı işlemde eklenen enum değeri kullanılamaz)
+		check('izler_golge_kontrol', sql`${t.gizlilik}::text <> 'golge'`),
 		check('izler_baslik_kontrol', sql`length(${t.baslik}) between 1 and 120`)
 	]
 );
@@ -337,6 +361,54 @@ export const agKonumlari = pgTable(
 			'ag_konumlari_sinir_kontrol',
 			sql`${t.x} between -10000000 and 10000000 and ${t.y} between -10000000 and 10000000`
 		)
+	]
+);
+
+// ——— Kullanıcılar arası: "Senin izin beni buraya götürdü" ———
+// Başkasının görebildiğin düğümünden kendi düğümüne bağ. Kuran kişi bağın sahibidir; kaynak
+// düğümün sahibine bildirim gider. Kaynak düğüm sonradan gizlenirse bağ kimseye gösterilmez.
+
+export const disBaglar = pgTable(
+	'dis_baglar',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		sahipId: uuid('sahip_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		kaynakId: uuid('kaynak_id')
+			.notNull()
+			.references(() => dugumler.id, { onDelete: 'cascade' }),
+		hedefId: uuid('hedef_id')
+			.notNull()
+			.references(() => dugumler.id, { onDelete: 'cascade' }),
+		not: text('not'),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		unique('dis_baglar_tekil').on(t.kaynakId, t.hedefId),
+		index('dis_baglar_hedef_idx').on(t.hedefId)
+	]
+);
+
+/** Uygulama içi bildirimler (beğeni ya da takipçi yok; yalnızca anlamlı olaylar) */
+export const bildirimKutusu = pgTable(
+	'bildirim_kutusu',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		aliciId: uuid('alici_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		/** dis_bag: biri senin düğümünden kendi düğümüne bağ kurdu; grup_katilim: grubuna biri katıldı */
+		tur: text('tur').notNull(),
+		aktorId: uuid('aktor_id').references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		disBagId: uuid('dis_bag_id').references(() => disBaglar.id, { onDelete: 'cascade' }),
+		grupId: uuid('grup_id').references(() => gruplar.id, { onDelete: 'cascade' }),
+		okundu: zamanDamgasi('okundu'),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		index('bildirim_kutusu_alici_idx').on(t.aliciId, t.olusturma),
+		check('bildirim_kutusu_tur_kontrol', sql`${t.tur} in ('dis_bag', 'grup_katilim')`)
 	]
 );
 

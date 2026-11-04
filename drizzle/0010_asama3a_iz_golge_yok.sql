@@ -1,0 +1,1 @@
+ALTER TABLE "izler" ADD CONSTRAINT "izler_golge_kontrol" CHECK ("izler"."gizlilik"::text <> 'golge');

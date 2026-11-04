@@ -286,7 +286,7 @@ export function iceAktarmaDogrula(girdi: unknown): IceAktarmaSonucu {
 		izler.push({
 			baslik,
 			aciklama: metin(x.aciklama, 2000),
-			gizlilik: gizlilikMi(x.gizlilik) ? x.gizlilik : 'ozel',
+			gizlilik: gizlilikMi(x.gizlilik) && x.gizlilik !== 'golge' ? x.gizlilik : 'ozel',
 			duraklar
 		});
 	}

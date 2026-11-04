@@ -1,0 +1,1 @@
+ALTER TYPE "public"."gizlilik" ADD VALUE 'golge' BEFORE 'herkes';

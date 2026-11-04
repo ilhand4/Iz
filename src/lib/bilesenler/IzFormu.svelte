@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Alan from './Alan.svelte';
+	import { IZ_GIZLILIK_DUZEYLERI } from '#lib/sabitler.ts';
 	import GizlilikSecici from './GizlilikSecici.svelte';
 
 	type Props = {
@@ -55,6 +56,7 @@
 		>
 	</Alan>
 	<GizlilikSecici
+		duzeyler={IZ_GIZLILIK_DUZEYLERI}
 		secili={degerler.gizlilik}
 		hata={hatalar.gizlilik}
 		baslik="Bu izi kim görebilir?"

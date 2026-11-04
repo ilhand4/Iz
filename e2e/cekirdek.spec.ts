@@ -132,7 +132,7 @@ test('ayarlar: profil kaydedilir, profil sayfası yalnızca açık içeriği gö
 	await page.getByLabel('Kısa tanıtım').fill('Kitaplardan şehirlere giden yollar.');
 	await page.getByRole('button', { name: 'Kaydet', exact: true }).click();
 	await expect(page.getByRole('status').filter({ hasText: 'Profilin kaydedildi.' })).toBeVisible();
-	await expect(page.getByText('Bu cihaz')).toBeVisible();
+	await expect(page.getByText('Bu cihaz', { exact: true })).toBeVisible();
 
 	await page.locator('#profil a[href^="/@"]').click();
 	await expect(page).toHaveURL(/\/@e2e_/);
@@ -153,6 +153,7 @@ test('veriler JSON olarak indirilir', async ({ page }) => {
 test('herkese açık iz başka sitelere gömülebilir, özel iz gömülemez', async ({ page }) => {
 	await page.goto('/izler');
 	await page.getByRole('link', { name: /Berlin izi/ }).click();
+	await expect(page).toHaveURL(/\/izler\/[0-9a-f-]{36}/);
 	const izAdresi = page.url().split('?')[0];
 
 	// Özel izin gömme sayfası yok
@@ -208,11 +209,58 @@ test('şifremi unuttum: kayıtlı olsun olmasın aynı yanıt', async ({ browser
 	const page = await baglam.newPage();
 	await page.goto('/giris');
 	await page.getByRole('link', { name: 'Şifremi unuttum' }).click();
+	await expect(page.getByRole('heading', { name: 'Şifreni mi unuttun?' })).toBeVisible();
 	await page.getByLabel('E-posta').fill('olmayan-hesap@iz.test');
+	await expect(page.getByLabel('E-posta')).toHaveValue('olmayan-hesap@iz.test');
 	await page.getByRole('button', { name: 'Bağlantı gönder' }).click();
 	await expect(page.getByRole('status')).toContainText('kayıtlı bir hesap varsa');
 
 	await page.goto('/sifre-sifirla?jeton=uydurma');
 	await expect(page.getByRole('heading', { name: 'Bağlantı geçersiz' })).toBeVisible();
 	await baglam.close();
+});
+
+test('herkese açık izin paylaşım görseli PNG olarak üretilir', async ({ page }) => {
+	await page.goto('/izler');
+	await page.getByRole('link', { name: /Berlin izi/ }).click();
+	await expect(page).toHaveURL(/\/izler\/[0-9a-f-]{36}/);
+	const izAdresi = page.url().split('?')[0];
+	await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\.png$/);
+	const png = await page.request.get(`${izAdresi}/og.png`);
+	expect(png.status()).toBe(200);
+	expect(png.headers()['content-type']).toBe('image/png');
+	expect((await png.body()).length).toBeGreaterThan(5000);
+});
+
+test('geçiş anahtarı eklenir ve şifresiz giriş yapılır', async ({ page }) => {
+	// Chromium/Edge sanal doğrulayıcısı (gerçek cihaz gerekmez)
+	const cdp = await page.context().newCDPSession(page);
+	await cdp.send('WebAuthn.enable');
+	await cdp.send('WebAuthn.addVirtualAuthenticator', {
+		options: {
+			protocol: 'ctap2',
+			transport: 'internal',
+			hasResidentKey: true,
+			hasUserVerification: true,
+			isUserVerified: true,
+			automaticPresenceSimulation: true
+		}
+	});
+
+	await page.goto('/ayarlar#gecis');
+	await page.getByRole('button', { name: 'Bu cihaza geçiş anahtarı ekle' }).click();
+	await expect(
+		page.getByRole('status').filter({ hasText: 'Geçiş anahtarı eklendi' })
+	).toBeVisible();
+	await expect(page.locator('#gecis li')).toHaveCount(1);
+
+	// Çıkış yap, aynı sayfada (aynı doğrulayıcıyla) geçiş anahtarıyla gir
+	await page.getByRole('button', { name: 'Çıkış yap' }).click();
+	await page.goto('/giris');
+	await page.getByRole('button', { name: 'Geçiş anahtarıyla giriş yap' }).click();
+	await expect(page).toHaveURL(/\/pano/);
+	await expect(page.getByRole('heading', { level: 1 })).toContainText('Merhaba');
+
+	// Kaydedilen oturum çerezi çıkışla geçersizleşti; sonraki testler için yenisini sakla
+	await page.context().storageState({ path: 'e2e/.oturum/kullanici.json' });
 });

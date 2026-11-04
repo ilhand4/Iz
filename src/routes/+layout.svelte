@@ -69,6 +69,20 @@
 				<TemaDugmesi baslangic={data.tema} />
 				{#if data.kullanici}
 					<a
+						class="dugme dugme-hayalet dugme-kucuk zil"
+						href="/bildirimler"
+						title="Bildirimler"
+						aria-current={page.url.pathname === '/bildirimler' ? 'page' : undefined}
+					>
+						<Simge ad="zil" />
+						<span class="gorunmez">Bildirimler</span>
+						{#if data.okunmamis}<span class="sayac"
+								>{data.okunmamis > 9 ? '9+' : data.okunmamis}<span class="gorunmez">
+									okunmamış</span
+								></span
+							>{/if}
+					</a>
+					<a
 						class="dugme dugme-hayalet dugme-kucuk hesap-baglantisi"
 						href="/ayarlar"
 						title="Ayarlar (@{data.kullanici.kullaniciAdi})"
@@ -212,6 +226,24 @@
 	.ekle-dugmesi {
 		display: none;
 		margin-right: var(--a-2);
+	}
+	.zil {
+		position: relative;
+	}
+	.sayac {
+		position: absolute;
+		top: 0;
+		right: 0;
+		min-width: 1.1rem;
+		height: 1.1rem;
+		padding: 0 0.25rem;
+		border-radius: var(--yaricap-tam);
+		background: var(--vurgu);
+		color: var(--vurgu-uzeri);
+		font-size: 0.65rem;
+		font-weight: 700;
+		line-height: 1.1rem;
+		text-align: center;
 	}
 	.kullanici {
 		display: none;

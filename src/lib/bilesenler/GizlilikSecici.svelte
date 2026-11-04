@@ -7,11 +7,23 @@
 	} from '#lib/sabitler.ts';
 	import Simge from './Simge.svelte';
 
-	type Props = { secili?: string; hata?: string | null; baslik?: string };
-	let { secili = 'ozel', hata = null, baslik = 'Kim görebilir?' }: Props = $props();
-	const SIMGE: Record<Gizlilik, 'kilit' | 'grup' | 'dunya'> = {
+	type Props = {
+		secili?: string;
+		hata?: string | null;
+		baslik?: string;
+		/** Sunulacak düzeyler (izlerde "gölge" yok) */
+		duzeyler?: readonly Gizlilik[];
+	};
+	let {
+		secili = 'ozel',
+		hata = null,
+		baslik = 'Kim görebilir?',
+		duzeyler = GIZLILIK_DUZEYLERI
+	}: Props = $props();
+	const SIMGE: Record<Gizlilik, 'kilit' | 'grup' | 'baglanti' | 'dunya'> = {
 		ozel: 'kilit',
 		grup: 'grup',
+		golge: 'baglanti',
 		herkes: 'dunya'
 	};
 </script>
@@ -19,7 +31,7 @@
 <fieldset class="alan">
 	<legend class="etiket">{baslik}</legend>
 	<div class="secenekler">
-		{#each GIZLILIK_DUZEYLERI as g (g)}
+		{#each duzeyler as g (g)}
 			<label class="secenek">
 				<input type="radio" name="gizlilik" value={g} checked={(secili || 'ozel') === g} />
 				<span class="simge"><Simge ad={SIMGE[g]} boyut={18} /></span>
