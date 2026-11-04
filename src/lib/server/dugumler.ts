@@ -2,7 +2,7 @@
 // - Okuma: sahibi her şeyi görür; başkaları yalnızca "herkes" düğümlerini.
 // - Yazma: yalnızca sahibi (her sorgu sahip_id ile süzülür).
 // - Çöp kutusundaki düğümler (silinme dolu) hiçbir okuma ve yazma sorgusunda görünmez.
-import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { DugumTuru, EserDurumu, EserTuru, Gizlilik, TarihHassasiyeti } from '../sabitler';
 import { sadelestir } from '../metin';
