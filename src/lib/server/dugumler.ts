@@ -9,7 +9,7 @@ import { sadelestir } from '../metin';
 import { buAyinTarihi } from '../tarih';
 import { db } from './db';
 import { agKonumlari, baglar, dugumler, kullanicilar } from './db/schema';
-import type { BagBilgisi, BagVerisi, DugumVerisi, GetirenGirdisi, Konum } from './dogrulama';
+import type { DugumVerisi, GetirenGirdisi, Konum } from './dogrulama';
 import { imlecYaz, type Imlec } from './imlec';
 import { likeKacir } from './yetki';
 
@@ -368,152 +368,8 @@ export async function dugumVeGetireniKaydet(
 	});
 }
 
-// ——— Bağlar ———
-
-const karsi = alias(dugumler, 'karsi');
 const kaynakD = alias(dugumler, 'kaynak');
 const hedefD = alias(dugumler, 'hedef');
-
-/** Düğümün giden ("şuna götürdü") ve gelen ("buna getirdi") bağları; karşı uç görünür olmalı */
-export async function dugumBaglari(dugumId: string, izleyenId: string | null) {
-	const alanlar = {
-		id: baglar.id,
-		not: baglar.not,
-		tarih: baglar.tarih,
-		tarihHassasiyeti: baglar.tarihHassasiyeti,
-		dugum: {
-			id: karsi.id,
-			baslik: karsi.baslik,
-			tur: karsi.tur,
-			eserTuru: karsi.eserTuru
-		}
-	};
-	const [giden, gelen] = await Promise.all([
-		db
-			.select(alanlar)
-			.from(baglar)
-			.innerJoin(karsi, eq(baglar.hedefId, karsi.id))
-			.where(and(eq(baglar.kaynakId, dugumId), gorunurluk(karsi, izleyenId)))
-			.orderBy(asc(baglar.olusturma)),
-		db
-			.select(alanlar)
-			.from(baglar)
-			.innerJoin(karsi, eq(baglar.kaynakId, karsi.id))
-			.where(and(eq(baglar.hedefId, dugumId), gorunurluk(karsi, izleyenId)))
-			.orderBy(asc(baglar.olusturma))
-	]);
-	return { giden, gelen };
-}
-
-export type YolDugumu = {
-	id: string;
-	baslik: string;
-	tur: DugumTuru;
-	eser_turu: EserTuru | null;
-	derinlik: number;
-};
-
-/**
- * Bağları özyinelemeli izler. "geri": bu düğüme hangi yollardan gelindi (geldiğin yol);
- * "ileri": bu düğüm nelere kapı açtı (açtığı kapılar). Döngülere karşı geçilen düğümler dizide
- * tutulur; görünmeyen ya da çöp kutusundaki düğümlerden geçilmez.
- */
-export async function yolBul(
-	dugumId: string,
-	izleyenId: string | null,
-	yon: 'geri' | 'ileri',
-	{ enFazlaDerinlik = 6, enFazla = 200 } = {}
-): Promise<YolDugumu[]> {
-	const izleyen = izleyenId ?? '00000000-0000-0000-0000-000000000000';
-	// Sütun adları sabit listeden seçilir; kullanıcı girdisi değildir
-	const sonraki = sql.raw(yon === 'geri' ? 'kaynak_id' : 'hedef_id');
-	const onceki = sql.raw(yon === 'geri' ? 'hedef_id' : 'kaynak_id');
-	const sonuc = await db.execute(sql`
-		with recursive yol(id, derinlik, gecilen) as (
-			select b.${sonraki}, 1, array[b.${onceki}, b.${sonraki}]
-			from baglar b
-			join dugumler d on d.id = b.${sonraki}
-			where b.${onceki} = ${dugumId}
-				and d.silinme is null
-				and (d.sahip_id = ${izleyen} or d.gizlilik = 'herkes')
-			union all
-			select b.${sonraki}, y.derinlik + 1, y.gecilen || b.${sonraki}
-			from yol y
-			join baglar b on b.${onceki} = y.id
-			join dugumler d on d.id = b.${sonraki}
-			where y.derinlik < ${enFazlaDerinlik}
-				and not b.${sonraki} = any(y.gecilen)
-				and d.silinme is null
-				and (d.sahip_id = ${izleyen} or d.gizlilik = 'herkes')
-		)
-		select d.id, d.baslik, d.tur, d.eser_turu, min(y.derinlik)::int as derinlik
-		from yol y
-		join dugumler d on d.id = y.id
-		group by d.id, d.baslik, d.tur, d.eser_turu
-		order by derinlik, d.baslik
-		limit ${enFazla}
-	`);
-	return satirlar<YolDugumu>(sonuc);
-}
-
-/** Bu düğüme hangi yollardan gelindi? */
-export function geldigiYol(dugumId: string, izleyenId: string | null) {
-	return yolBul(dugumId, izleyenId, 'geri');
-}
-
-/** Bu düğüm, bağlar üzerinden dolaylı olarak nelere kapı açtı? */
-export function actigiKapilar(dugumId: string, izleyenId: string | null) {
-	return yolBul(dugumId, izleyenId, 'ileri');
-}
-
-export type BagKurmaSonucu = 'kuruldu' | 'zaten-var' | 'yetkisiz';
-
-/** İki uç da bu kullanıcıya ait ve çöp kutusu dışında olmalı; aynı yönde ikinci bağ kurulmaz */
-export async function bagKur(sahipId: string, veri: BagVerisi): Promise<BagKurmaSonucu> {
-	if (veri.kaynakId === veri.hedefId) return 'yetkisiz';
-	const [{ sayi }] = await db
-		.select({ sayi: count() })
-		.from(dugumler)
-		.where(
-			and(
-				eq(dugumler.sahipId, sahipId),
-				etkin(dugumler),
-				or(eq(dugumler.id, veri.kaynakId), eq(dugumler.id, veri.hedefId))
-			)
-		);
-	if (sayi !== 2) return 'yetkisiz';
-
-	const eklenen = await db
-		.insert(baglar)
-		.values({ sahipId, ...veri })
-		.onConflictDoNothing({ target: [baglar.kaynakId, baglar.hedefId] })
-		.returning({ id: baglar.id });
-	return eklenen.length ? 'kuruldu' : 'zaten-var';
-}
-
-export async function bagGuncelle(bagId: string, sahipId: string, bilgi: BagBilgisi) {
-	const sonuc = await db
-		.update(baglar)
-		.set(bilgi)
-		.where(and(eq(baglar.id, bagId), eq(baglar.sahipId, sahipId)))
-		.returning({ id: baglar.id });
-	return sonuc.length > 0;
-}
-
-/** Bağı siler; "Geri al" için silinen bağın bilgisini döner */
-export async function bagSil(bagId: string, sahipId: string) {
-	const [silinen] = await db
-		.delete(baglar)
-		.where(and(eq(baglar.id, bagId), eq(baglar.sahipId, sahipId)))
-		.returning({
-			kaynakId: baglar.kaynakId,
-			hedefId: baglar.hedefId,
-			not: baglar.not,
-			tarih: baglar.tarih,
-			tarihHassasiyeti: baglar.tarihHassasiyeti
-		});
-	return silinen ?? null;
-}
 
 // ——— Ağ ve zaman çizgisi görünümleri ———
 
@@ -528,16 +384,27 @@ export type HaritaBagi = {
 	kaynakId: string;
 	hedefId: string;
 	not: string | null;
+	tur?: string | null;
 };
 
 /** Kullanıcının tüm düğümleri ve bağları: ağ ve zaman çizgisi aynı veriden çizilir */
-export async function haritaVerisi(sahipId: string) {
+/** Kullanıcının düğüm sayısı (büyük harita eşiği için) */
+export async function dugumSayisi(sahipId: string) {
+	const [{ sayi }] = await db
+		.select({ sayi: count() })
+		.from(dugumler)
+		.where(and(eq(dugumler.sahipId, sahipId), etkin(dugumler)));
+	return sayi;
+}
+
+export async function haritaVerisi(sahipId: string, idler?: string[]) {
+	const kisit = idler ? inArray(dugumler.id, idler.length ? idler : [sahipId]) : undefined;
 	const [tumDugumler, tumBaglar] = await Promise.all([
 		db
 			.select({ ...ozetAlanlari, yerAdi: dugumler.yerAdi, x: agKonumlari.x, y: agKonumlari.y })
 			.from(dugumler)
 			.leftJoin(agKonumlari, eq(agKonumlari.dugumId, dugumler.id))
-			.where(and(eq(dugumler.sahipId, sahipId), etkin(dugumler)))
+			.where(and(eq(dugumler.sahipId, sahipId), etkin(dugumler), kisit))
 			.orderBy(asc(dugumler.tarih), asc(dugumler.baslik))
 			.limit(5000),
 		db
@@ -545,12 +412,21 @@ export async function haritaVerisi(sahipId: string) {
 				id: baglar.id,
 				kaynakId: baglar.kaynakId,
 				hedefId: baglar.hedefId,
-				not: baglar.not
+				not: baglar.not,
+				tur: baglar.tur
 			})
 			.from(baglar)
 			.innerJoin(kaynakD, eq(baglar.kaynakId, kaynakD.id))
 			.innerJoin(hedefD, eq(baglar.hedefId, hedefD.id))
-			.where(and(eq(baglar.sahipId, sahipId), etkin(kaynakD), etkin(hedefD)))
+			.where(
+				and(
+					eq(baglar.sahipId, sahipId),
+					etkin(kaynakD),
+					etkin(hedefD),
+					idler ? inArray(baglar.kaynakId, idler.length ? idler : [sahipId]) : undefined,
+					idler ? inArray(baglar.hedefId, idler.length ? idler : [sahipId]) : undefined
+				)
+			)
 			.limit(20000)
 	]);
 	return { dugumler: tumDugumler as HaritaDugumu[], baglar: tumBaglar as HaritaBagi[] };

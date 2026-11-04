@@ -264,3 +264,29 @@ test('geçiş anahtarı eklenir ve şifresiz giriş yapılır', async ({ page })
 	// Kaydedilen oturum çerezi çıkışla geçersizleşti; sonraki testler için yenisini sakla
 	await page.context().storageState({ path: 'e2e/.oturum/kullanici.json' });
 });
+
+test('komut paleti Ctrl+K ile açılır ve düğüme götürür', async ({ page }) => {
+	await page.goto('/pano');
+	await expect(page.getByRole('heading', { level: 1 })).toContainText('Merhaba');
+	await page.keyboard.press('Control+k');
+	const palet = page.getByRole('dialog', { name: 'Komut paleti' });
+	await expect(palet).toBeVisible();
+	await palet.getByRole('combobox').fill('babilon');
+	await expect(palet.getByRole('option', { name: /Babylon Berlin/ })).toBeVisible();
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/\/dugumler\/[0-9a-f-]{36}$/);
+	await expect(page.getByRole('heading', { level: 1, name: 'Babylon Berlin' })).toBeVisible();
+});
+
+test('ağ görünümü adrese yazılır ve bağ türü lejantı süzer', async ({ page }) => {
+	await page.goto('/dugumler/ag?gizli=kisi');
+	await expect(page.getByRole('application', { name: /Bağlantı ağı/ })).toBeVisible();
+	await expect(page.getByRole('button', { name: /Kişiler/ })).toHaveAttribute(
+		'aria-pressed',
+		'false'
+	);
+	await expect(page.getByRole('button', { name: 'Bağ kur' })).toBeVisible();
+	// Deneme haritasında tek yıl var: zaman sürgüsü (gerekmediği için) gösterilmez
+	await expect(page.locator('#zaman-surgusu')).toHaveCount(0);
+	await expect(page).toHaveURL(/gizli=kisi/);
+});

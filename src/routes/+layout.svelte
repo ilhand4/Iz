@@ -4,12 +4,14 @@
 	import '#lib/stiller/tasarim.css';
 	import { page } from '$app/state';
 	import Bildirimler from '#lib/bilesenler/Bildirimler.svelte';
+	import KomutPaleti from '#lib/bilesenler/KomutPaleti.svelte';
 	import Logo from '#lib/bilesenler/Logo.svelte';
 	import Simge, { type SimgeAdi } from '#lib/bilesenler/Simge.svelte';
 	import TemaDugmesi from '#lib/bilesenler/TemaDugmesi.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
+	let palet: KomutPaleti | undefined = $state();
 
 	type MenuOgesi = { yol: string; etiket: string; simge: SimgeAdi };
 	const MENU: MenuOgesi[] = [
@@ -65,6 +67,17 @@
 					<a class="dugme dugme-birincil dugme-kucuk ekle-dugmesi" href="/dugumler/yeni">
 						<Simge ad="ekle" boyut={16} /> Ekle
 					</a>
+				{/if}
+				{#if data.kullanici}
+					<button
+						type="button"
+						class="dugme dugme-hayalet dugme-kucuk"
+						onclick={() => palet?.ac()}
+						title="Ara ve komutlar (Ctrl+K)"
+						aria-label="Komut paleti (Ctrl+K)"
+					>
+						<Simge ad="ara" />
+					</button>
 				{/if}
 				<TemaDugmesi baslangic={data.tema} />
 				{#if data.kullanici}
@@ -129,6 +142,7 @@
 	{/if}
 
 	<Bildirimler altMenu={!!data.kullanici} />
+	{#if data.kullanici}<KomutPaleti bind:this={palet} />{/if}
 
 	<footer class="alt" class:alt-menulu={!!data.kullanici}>
 		<div class="kap alt-ic">

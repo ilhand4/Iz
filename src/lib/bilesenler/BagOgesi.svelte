@@ -1,6 +1,14 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { DugumTuru, EserTuru, TarihHassasiyeti } from '#lib/sabitler.ts';
+	import {
+		BAG_TURU_ACIKLAMASI,
+		BAG_TURU_ETIKETI,
+		bagTuruMu,
+		type DugumTuru,
+		type EserTuru,
+		type TarihHassasiyeti
+	} from '#lib/sabitler.ts';
+	import BagTuruSecici from './BagTuruSecici.svelte';
 	import { tarihGirdisi, tarihYaz } from '#lib/tarih.ts';
 	import Alan from './Alan.svelte';
 	import Simge from './Simge.svelte';
@@ -12,6 +20,7 @@
 			not: string | null;
 			tarih: string | null;
 			tarihHassasiyeti: TarihHassasiyeti | null;
+			tur?: string | null;
 			dugum: { id: string; baslik: string; tur: DugumTuru; eserTuru: EserTuru | null };
 		};
 		yon: 'giden' | 'gelen';
@@ -30,13 +39,20 @@
 		<div class="baslik-satiri">
 			<a href="/dugumler/{bag.dugum.id}">{bag.dugum.baslik}</a>
 			<TurRozeti tur={bag.dugum.tur} eserTuru={bag.dugum.eserTuru} />
+			{#if bag.tur && bagTuruMu(bag.tur)}
+				<span class="rozet bag-turu" data-bag={bag.tur} title={BAG_TURU_ACIKLAMASI[bag.tur]}
+					>{BAG_TURU_ETIKETI[bag.tur]}</span
+				>
+			{/if}
 		</div>
 		{#if bag.not}<p class="not">“{bag.not}”</p>{/if}
 		{#if bag.tarih}<p class="tarih">{tarihYaz(bag.tarih, bag.tarihHassasiyeti)}</p>{/if}
 
 		{#if duzenlenebilir}
 			<details class="duzenle" bind:this={detay} open={!!hatalar}>
-				<summary>{bag.not || bag.tarih ? 'Notu düzenle' : 'Not ya da tarih ekle'}</summary>
+				<summary
+					>{bag.not || bag.tarih || bag.tur ? 'Bağı düzenle' : 'Not, tarih ya da tür ekle'}</summary
+				>
 				<form
 					method="POST"
 					action="?/bagGuncelle"
@@ -75,6 +91,7 @@
 							aria-invalid={!!hatalar?.tarih}
 						/>
 					</Alan>
+					<BagTuruSecici id="tur-{bag.id}" secili={degerler?.tur ?? bag.tur} />
 					<div class="satir"><button class="dugme dugme-birincil dugme-kucuk">Kaydet</button></div>
 				</form>
 			</details>
@@ -95,6 +112,23 @@
 </li>
 
 <style>
+	.bag-turu {
+		background: var(--yuzey-2);
+		color: var(--metin);
+		box-shadow: inset 3px 0 0 var(--bag-renk, var(--cizgi-guclu));
+	}
+	.bag-turu[data-bag='besler'] {
+		--bag-renk: var(--tur-yer);
+	}
+	.bag-turu[data-bag='celisir'] {
+		--bag-renk: var(--hata);
+	}
+	.bag-turu[data-bag='cagristirir'] {
+		--bag-renk: var(--tur-ani);
+	}
+	.bag-turu[data-bag='sentezler'] {
+		--bag-renk: var(--tur-karar);
+	}
 	.bag {
 		display: flex;
 		gap: var(--a-3);

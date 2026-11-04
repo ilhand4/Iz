@@ -13,6 +13,28 @@ export const TARIH_HASSASIYETLERI = ['gun', 'ay', 'yil'] as const;
 /** Yalnızca eserler için: merak listesi ve okuma/izleme durumu */
 export const ESER_DURUMLARI = ['merak', 'suruyor', 'bitti', 'yarim'] as const;
 
+/**
+ * Bağın anlamı (isteğe bağlı; belirtilmemişse null). Mevcut bağlar yanlış etiketlenmesin diye
+ * varsayılan yoktur.
+ */
+export const BAG_TURLERI = ['besler', 'celisir', 'cagristirir', 'sentezler'] as const;
+export type BagTuru = (typeof BAG_TURLERI)[number];
+export const BAG_TURU_ETIKETI: Record<BagTuru, string> = {
+	besler: 'Besler',
+	celisir: 'Çelişir',
+	cagristirir: 'Çağrıştırır',
+	sentezler: 'Sentezler'
+};
+export const BAG_TURU_ACIKLAMASI: Record<BagTuru, string> = {
+	besler: 'Biri ötekini besledi, derinleştirdi.',
+	celisir: 'Biri ötekine itiraz etti, gerilim yarattı.',
+	cagristirir: 'Biri ötekini hatırlattı; gevşek bir çağrışım.',
+	sentezler: 'İkisi birleşip yeni bir şeye dönüştü.'
+};
+export function bagTuruMu(deger: unknown): deger is BagTuru {
+	return typeof deger === 'string' && (BAG_TURLERI as readonly string[]).includes(deger);
+}
+
 export type DugumTuru = (typeof DUGUM_TURLERI)[number];
 export type EserTuru = (typeof ESER_TURLERI)[number];
 export type Gizlilik = (typeof GIZLILIK_DUZEYLERI)[number];

@@ -3,7 +3,8 @@ import { eq, or } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { kullanicilar } from '#lib/server/db/schema.ts';
 import { kayitDogrula } from '#lib/server/dogrulama.ts';
-import { beklemeMesaji, kayitSiniri } from '#lib/server/hizSiniri.ts';
+import { beklemeMesaji } from '#lib/server/hizSiniri.ts';
+import { kayitSiniri } from '#lib/server/sinirlar.ts';
 import { cihazAdi } from '#lib/server/cihaz.ts';
 import { dogrulamaGonder } from '#lib/server/epostaJetonu.ts';
 import { jetonUret, oturumAc, oturumCereziYaz } from '#lib/server/oturum.ts';
@@ -23,7 +24,7 @@ export const actions: Actions = {
 		const { ad, kullaniciAdi, eposta, sifre } = sonuc.veri;
 		const degerler = { ad, kullaniciAdi, eposta };
 
-		const sinir = kayitSiniri.dene(getClientAddress());
+		const sinir = await kayitSiniri.dene(getClientAddress());
 		if (!sinir.izin) {
 			return fail(429, { hatalar: { genel: beklemeMesaji(sinir.beklemeSaniye) }, degerler });
 		}

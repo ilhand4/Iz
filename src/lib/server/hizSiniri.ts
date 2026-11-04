@@ -1,6 +1,6 @@
 /**
- * Bellek içi kayan pencere hız sınırlayıcı.
- * Tek süreçli çalışma için yeterli; birden çok sunucuya geçince PostgreSQL ya da Redis'e taşınmalı.
+ * Bellek içi kayan pencere hız sınırlayıcı (saf; birim testli). Uygulamadaki sınırlar
+ * kalıcıdır ve PostgreSQL'de tutulur: sinirlar.ts → KaliciHizSiniri.
  */
 export class HizSiniri {
 	private readonly kayitlar = new Map<string, number[]>();
@@ -42,26 +42,9 @@ export class HizSiniri {
 	}
 }
 
-/** Kişi başına: aynı IP + e-posta için 15 dakikada 5 deneme */
-export const girisSiniri = new HizSiniri(5, 15 * 60_000);
-/** IP başına: 15 dakikada 30 giriş denemesi */
-export const ipGirisSiniri = new HizSiniri(30, 15 * 60_000);
-/** IP başına: saatte 10 kayıt */
-export const kayitSiniri = new HizSiniri(10, 60 * 60_000);
-
 export function beklemeMesaji(saniye: number): string {
 	const dakika = Math.ceil(saniye / 60);
 	return dakika > 1
 		? `Çok fazla deneme yapıldı. Lütfen ${dakika} dakika sonra tekrar deneyin.`
 		: `Çok fazla deneme yapıldı. Lütfen ${saniye} saniye sonra tekrar deneyin.`;
 }
-/** Kullanıcı başına: ayarlarda şifre gerektiren işlemler 15 dakikada 10 deneme */
-export const hesapSiniri = new HizSiniri(10, 15 * 60_000);
-/** Kullanıcı başına: saatte 5 içe aktarma */
-export const iceAktarmaSiniri = new HizSiniri(5, 60 * 60_000);
-/** IP başına: saatte 5 şifre sıfırlama isteği */
-export const sifirlamaSiniri = new HizSiniri(5, 60 * 60_000);
-/** E-posta adresi başına: saatte 3 sıfırlama iletisi (bir adres iletiye boğulmasın) */
-export const sifirlamaEpostaSiniri = new HizSiniri(3, 60 * 60_000);
-/** Kullanıcı başına: saatte 3 doğrulama iletisi */
-export const dogrulamaSiniri = new HizSiniri(3, 60 * 60_000);

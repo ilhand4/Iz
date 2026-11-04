@@ -92,6 +92,20 @@
       "when": 1793819608194,
       "tag": "0012_asama3a_passkey",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793820272365,
+      "tag": "0013_asama3b_bag_turu",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793820662508,
+      "tag": "0014_asama3b_kalici_hiz",
+      "breakpoints": true
     }
   ]
 }

@@ -50,7 +50,22 @@
 			</p>
 		</noscript>
 
-		<AgGorunumu dugumler={data.dugumler} baglar={data.baglar} odakId={data.odakId} />
+		{#if data.kismi}
+			<p class="bildirim bildirim-bilgi">
+				Haritan büyük ({data.kismi.toplam} düğüm): yalnızca seçili düğümün iki adım çevresi gösteriliyor.
+				Başka bir yere bakmak için aramadan bir düğüm seç ya da bir düğümün sayfasındaki “Ağda göster”i
+				kullan.
+			</p>
+		{/if}
+		<AgGorunumu
+			dugumler={data.dugumler}
+			baglar={data.baglar}
+			odakId={data.odakId}
+			baslangic={data.baslangic}
+			adreseYaz
+			bagKurabilir
+			zamanSurgusu
+		/>
 
 		{#if data.baglar.length}
 			<details class="metin-listesi">

@@ -19,12 +19,8 @@ import {
 import { iceAktar } from '#lib/server/disaIceAktar.ts';
 import { anahtarlariListele, anahtarSil } from '#lib/server/gecisAnahtari.ts';
 import { dogrulamaGonder, epostaDegistiBildir } from '#lib/server/epostaJetonu.ts';
-import {
-	beklemeMesaji,
-	dogrulamaSiniri,
-	hesapSiniri,
-	iceAktarmaSiniri
-} from '#lib/server/hizSiniri.ts';
+import { beklemeMesaji } from '#lib/server/hizSiniri.ts';
+import { dogrulamaSiniri, hesapSiniri, iceAktarmaSiniri } from '#lib/server/sinirlar.ts';
 import { oturumCereziSil } from '#lib/server/oturum.ts';
 import { iceAktarmaDogrula } from '#lib/server/veriTasima.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
@@ -44,8 +40,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 const EN_BUYUK_DOSYA = 5 * 1024 * 1024;
 
 /** Şifre soran işlemlerde kullanıcı başına deneme sınırı */
-function sinirAsildi(kullaniciId: string) {
-	const sinir = hesapSiniri.dene(kullaniciId);
+async function sinirAsildi(kullaniciId: string) {
+	const sinir = await hesapSiniri.dene(kullaniciId);
 	return sinir.izin ? null : beklemeMesaji(sinir.beklemeSaniye);
 }
 
@@ -66,7 +62,7 @@ export const actions: Actions = {
 		if (!sonuc.tamam) {
 			return fail(400, { eposta: { hatalar: sonuc.hatalar, degerler: sonuc.degerler } });
 		}
-		const bekle = sinirAsildi(kullanici.id);
+		const bekle = await sinirAsildi(kullanici.id);
 		if (bekle) return fail(429, { eposta: { hatalar: { sifre: bekle }, degerler: {} } });
 		const eski = (await hesapGetir(kullanici.id))?.eposta;
 		const durum = await epostaDegistir(kullanici.id, sonuc.veri.sifre, sonuc.veri.eposta);
@@ -92,7 +88,7 @@ export const actions: Actions = {
 
 	dogrulamaGonder: async ({ locals, url }) => {
 		const kullanici = girisGerekli(locals, url);
-		const sinir = dogrulamaSiniri.dene(kullanici.id);
+		const sinir = await dogrulamaSiniri.dene(kullanici.id);
 		if (!sinir.izin) {
 			return fail(429, {
 				bildirim: { mesaj: beklemeMesaji(sinir.beklemeSaniye), tur: 'hata' as const }
@@ -106,7 +102,7 @@ export const actions: Actions = {
 		const kullanici = girisGerekli(locals, url);
 		const sonuc = sifreDegistirDogrula(await request.formData());
 		if (!sonuc.tamam) return fail(400, { sifre: { hatalar: sonuc.hatalar } });
-		const bekle = sinirAsildi(kullanici.id);
+		const bekle = await sinirAsildi(kullanici.id);
 		if (bekle) return fail(429, { sifre: { hatalar: { mevcutSifre: bekle } } });
 		const durum = await sifreDegistir(
 			kullanici.id,
@@ -151,7 +147,7 @@ export const actions: Actions = {
 		const kullanici = girisGerekli(locals, url);
 		const hata = (mesaj: string, durum = 400) =>
 			fail(durum, { ice: { hatalar: { dosya: mesaj } } });
-		const sinir = iceAktarmaSiniri.dene(kullanici.id);
+		const sinir = await iceAktarmaSiniri.dene(kullanici.id);
 		if (!sinir.izin) return hata(beklemeMesaji(sinir.beklemeSaniye), 429);
 
 		const dosya = (await request.formData()).get('dosya');
@@ -187,7 +183,7 @@ export const actions: Actions = {
 		if (!sonuc.tamam) {
 			return fail(400, { sil: { hatalar: sonuc.hatalar, degerler: sonuc.degerler } });
 		}
-		const bekle = sinirAsildi(kullanici.id);
+		const bekle = await sinirAsildi(kullanici.id);
 		if (bekle) return fail(429, { sil: { hatalar: { sifre: bekle }, degerler: {} } });
 		if ((await hesabiSil(kullanici.id, sonuc.veri.sifre)) === 'yanlis') {
 			return fail(400, { sil: { hatalar: { sifre: 'Şifre hatalı.' }, degerler: {} } });

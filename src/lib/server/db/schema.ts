@@ -278,10 +278,16 @@ export const baglar = pgTable(
 		not: text('not'),
 		tarih: date('tarih', { mode: 'string' }),
 		tarihHassasiyeti: tarihHassasiyeti('tarih_hassasiyeti'),
+		/** besler / celisir / cagristirir / sentezler; null: belirtilmemiş */
+		tur: text('tur'),
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
 	},
 	(t) => [
 		unique('baglar_kaynak_hedef_tekil').on(t.kaynakId, t.hedefId),
+		check(
+			'baglar_tur_kontrol',
+			sql`${t.tur} is null or ${t.tur} in ('besler', 'celisir', 'cagristirir', 'sentezler')`
+		),
 		index('baglar_hedef_idx').on(t.hedefId),
 		index('baglar_sahip_idx').on(t.sahipId),
 		check('baglar_kendine_bag_kontrol', sql`${t.kaynakId} <> ${t.hedefId}`),
@@ -420,6 +426,20 @@ export const eserAramaOnbellegi = pgTable('eser_arama_onbellegi', {
 	sonuclar: jsonb('sonuclar').notNull(),
 	zaman: zamanDamgasi('zaman').notNull().defaultNow()
 });
+
+// ——— Kalıcı hız sınırı (UNLOGGED): sunucu yeniden başlasa ya da çoğalsa da sınırlar korunur ———
+
+export const hizKayitlari = pgTable(
+	'hiz_kayitlari',
+	{
+		/** Sınırın adı ("giris", "kayit"…) */
+		ad: text('ad').notNull(),
+		/** IP, e-posta ya da kullanıcı kimliği */
+		anahtar: text('anahtar').notNull(),
+		zaman: zamanDamgasi('zaman').notNull().defaultNow()
+	},
+	(t) => [index('hiz_kayitlari_idx').on(t.ad, t.anahtar, t.zaman)]
+);
 
 export type Kullanici = typeof kullanicilar.$inferSelect;
 export type Dugum = typeof dugumler.$inferSelect;

@@ -1,9 +1,11 @@
 // Form doğrulama: saf fonksiyonlar, Türkçe hata mesajları (birim testleri: dogrulama.test.ts)
 import {
+	bagTuruMu,
 	dugumTuruMu,
 	eserDurumuMu,
 	eserTuruMu,
 	gizlilikMi,
+	type BagTuru,
 	type DugumTuru,
 	type EserDurumu,
 	type EserTuru,
@@ -279,6 +281,8 @@ export type BagBilgisi = {
 	not: string | null;
 	tarih: string | null;
 	tarihHassasiyeti: TarihHassasiyeti | null;
+	/** Bağın anlamı; formda alan yoksa hiç değiştirilmez (undefined) */
+	tur?: BagTuru | null;
 };
 
 export type BagVerisi = BagBilgisi & { kaynakId: string; hedefId: string };
@@ -293,11 +297,13 @@ function bagBilgisiAl(
 	const tarih = tarihCoz(metin.tarih);
 	if (tarih === 'gecersiz') hatalar.tarih = TARIH_HATASI;
 	const cozuldu = tarih && tarih !== 'gecersiz' ? tarih : null;
+	const turHam = fd.get('tur');
 	return {
-		metin,
+		metin: { ...metin, ...(typeof turHam === 'string' ? { tur: turHam } : {}) },
 		not: metin.not || null,
 		tarih: cozuldu?.tarih ?? null,
-		tarihHassasiyeti: cozuldu?.hassasiyet ?? null
+		tarihHassasiyeti: cozuldu?.hassasiyet ?? null,
+		...(typeof turHam === 'string' ? { tur: bagTuruMu(turHam) ? turHam : null } : {})
 	};
 }
 
@@ -324,7 +330,8 @@ export function bagDogrula(fd: FormData, buDugumId: string): Sonuc<BagVerisi> {
 			hedefId: yon === 'giden' ? digerId : buDugumId,
 			not: bilgi.not,
 			tarih: bilgi.tarih,
-			tarihHassasiyeti: bilgi.tarihHassasiyeti
+			tarihHassasiyeti: bilgi.tarihHassasiyeti,
+			...(bilgi.tur !== undefined ? { tur: bilgi.tur } : {})
 		}
 	};
 }

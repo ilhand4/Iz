@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import Alan from '#lib/bilesenler/Alan.svelte';
 	import BagOgesi from '#lib/bilesenler/BagOgesi.svelte';
+	import BagTuruSecici from '#lib/bilesenler/BagTuruSecici.svelte';
 	import DugumSecici from '#lib/bilesenler/DugumSecici.svelte';
 	import GizlilikRozeti from '#lib/bilesenler/GizlilikRozeti.svelte';
 	import IzKarti from '#lib/bilesenler/IzKarti.svelte';
@@ -123,6 +124,7 @@
 					aria-invalid={!!gelenHata?.hatalar.tarih}
 				/>
 			</Alan>
+			<BagTuruSecici id="gelenTur" secili={gelenHata?.degerler.tur} />
 			<div class="satir"><button class="dugme dugme-birincil">Bağı kur</button></div>
 		</form>
 	{/snippet}
@@ -346,6 +348,7 @@
 									aria-invalid={!!gidenHata?.hatalar.tarih}
 								/>
 							</Alan>
+							<BagTuruSecici id="gidenTur" secili={gidenHata?.degerler.tur} />
 							<div class="satir"><button class="dugme dugme-birincil">Bağı kur</button></div>
 						</form>
 					{:else}

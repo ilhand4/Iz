@@ -3,7 +3,8 @@ import { eq } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { kullanicilar } from '#lib/server/db/schema.ts';
 import { girisDogrula } from '#lib/server/dogrulama.ts';
-import { beklemeMesaji, girisSiniri, ipGirisSiniri } from '#lib/server/hizSiniri.ts';
+import { beklemeMesaji } from '#lib/server/hizSiniri.ts';
+import { girisSiniri, ipGirisSiniri } from '#lib/server/sinirlar.ts';
 import { cihazAdi } from '#lib/server/cihaz.ts';
 import { jetonUret, oturumAc, oturumCereziYaz } from '#lib/server/oturum.ts';
 import { sahteDogrulama, sifreDogrula } from '#lib/server/sifre.ts';
@@ -27,7 +28,7 @@ export const actions: Actions = {
 		const anahtar = `${ip}|${eposta}`;
 
 		// Önce IP, sonra IP + e-posta sınırı
-		for (const sinir of [ipGirisSiniri.dene(ip), girisSiniri.dene(anahtar)]) {
+		for (const sinir of [await ipGirisSiniri.dene(ip), await girisSiniri.dene(anahtar)]) {
 			if (!sinir.izin) {
 				return fail(429, {
 					hatalar: { genel: beklemeMesaji(sinir.beklemeSaniye) },
@@ -49,7 +50,7 @@ export const actions: Actions = {
 			return fail(400, { hatalar: { genel: HATALI }, degerler: { eposta } });
 		}
 
-		girisSiniri.sifirla(anahtar);
+		await girisSiniri.sifirla(anahtar);
 		const jeton = jetonUret();
 		const oturum = await oturumAc(jeton, kullanici.id, cihazAdi(request.headers.get('user-agent')));
 		oturumCereziYaz(cookies, jeton, oturum.bitis);

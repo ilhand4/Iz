@@ -35,3 +35,22 @@ describe('kisalt', () => {
 		expect(kisalt('Yüksek lisans için Berlin’e başvurmak', 24)).toBe('Yüksek lisans için…');
 	});
 });
+
+describe('satır içi bağlar', () => {
+	it('[[…]] başlıklarını sırayla ve tekrarsız çıkarır', async () => {
+		const { satirIciBaglar } = await import('./metin');
+		expect(
+			satirIciBaglar(
+				'Önce [[Kürk Mantolu Madonna]], sonra [[ Berlin ]] ve yine [[kürk mantolu madonna]].'
+			)
+		).toEqual(['Kürk Mantolu Madonna', 'Berlin']);
+		expect(satirIciBaglar('[[]] ya da [[satır\nsonu]] geçersiz')).toEqual([]);
+	});
+
+	it('imleçten önceki açık [[ sorgusunu bulur', async () => {
+		const { acikSatirIciSorgu } = await import('./metin');
+		expect(acikSatirIciSorgu('Bir şey [[Kür')).toBe('Kür');
+		expect(acikSatirIciSorgu('Bir şey [[')).toBe('');
+		expect(acikSatirIciSorgu('Bir şey [[Kürk]] sonra')).toBeNull();
+	});
+});

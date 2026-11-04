@@ -22,6 +22,7 @@
 			hatalar={form?.hatalar as Record<string, string> | undefined}
 			gonderMetni="Değişiklikleri kaydet"
 			eylem="?/kaydet"
+			bagSecenekleri={data.secenekler}
 		/>
 	</div>
 

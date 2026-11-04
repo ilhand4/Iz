@@ -1,0 +1,2 @@
+ALTER TABLE "baglar" ADD COLUMN "tur" text;--> statement-breakpoint
+ALTER TABLE "baglar" ADD CONSTRAINT "baglar_tur_kontrol" CHECK ("baglar"."tur" is null or "baglar"."tur" in ('besler', 'celisir', 'cagristirir', 'sentezler'));

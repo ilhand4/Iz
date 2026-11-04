@@ -21,11 +21,16 @@
 <script lang="ts">
 	// Ağ görünümü: düğümler ve "götürdü" bağları, Cytoscape.js ile tuvalde çizilir.
 	// Cytoscape yalnızca bu sayfada ve tarayıcıda, dinamik içe aktarmayla yüklenir.
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { bildirimler } from '#lib/bildirim.svelte.ts';
 	import { kisalt } from '#lib/metin.ts';
 	import {
+		BAG_TURLERI,
+		BAG_TURU_ACIKLAMASI,
+		BAG_TURU_ETIKETI,
+		type BagTuru,
 		DUGUM_TURLERI,
 		DUGUM_TURU_COGUL,
 		type EserDurumu,
@@ -61,6 +66,8 @@
 		not: string | null;
 		/** Gizli düğümlerden geçen yolun tek bağa indirilmiş hâli */
 		dolayli?: boolean;
+		/** besler / celisir / cagristirir / sentezler */
+		tur?: string | null;
 	};
 	type Props = {
 		dugumler: AgDugumu[];
@@ -68,22 +75,44 @@
 		odakId?: string | null;
 		/** Yerleşim sunucuya kaydedilsin mi? (başkasının profilinde hayır) */
 		kaydet?: boolean;
+		/** Görünüm (süzgeçler, odak) adrese yazılsın mı? Paylaşılabilir bağlantı için */
+		adreseYaz?: boolean;
+		/** Adresten gelen başlangıç süzgeçleri */
+		baslangic?: { gizliTurler?: DugumTuru[]; bagSuzgeci?: BagTuru | null };
+		/** Ağda iki dokunuşla bağ kurma (yalnızca kendi haritasında) */
+		bagKurabilir?: boolean;
+		/** Zaman sürgüsü: düğümler yaşandıkları tarihe göre belirir */
+		zamanSurgusu?: boolean;
 	};
 
-	let { dugumler, baglar, odakId = null, kaydet = true }: Props = $props();
+	let {
+		dugumler,
+		baglar,
+		odakId = null,
+		kaydet = true,
+		adreseYaz = false,
+		baslangic = {},
+		bagKurabilir = false,
+		zamanSurgusu = false
+	}: Props = $props();
 
 	let tuval: HTMLDivElement;
 	let cy: cytoscape.Core | null = null;
 	let hazir = $state(false);
 	let hata = $state(false);
 	let seciliId = $state<string | null>(null);
-	let gizliTurler = $state<DugumTuru[]>([]);
+	// Başlangıç değerleri yalnızca ilk açılışta adresten alınır
+	let gizliTurler = $state<DugumTuru[]>(untrack(() => baslangic.gizliTurler ?? []));
+	let bagSuzgeci = $state<BagTuru | null>(untrack(() => baslangic.bagSuzgeci ?? null));
+	let yerelBaglar = $state<AgBagi[]>([]);
+	const tumBaglar = $derived([...baglar, ...yerelBaglar]);
+	const bagTurleri = $derived(BAG_TURLERI.filter((t) => tumBaglar.some((b) => b.tur === t)));
 
 	const dugumHaritasi = $derived(new Map(dugumler.map((d) => [d.id, d])));
 	const secili = $derived(seciliId ? (dugumHaritasi.get(seciliId) ?? null) : null);
 	const gidenler = $derived(
 		seciliId
-			? baglar
+			? tumBaglar
 					.filter((b) => b.kaynakId === seciliId)
 					.map((b) => ({ bag: b, dugum: dugumHaritasi.get(b.hedefId)! }))
 					.filter((x) => x.dugum)
@@ -91,7 +120,7 @@
 	);
 	const gelenler = $derived(
 		seciliId
-			? baglar
+			? tumBaglar
 					.filter((b) => b.hedefId === seciliId)
 					.map((b) => ({ bag: b, dugum: dugumHaritasi.get(b.kaynakId)! }))
 					.filter((x) => x.dugum)
@@ -109,7 +138,7 @@
 	// ——— Renkler: CSS değişkenlerinden (açık/koyu temaya göre) çözülür ———
 
 	type Renkler = Record<
-		'zemin' | 'yuzey' | 'metin' | 'soluk' | 'cizgi' | 'vurgu' | DugumTuru,
+		'zemin' | 'yuzey' | 'metin' | 'soluk' | 'cizgi' | 'vurgu' | 'hata' | DugumTuru,
 		string
 	>;
 
@@ -134,7 +163,8 @@
 			kisi: oku('--tur-kisi'),
 			yer: oku('--tur-yer'),
 			karar: oku('--tur-karar'),
-			ani: oku('--tur-ani')
+			ani: oku('--tur-ani'),
+			hata: oku('--hata')
 		};
 		prob.remove();
 		return renkler;
@@ -199,6 +229,45 @@
 					'transition-duration': 160
 				}
 			},
+			// Bağ türleri: renk ve çizgi biçemi asıl (renk körlüğü için çizgi de farklı)
+			{
+				selector: 'edge[tur = "besler"]',
+				style: {
+					'line-color': r.yer,
+					'target-arrow-color': r.yer,
+					'line-style': 'solid',
+					width: 2.2
+				}
+			},
+			{
+				selector: 'edge[tur = "celisir"]',
+				style: {
+					'line-color': r.hata,
+					'target-arrow-color': r.hata,
+					'target-arrow-shape': 'tee',
+					'line-style': 'dashed',
+					'line-dash-pattern': [10, 5]
+				}
+			},
+			{
+				selector: 'edge[tur = "cagristirir"]',
+				style: { 'line-color': r.ani, 'target-arrow-color': r.ani, 'line-style': 'dotted' }
+			},
+			{
+				selector: 'edge[tur = "sentezler"]',
+				style: {
+					'line-color': r.karar,
+					'target-arrow-color': r.karar,
+					'line-style': 'solid',
+					width: 3.2
+				}
+			},
+			{ selector: 'edge.suzulen', style: { opacity: 0.07 } },
+			{ selector: 'node.gelecek', style: { display: 'none' } },
+			{
+				selector: 'node.bag-kaynagi',
+				style: { 'border-color': r.vurgu, 'border-width': 5, 'border-style': 'double' }
+			},
 			{
 				selector: 'node.secili',
 				style: { 'border-color': r.vurgu, 'border-width': 4, 'font-size': 15, 'z-index': 10 }
@@ -259,9 +328,12 @@
 			fit: true,
 			padding: 40,
 			nodeDimensionsIncludeLabels: true,
-			idealEdgeLength: 80,
+			// Bağ türü fiziği ikincil: çelişen uzağa, sentezlenen yakına
+			idealEdgeLength: (e: cytoscape.EdgeSingular) =>
+				({ besler: 70, celisir: 150, cagristirir: 110, sentezler: 55 })[e.data('tur') as BagTuru] ??
+				80,
 			nodeRepulsion: 5500,
-			edgeElasticity: 0.45,
+			edgeElasticity: (e: cytoscape.EdgeSingular) => (e.data('tur') === 'celisir' ? 0.2 : 0.45),
 			gravity: 0.35,
 			numIter: 2500,
 			packComponents: true,
@@ -300,7 +372,8 @@
 						source: b.kaynakId,
 						target: b.hedefId,
 						not: b.not ? kisalt(b.not, 42) : '',
-						dolayli: b.dolayli ? 1 : 0
+						dolayli: b.dolayli ? 1 : 0,
+						tur: b.tur ?? ''
 					}
 				}))
 		];
@@ -475,14 +548,177 @@
 			: [...gizliTurler, tur];
 	}
 
+	/** Yön tuşlarıyla seçiliden o yöndeki en yakın açıdaki komşuya geçer */
+	function komsuyaGec(yon: 'ArrowRight' | 'ArrowLeft' | 'ArrowUp' | 'ArrowDown') {
+		const ag = cy;
+		if (!ag) return;
+		const gorunurler = ag.nodes(':visible');
+		if (!gorunurler.length) return;
+		if (!seciliId) {
+			odakla(gorunurler[0].id());
+			return;
+		}
+		const merkez = ag.getElementById(seciliId);
+		const p = merkez.position();
+		const hedefAci = { ArrowRight: 0, ArrowDown: 90, ArrowLeft: 180, ArrowUp: -90 }[yon];
+		let enIyi: { id: string; fark: number; uzaklik: number } | null = null;
+		merkez.neighborhood('node:visible').forEach((n) => {
+			const q = n.position();
+			const aci = (Math.atan2(q.y - p.y, q.x - p.x) * 180) / Math.PI;
+			let fark = Math.abs(aci - hedefAci) % 360;
+			if (fark > 180) fark = 360 - fark;
+			const uzaklik = Math.hypot(q.x - p.x, q.y - p.y);
+			if (fark <= 80 && (!enIyi || fark + uzaklik / 50 < enIyi.fark + enIyi.uzaklik / 50)) {
+				enIyi = { id: n.id(), fark, uzaklik };
+			}
+		});
+		if (enIyi) odakla((enIyi as { id: string }).id);
+	}
+
 	function tusaBasildi(e: KeyboardEvent) {
 		if (e.key === '+' || e.key === '=') yakinlas(1.25);
 		else if (e.key === '-') yakinlas(0.8);
 		else if (e.key === '0') sigdir();
-		else if (e.key === 'Escape') sec(null);
-		else return;
+		else if (e.key === 'Escape') {
+			if (bagKipi) bagKipiniKapat();
+			else sec(null);
+		} else if (e.key === 'Enter' && seciliId && !dugumHaritasi.get(seciliId)?.golge) {
+			goto(`/dugumler/${seciliId}`);
+		} else if (
+			e.key === 'ArrowRight' ||
+			e.key === 'ArrowLeft' ||
+			e.key === 'ArrowUp' ||
+			e.key === 'ArrowDown'
+		) {
+			komsuyaGec(e.key);
+		} else return;
 		e.preventDefault();
 	}
+
+	// ——— Bağ kur kipi: önce kaynağa, sonra hedefe dokun ———
+	let bagKipi = $state(false);
+	let bagKaynagi = $state<string | null>(null);
+
+	function bagKipiniKapat() {
+		bagKipi = false;
+		if (bagKaynagi) cy?.getElementById(bagKaynagi).removeClass('bag-kaynagi');
+		bagKaynagi = null;
+	}
+
+	async function bagKipiDokunus(id: string) {
+		const ag = cy;
+		if (!ag) return;
+		if (!bagKaynagi) {
+			bagKaynagi = id;
+			ag.getElementById(id).addClass('bag-kaynagi');
+			return;
+		}
+		if (bagKaynagi === id) {
+			bagKipiniKapat();
+			return;
+		}
+		const kaynakId = bagKaynagi;
+		bagKipiniKapat();
+		try {
+			const yanit = await fetch('/api/baglar', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ kaynakId, hedefId: id })
+			});
+			const veri = await yanit.json().catch(() => ({}));
+			if (!yanit.ok) throw new Error(veri.hata ?? 'Bağ kurulamadı.');
+			const yeni: AgBagi = { id: veri.id, kaynakId, hedefId: id, not: null, tur: null };
+			yerelBaglar = [...yerelBaglar, yeni];
+			ag.add({
+				group: 'edges',
+				data: { id: yeni.id, source: kaynakId, target: id, not: '', dolayli: 0, tur: '' }
+			});
+			const k = dugumHaritasi.get(kaynakId)?.baslik ?? '';
+			const h = dugumHaritasi.get(id)?.baslik ?? '';
+			bildirimler.goster({
+				mesaj: `“${k}” → “${h}” bağı kuruldu.`,
+				baglanti: { href: `/dugumler/${kaynakId}`, metin: 'Not ekle' }
+			});
+		} catch (e) {
+			bildirimler.goster({ mesaj: (e as Error).message, tur: 'hata' });
+		}
+	}
+
+	// ——— Zaman sürgüsü ———
+	const yillar = $derived(
+		dugumler
+			.map((d) => (d.tarih ? Number(d.tarih.slice(0, 4)) : null))
+			.filter((y): y is number => y !== null)
+	);
+	const enErkenYil = $derived(yillar.length ? Math.min(...yillar) : null);
+	const enGecYil = $derived(yillar.length ? Math.max(...yillar) : null);
+	let zamanYili = $state<number | null>(null);
+	let oynuyor = $state(false);
+	let oynatmaZamanlayici: ReturnType<typeof setInterval> | undefined;
+
+	function oynat() {
+		if (enErkenYil === null || enGecYil === null) return;
+		if (oynuyor) {
+			oynuyor = false;
+			clearInterval(oynatmaZamanlayici);
+			return;
+		}
+		oynuyor = true;
+		if (zamanYili === null || zamanYili >= enGecYil) zamanYili = enErkenYil;
+		oynatmaZamanlayici = setInterval(() => {
+			if (zamanYili === null || enGecYil === null || zamanYili >= enGecYil) {
+				oynuyor = false;
+				clearInterval(oynatmaZamanlayici);
+				return;
+			}
+			zamanYili += 1;
+		}, 450);
+	}
+
+	$effect(() => {
+		const yil = zamanYili;
+		const ag = cy;
+		if (!hazir || !ag) return;
+		ag.batch(() => {
+			ag.nodes().forEach((n) => {
+				const d = dugumHaritasi.get(n.id());
+				const dYil = d?.tarih ? Number(d.tarih.slice(0, 4)) : null;
+				// Tarihsiz düğümler başta (her zaman) görünür
+				n.toggleClass('gelecek', yil !== null && dYil !== null && dYil > yil);
+			});
+		});
+	});
+
+	// Bağ türü süzgeci
+	$effect(() => {
+		const suzgec = bagSuzgeci;
+		const ag = cy;
+		if (!hazir || !ag) return;
+		ag.batch(() => {
+			ag.edges().forEach((e) => {
+				e.toggleClass('suzulen', !!suzgec && e.data('tur') !== suzgec);
+			});
+		});
+	});
+
+	// Görünüm adrese yazılır (paylaşılabilir bağlantı); sayfa yeniden yüklenmez
+	let adresZamanlayici: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => {
+		if (!adreseYaz || !hazir) return;
+		const gizli = gizliTurler.join(',');
+		const bag = bagSuzgeci;
+		const odak = seciliId && !dugumHaritasi.get(seciliId)?.golge ? seciliId : null;
+		clearTimeout(adresZamanlayici);
+		adresZamanlayici = setTimeout(() => {
+			const u = new URL(page.url.href);
+			const ayarla = (ad: string, deger: string | null) =>
+				deger ? u.searchParams.set(ad, deger) : u.searchParams.delete(ad);
+			ayarla('gizli', gizli || null);
+			ayarla('bag', bag);
+			ayarla('odak', odak);
+			if (u.href !== page.url.href) goto(u, { replace: true, shallow: true });
+		}, 300);
+	});
 
 	// Tür süzgeci
 	$effect(() => {
@@ -538,6 +774,10 @@
 				// Dar ekranda panel alttan açılıp düğümü örtebilir: dokunulan düğümü görünür alana getir
 				ag.on('tap', 'node', (e) => {
 					const id = e.target.id();
+					if (bagKipi) {
+						bagKipiDokunus(id);
+						return;
+					}
 					if (matchMedia('(min-width: 48rem)').matches) sec(id);
 					else odakla(id);
 				});
@@ -595,6 +835,7 @@
 
 		return () => {
 			iptal = true;
+			clearInterval(oynatmaZamanlayici);
 			clearTimeout(surukleZamanlayici);
 			if (surukleKuyrugu.size) konumlariKaydet([...surukleKuyrugu]);
 			for (const f of temizlik) f();
@@ -616,6 +857,17 @@
 				yerTutucu="Ağda düğüm bul…"
 			/>
 		</div>
+		{#if bagKurabilir}
+			<button
+				type="button"
+				class="cip bag-kur"
+				aria-pressed={bagKipi}
+				onclick={() => (bagKipi ? bagKipiniKapat() : (bagKipi = true))}
+			>
+				<Simge ad="baglanti" boyut={14} />
+				{bagKipi ? (bagKaynagi ? 'Şimdi hedefe dokun' : 'Kaynağa dokun') : 'Bağ kur'}
+			</button>
+		{/if}
 		<div class="suzgecler" role="group" aria-label="Türlere göre göster ya da gizle">
 			{#each DUGUM_TURLERI as tur (tur)}
 				{#if turSayilari[tur]}
@@ -635,6 +887,55 @@
 		</div>
 	</div>
 
+	{#if bagTurleri.length || (zamanSurgusu && enErkenYil !== null && enGecYil !== null && enGecYil > enErkenYil)}
+		<div class="ikinci-cubuk">
+			{#if bagTurleri.length}
+				<div class="bag-lejanti" role="group" aria-label="Bağ türleri: yalnızca birini göster">
+					{#each bagTurleri as t (t)}
+						<button
+							type="button"
+							class="lejant"
+							data-bag={t}
+							aria-pressed={bagSuzgeci === t}
+							title={BAG_TURU_ACIKLAMASI[t]}
+							onclick={() => (bagSuzgeci = bagSuzgeci === t ? null : t)}
+						>
+							<span class="cizgi" aria-hidden="true"></span>
+							{BAG_TURU_ETIKETI[t]}
+						</button>
+					{/each}
+				</div>
+			{/if}
+			{#if zamanSurgusu && enErkenYil !== null && enGecYil !== null && enGecYil > enErkenYil}
+				<div class="zaman">
+					<button
+						type="button"
+						class="cip"
+						onclick={oynat}
+						aria-label={oynuyor ? 'Duraklat' : 'Ağın zamanla büyümesini oynat'}
+					>
+						{oynuyor ? '❚❚' : '▶'}
+					</button>
+					<label for="zaman-surgusu" class="kucuk">
+						{zamanYili === null ? 'Tüm zamanlar' : `${zamanYili} sonuna kadar`}
+					</label>
+					<input
+						id="zaman-surgusu"
+						type="range"
+						min={enErkenYil}
+						max={enGecYil}
+						step="1"
+						value={zamanYili ?? enGecYil}
+						oninput={(e) => {
+							const v = Number(e.currentTarget.value);
+							zamanYili = v >= (enGecYil ?? v) ? null : v;
+						}}
+					/>
+				</div>
+			{/if}
+		</div>
+	{/if}
+
 	<div class="sahne">
 		<!-- Tuval klavyeyle odaklanır ve kendi kısayollarını dinler (+, −, 0, Esc) -->
 		<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
@@ -643,7 +944,7 @@
 			bind:this={tuval}
 			role="application"
 			tabindex="0"
-			aria-label="Bağlantı ağı: {dugumler.length} düğüm, {baglar.length} bağ"
+			aria-label="Bağlantı ağı: {dugumler.length} düğüm, {tumBaglar.length} bağ"
 			aria-describedby="ag-ipucu"
 			onkeydown={tusaBasildi}
 		></div>
@@ -751,8 +1052,12 @@
 			</aside>
 		{/if}
 	</div>
+	<p class="gorunmez" aria-live="polite">
+		{secili ? `${secili.golge ? 'Gölge düğüm' : secili.baslik} seçildi` : ''}
+	</p>
 	<p class="ipucu" id="ag-ipucu">
-		Bir düğüme dokun: bağlarını vurgular. Çift tıkla: ayrıntısına git.
+		Bir düğüme dokun: bağlarını vurgular. Çift tıkla ya da Enter: ayrıntısına git. Yön tuşları:
+		komşu düğüme geç.
 		{kaydet
 			? 'Sürükle: yerini değiştir (yerleşim kaydedilir). Kesik kenarlılar merak listendekiler.'
 			: 'Kesik kenarlılar henüz merak edilenler.'}
@@ -775,6 +1080,82 @@
 	.arama {
 		flex: 1 1 16rem;
 		max-width: 24rem;
+	}
+	.ikinci-cubuk {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--a-2) var(--a-5);
+		align-items: center;
+	}
+	.bag-lejanti {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--a-2);
+	}
+	.lejant {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-2);
+		min-height: 2rem;
+		padding: 0 var(--a-3);
+		border: 1px solid var(--cizgi);
+		border-radius: var(--yaricap-tam);
+		background: var(--yuzey);
+		color: var(--metin);
+		font: inherit;
+		font-size: var(--boyut-xs);
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.lejant[aria-pressed='true'] {
+		border-color: var(--metin);
+		box-shadow: inset 0 0 0 1px var(--metin);
+	}
+	.lejant .cizgi {
+		width: 1.6rem;
+		border-top: 3px solid var(--bag-renk);
+	}
+	.lejant[data-bag='besler'] {
+		--bag-renk: var(--tur-yer);
+	}
+	.lejant[data-bag='celisir'] {
+		--bag-renk: var(--hata);
+	}
+	.lejant[data-bag='celisir'] .cizgi {
+		border-top-style: dashed;
+	}
+	.lejant[data-bag='cagristirir'] {
+		--bag-renk: var(--tur-ani);
+	}
+	.lejant[data-bag='cagristirir'] .cizgi {
+		border-top-style: dotted;
+	}
+	.lejant[data-bag='sentezler'] {
+		--bag-renk: var(--tur-karar);
+	}
+	.lejant[data-bag='sentezler'] .cizgi {
+		border-top-width: 4px;
+	}
+	.zaman {
+		display: flex;
+		align-items: center;
+		gap: var(--a-2);
+		flex: 1 1 16rem;
+		max-width: 28rem;
+	}
+	.zaman label {
+		flex: none;
+		min-width: 8rem;
+		font-variant-numeric: tabular-nums;
+	}
+	.zaman input {
+		flex: 1;
+		accent-color: var(--vurgu);
+	}
+	.bag-kur[aria-pressed='true'] {
+		background: var(--vurgu);
+		border-color: var(--vurgu);
+		color: var(--vurgu-uzeri);
 	}
 	.suzgecler {
 		display: flex;

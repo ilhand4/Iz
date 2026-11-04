@@ -7,11 +7,13 @@ import {
 	bagKur,
 	bagSil,
 	dugumBaglari,
+	geldigiYol
+} from '#lib/server/baglar.ts';
+import {
 	dugumGetir,
 	dugumSecenekleri,
 	dugumVeGetireniKaydet,
-	durumGuncelle,
-	geldigiYol
+	durumGuncelle
 } from '#lib/server/dugumler.ts';
 import { disBagKur, disBagSil, gelenDisBaglar, gidenDisBaglar } from '#lib/server/disBaglar.ts';
 import { gorselGuvenliMi } from '#lib/server/eserArama.ts';

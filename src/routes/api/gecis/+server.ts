@@ -10,7 +10,8 @@ import {
 	kayitSecenekleri,
 	MEYDAN_CEREZI
 } from '#lib/server/gecisAnahtari.ts';
-import { beklemeMesaji, ipGirisSiniri } from '#lib/server/hizSiniri.ts';
+import { beklemeMesaji } from '#lib/server/hizSiniri.ts';
+import { ipGirisSiniri } from '#lib/server/sinirlar.ts';
 import { jetonUret, oturumAc, oturumCereziYaz } from '#lib/server/oturum.ts';
 import { guvenliDonus } from '#lib/server/yetki.ts';
 import type { RequestHandler } from './$types';
@@ -59,7 +60,7 @@ export const POST: RequestHandler = async ({ request, url, cookies, locals, getC
 				: Response.json({ hata: 'Geçiş anahtarı doğrulanamadı.' }, { status: 400 });
 		}
 		case 'giris-secenekleri': {
-			const sinir = ipGirisSiniri.dene(getClientAddress());
+			const sinir = await ipGirisSiniri.dene(getClientAddress());
 			if (!sinir.izin) {
 				return Response.json({ hata: beklemeMesaji(sinir.beklemeSaniye) }, { status: 429 });
 			}

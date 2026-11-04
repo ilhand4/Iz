@@ -29,3 +29,27 @@ export function kisalt(metin: string, uzunluk: number): string {
 	const bosluk = kesik.lastIndexOf(' ');
 	return (bosluk > uzunluk * 0.6 ? kesik.slice(0, bosluk) : kesik).trimEnd() + '…';
 }
+
+/**
+ * Satır içi bağlar: açıklamadaki [[Başlık]] işaretlerinin başlıkları (tekrarsız, sırayla).
+ * Kaydedince bu adlardaki kendi düğümlerine "götürdü" bağı kurulur.
+ */
+export function satirIciBaglar(metin: string): string[] {
+	const sonuc: string[] = [];
+	const gorulen = new Set<string>();
+	for (const m of metin.matchAll(/\[\[([^[\]\n]{1,200})\]\]/g)) {
+		const baslik = m[1].trim();
+		const anahtar = sadelestir(baslik);
+		if (baslik && !gorulen.has(anahtar)) {
+			gorulen.add(anahtar);
+			sonuc.push(baslik);
+		}
+	}
+	return sonuc;
+}
+
+/** İmlecin hemen önünde açık bir "[[" varsa içindeki yarım sorgu (yoksa null) */
+export function acikSatirIciSorgu(oncesi: string): string | null {
+	const m = /\[\[([^[\]\n]{0,60})$/.exec(oncesi);
+	return m ? m[1] : null;
+}

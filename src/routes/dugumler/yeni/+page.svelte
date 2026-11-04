@@ -43,6 +43,7 @@
 			hatalar={form?.hatalar as Record<string, string> | undefined}
 			gonderMetni="Düğümü ekle"
 			getirenSecenekleri={data.secenekler}
+			bagSecenekleri={data.secenekler}
 		/>
 	</div>
 </div>

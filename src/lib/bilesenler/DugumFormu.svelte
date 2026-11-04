@@ -9,6 +9,7 @@
 		durumEtiketi,
 		eserTuruMu
 	} from '#lib/sabitler.ts';
+	import { acikSatirIciSorgu, eslesir, sadelestir, satirIciBaglar } from '#lib/metin.ts';
 	import Alan from './Alan.svelte';
 	import DugumSecici, { type SecenekDugum } from './DugumSecici.svelte';
 	import GizlilikSecici from './GizlilikSecici.svelte';
@@ -25,8 +26,17 @@
 		 * Kullanıcının haritasındaki, getiren olarak seçilebilecek düğümler.
 		 */
 		getirenSecenekleri?: SecenekDugum[];
+		/** Açıklamada [[…]] ile bağ kurulabilecek kendi düğümleri */
+		bagSecenekleri?: SecenekDugum[];
 	};
-	let { degerler = {}, hatalar = {}, gonderMetni, eylem, getirenSecenekleri }: Props = $props();
+	let {
+		degerler = {},
+		hatalar = {},
+		gonderMetni,
+		eylem,
+		getirenSecenekleri,
+		bagSecenekleri = []
+	}: Props = $props();
 	let gonderiliyor = $state(false);
 
 	const d = (ad: string) => degerler[ad] ?? '';
@@ -35,12 +45,92 @@
 	// svelte-ignore state_referenced_locally
 	let eserTuru = $state(eserTuruMu(degerler.eserTuru) ? degerler.eserTuru : 'kitap');
 
+	// ——— Başlık yazılırken eser önerisi (Open Library / TMDB) ———
+	let baslik = $state(d('baslik'));
+	let altBaslik = $state(d('altBaslik'));
+	let yil = $state(d('yil'));
+	let form: HTMLFormElement | undefined = $state();
+	let oneriler = $state<{ baslik: string; altBaslik: string | null; yil: number | null }[]>([]);
+	let oneriZamanlayici: ReturnType<typeof setTimeout> | undefined;
+	let oneriNo = 0;
+
+	function eserSeciliMi() {
+		return (
+			(form?.querySelector('input[name="tur"]:checked') as HTMLInputElement | null)?.value ===
+			'eser'
+		);
+	}
+
+	function oneriAra() {
+		clearTimeout(oneriZamanlayici);
+		const q = baslik.trim();
+		if (q.length < 3 || !eserSeciliMi() || !['kitap', 'film', 'dizi'].includes(eserTuru)) {
+			oneriler = [];
+			return;
+		}
+		oneriZamanlayici = setTimeout(async () => {
+			const no = ++oneriNo;
+			try {
+				const yanit = await fetch(
+					`/api/eser-ara?q=${encodeURIComponent(q)}&tur=${encodeURIComponent(eserTuru)}`
+				);
+				const veri = await yanit.json();
+				if (no === oneriNo) oneriler = veri.sonuclar ?? [];
+			} catch {
+				oneriler = [];
+			}
+		}, 450);
+	}
+
+	function oneriSec(o: { baslik: string; altBaslik: string | null; yil: number | null }) {
+		baslik = o.baslik;
+		if (o.altBaslik) altBaslik = o.altBaslik;
+		if (o.yil) yil = String(o.yil);
+		oneriler = [];
+	}
+
+	// ——— Açıklamada satır içi bağ: [[ yazınca kendi düğümlerin önerilir ———
+	let aciklama = $state(d('aciklama'));
+	let aciklamaAlani: HTMLTextAreaElement | undefined = $state();
+	let acikSorgu = $state<string | null>(null);
+	const satirIciAdaylar = $derived(
+		acikSorgu === null
+			? []
+			: bagSecenekleri.filter((s) => !acikSorgu || eslesir(s.baslik, acikSorgu)).slice(0, 6)
+	);
+	const satirIciOnizleme = $derived(
+		satirIciBaglar(aciklama).map((b) => ({
+			baslik: b,
+			bulundu: bagSecenekleri.some((s) => sadelestir(s.baslik) === sadelestir(b))
+		}))
+	);
+
+	function aciklamaYazildi() {
+		const el = aciklamaAlani;
+		if (!el) return;
+		acikSorgu = acikSatirIciSorgu(el.value.slice(0, el.selectionStart ?? el.value.length));
+	}
+
+	function satirIciSec(baslikSecilen: string) {
+		const el = aciklamaAlani;
+		if (!el) return;
+		const imlec = el.selectionStart ?? el.value.length;
+		const oncesi = el.value.slice(0, imlec).replace(/\[\[[^[\]\n]*$/, `[[${baslikSecilen}]]`);
+		aciklama = oncesi + el.value.slice(imlec);
+		acikSorgu = null;
+		queueMicrotask(() => {
+			el.focus();
+			el.selectionStart = el.selectionEnd = oncesi.length;
+		});
+	}
+
 	const getirenKip = $derived(
 		d('getirenKip') || (getirenSecenekleri && getirenSecenekleri.length ? 'mevcut' : 'yeni')
 	);
 </script>
 
 <form
+	bind:this={form}
 	method="POST"
 	action={eylem}
 	class="yigin dugum-formu"
@@ -92,11 +182,26 @@
 		<input
 			id="baslik"
 			name="baslik"
-			value={d('baslik')}
+			bind:value={baslik}
+			oninput={oneriAra}
 			maxlength="200"
 			required
+			autocomplete="off"
 			aria-invalid={!!hatalar.baslik}
+			aria-describedby={oneriler.length ? 'eser-onerileri' : undefined}
 		/>
+		{#if oneriler.length}
+			<ul class="oneriler" id="eser-onerileri" aria-label="Eser önerileri">
+				{#each oneriler as o, i (i)}
+					<li>
+						<button type="button" onclick={() => oneriSec(o)}>
+							<strong>{o.baslik}</strong>
+							<small>{[o.altBaslik, o.yil].filter(Boolean).join(' · ')}</small>
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	</Alan>
 
 	<Alan
@@ -105,7 +210,7 @@
 		hata={hatalar.altBaslik}
 		ipucu="Eser için yazar/yönetmen/sanatçı; kişi için kim olduğu (ör. “lise öğretmenim”)."
 	>
-		<input id="altBaslik" name="altBaslik" value={d('altBaslik')} maxlength="200" />
+		<input id="altBaslik" name="altBaslik" bind:value={altBaslik} maxlength="200" />
 	</Alan>
 
 	<fieldset class="alan eser-alani">
@@ -236,7 +341,7 @@
 				<input
 					id="yil"
 					name="yil"
-					value={d('yil')}
+					bind:value={yil}
 					inputmode="numeric"
 					maxlength="4"
 					aria-invalid={!!hatalar.yil}
@@ -245,8 +350,50 @@
 		</div>
 	</div>
 
-	<Alan id="aciklama" etiket="Açıklama" hata={hatalar.aciklama}>
-		<textarea id="aciklama" name="aciklama" maxlength="5000" rows="4">{d('aciklama')}</textarea>
+	<Alan
+		id="aciklama"
+		etiket="Açıklama"
+		hata={hatalar.aciklama}
+		ipucu={bagSecenekleri.length
+			? '[[ yazıp bir düğüm seç: kaydedince bu düğümden ona “götürdü” bağı kurulur.'
+			: null}
+	>
+		<textarea
+			id="aciklama"
+			name="aciklama"
+			maxlength="5000"
+			rows="4"
+			bind:this={aciklamaAlani}
+			bind:value={aciklama}
+			oninput={aciklamaYazildi}
+			onkeydown={(e) => {
+				if (e.key === 'Escape' && acikSorgu !== null) {
+					acikSorgu = null;
+					e.preventDefault();
+				}
+			}}></textarea>
+		{#if satirIciAdaylar.length}
+			<ul class="oneriler" aria-label="Bağlanacak düğüm">
+				{#each satirIciAdaylar as aday (aday.id)}
+					<li>
+						<button type="button" onclick={() => satirIciSec(aday.baslik)}>
+							<TurSekli tur={aday.tur} boyut={11} />
+							<strong>{aday.baslik}</strong>
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+		{#if satirIciOnizleme.length}
+			<p class="satir-ici-onizleme kucuk">
+				Kaydedince kurulacak bağlar:
+				{#each satirIciOnizleme as b, i (b.baslik)}
+					{i ? ', ' : ''}<span class:bulunamadi={!b.bulundu}
+						>{b.baslik}{b.bulundu ? '' : ' (haritanda yok)'}</span
+					>
+				{/each}
+			</p>
+		{/if}
 	</Alan>
 
 	<details class="konum" open={!!(d('enlem') || d('yerAdi') || hatalar.enlem || hatalar.boylam)}>
@@ -301,6 +448,49 @@
 </form>
 
 <style>
+	.oneriler {
+		list-style: none;
+		margin: var(--a-1) 0 0;
+		padding: var(--a-1);
+		border: 1px solid var(--cizgi-guclu);
+		border-radius: var(--yaricap);
+		background: var(--yuzey);
+		box-shadow: var(--golge-1);
+	}
+	.oneriler button {
+		display: flex;
+		align-items: baseline;
+		gap: var(--a-2);
+		width: 100%;
+		padding: var(--a-2);
+		border: 0;
+		border-radius: var(--yaricap-sm);
+		background: transparent;
+		color: var(--metin);
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+	.oneriler button:hover,
+	.oneriler button:focus-visible {
+		background: var(--vurgu-zemin);
+	}
+	.oneriler small {
+		color: var(--metin-soluk);
+	}
+	.satir-ici-onizleme {
+		margin: var(--a-1) 0 0;
+		color: var(--metin-soluk);
+	}
+	.satir-ici-onizleme span {
+		color: var(--metin);
+		font-weight: 600;
+	}
+	.satir-ici-onizleme .bulunamadi {
+		color: var(--metin-soluk);
+		font-weight: 400;
+		text-decoration: line-through;
+	}
 	.etiket {
 		font-weight: 550;
 		font-size: var(--boyut-sm);

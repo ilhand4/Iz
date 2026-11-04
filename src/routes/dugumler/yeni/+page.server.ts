@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { dugumTuruMu, eserTuruMu } from '#lib/sabitler.ts';
 import { dugumDogrula, getirenDogrula, uuidMu, type Hatalar } from '#lib/server/dogrulama.ts';
+import { satirIciBaglariKur } from '#lib/server/baglar.ts';
 import { dugumSecenekleri, dugumVeGetireniKaydet } from '#lib/server/dugumler.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -49,6 +50,7 @@ export const actions: Actions = {
 			not
 		);
 		if (kayit === 'yetkisiz') error(404, 'Seçilen düğüm bulunamadı.');
+		await satirIciBaglariKur(kullanici.id, kayit.dugumId, sonuc.veri.aciklama);
 		redirect(303, `/dugumler/${kayit.dugumId}?eklendi=1`);
 	}
 };

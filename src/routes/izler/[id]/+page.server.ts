@@ -1,6 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import { alan, uuidMu } from '#lib/server/dogrulama.ts';
-import { bagKur } from '#lib/server/dugumler.ts';
+import { bagKur } from '#lib/server/baglar.ts';
 import { izGetir } from '#lib/server/izler.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import type { Actions, PageServerLoad } from './$types';

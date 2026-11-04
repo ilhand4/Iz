@@ -9,7 +9,7 @@ vi.mock('./db/index.ts', async () => {
 
 const { db } = await import('./db/index.ts');
 const { dugumler, izAdimlari, kullanicilar } = await import('./db/schema.ts');
-const veri = await import('./dugumler.ts');
+const veri = { ...(await import('./dugumler.ts')), ...(await import('./baglar.ts')) };
 const izler = await import('./izler.ts');
 
 type Kimlik = string;

@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { alan, dugumDogrula, uuidMu } from '#lib/server/dogrulama.ts';
-import { dugumGetir, dugumGuncelle, dugumuCopeAt } from '#lib/server/dugumler.ts';
+import { satirIciBaglariKur } from '#lib/server/baglar.ts';
+import { dugumGetir, dugumGuncelle, dugumSecenekleri, dugumuCopeAt } from '#lib/server/dugumler.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import { tarihGirdisi } from '#lib/tarih.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -22,6 +23,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	return {
 		id: d.id,
 		baslik: d.baslik,
+		secenekler: await dugumSecenekleri(kullanici.id, d.id),
 		degerler: {
 			tur: d.tur,
 			eserTuru: d.eserTuru ?? '',
@@ -46,7 +48,8 @@ export const actions: Actions = {
 		const sonuc = dugumDogrula(await request.formData());
 		if (!sonuc.tamam) return fail(400, { hatalar: sonuc.hatalar, degerler: sonuc.degerler });
 		if (!(await dugumGuncelle(params.id, kullanici.id, sonuc.veri))) error(404, BULUNAMADI);
-		redirect(303, `/dugumler/${params.id}`);
+		const kurulan = await satirIciBaglariKur(kullanici.id, params.id, sonuc.veri.aciklama);
+		redirect(303, `/dugumler/${params.id}${kurulan ? `?satirIci=${kurulan}` : ''}`);
 	},
 
 	sil: async ({ params, request, locals, url }) => {
