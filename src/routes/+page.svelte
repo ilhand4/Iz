@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import type { PageProps } from './$types';
 
@@ -60,6 +61,12 @@
 		content="İnsanlar ne yaşadığını kaydeder; İz neyin seni neye götürdüğünü kaydeder. Kitaplar, filmler, kişiler, yerler, kararlar ve anılar arasındaki bağları kur."
 	/>
 </svelte:head>
+
+{#if page.url.searchParams.has('hesapSilindi')}
+	<p class="kap bildirim bildirim-basari hesap-silindi" role="status">
+		Hesabın ve tüm verilerin silindi. İz'i denediğin için teşekkürler.
+	</p>
+{/if}
 
 <section class="kap kahraman">
 	<div class="kahraman-metin">
@@ -203,6 +210,9 @@
 </section>
 
 <style>
+	.hesap-silindi {
+		margin-top: var(--a-5);
+	}
 	.kahraman {
 		display: grid;
 		gap: var(--a-6);

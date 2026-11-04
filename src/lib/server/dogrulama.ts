@@ -104,6 +104,64 @@ export function girisDogrula(fd: FormData): Sonuc<{ eposta: string; sifre: strin
 	return { tamam: true, veri: { eposta, sifre } };
 }
 
+// ——— Hesap ayarları ———
+
+export type ProfilVerisi = { ad: string; hakkinda: string | null; aramaMotorlari: boolean };
+
+export function profilDogrula(fd: FormData): Sonuc<ProfilVerisi> {
+	const ad = alan(fd, 'ad');
+	const hakkinda = alan(fd, 'hakkinda');
+	const hatalar: Hatalar = {};
+	if (!ad) hatalar.ad = 'Adınızı yazın.';
+	else if (ad.length > 80) hatalar.ad = 'Ad en fazla 80 karakter olabilir.';
+	if (hakkinda.length > 300) hatalar.hakkinda = 'Tanıtım en fazla 300 karakter olabilir.';
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: { ad, hakkinda } };
+	return {
+		tamam: true,
+		veri: { ad, hakkinda: hakkinda || null, aramaMotorlari: alan(fd, 'aramaMotorlari') === 'evet' }
+	};
+}
+
+export function sifreDegistirDogrula(
+	fd: FormData
+): Sonuc<{ mevcutSifre: string; yeniSifre: string }> {
+	const mevcutSifre = String(fd.get('mevcutSifre') ?? '');
+	const yeniSifre = String(fd.get('yeniSifre') ?? '');
+	const yeniSifreTekrar = String(fd.get('yeniSifreTekrar') ?? '');
+	const hatalar: Hatalar = {};
+	if (!mevcutSifre) hatalar.mevcutSifre = 'Mevcut şifrenizi yazın.';
+	const hata = sifreHatasi(yeniSifre);
+	if (hata) hatalar.yeniSifre = hata;
+	else if (yeniSifre === mevcutSifre) hatalar.yeniSifre = 'Yeni şifre eskisiyle aynı olamaz.';
+	if (!hatalar.yeniSifre && yeniSifre !== yeniSifreTekrar)
+		hatalar.yeniSifreTekrar = 'Şifreler birbirini tutmuyor.';
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: {} };
+	return { tamam: true, veri: { mevcutSifre, yeniSifre } };
+}
+
+export function epostaDegistirDogrula(fd: FormData): Sonuc<{ eposta: string; sifre: string }> {
+	const eposta = alan(fd, 'yeniEposta').toLowerCase();
+	const sifre = String(fd.get('sifre') ?? '');
+	const hatalar: Hatalar = {};
+	const hata = epostaHatasi(eposta);
+	if (hata) hatalar.yeniEposta = hata;
+	if (!sifre) hatalar.sifre = 'Değişikliği onaylamak için şifrenizi yazın.';
+	if (Object.keys(hatalar).length)
+		return { tamam: false, hatalar, degerler: { yeniEposta: eposta } };
+	return { tamam: true, veri: { eposta, sifre } };
+}
+
+export function hesapSilDogrula(fd: FormData, kullaniciAdi: string): Sonuc<{ sifre: string }> {
+	const onay = alan(fd, 'onayKullaniciAdi').toLowerCase().replace(/^@/, '');
+	const sifre = String(fd.get('sifre') ?? '');
+	const hatalar: Hatalar = {};
+	if (onay !== kullaniciAdi) hatalar.onayKullaniciAdi = `Onaylamak için “${kullaniciAdi}” yazın.`;
+	if (!sifre) hatalar.sifre = 'Şifrenizi yazın.';
+	if (Object.keys(hatalar).length)
+		return { tamam: false, hatalar, degerler: { onayKullaniciAdi: onay } };
+	return { tamam: true, veri: { sifre } };
+}
+
 // ——— Düğüm ———
 
 export type DugumVerisi = {

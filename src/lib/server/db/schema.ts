@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+	boolean,
 	check,
 	date,
 	doublePrecision,
@@ -45,11 +46,16 @@ export const kullanicilar = pgTable(
 		/** Görünen ad (Türkçe karakter serbest) */
 		ad: text('ad').notNull(),
 		sifreOzeti: text('sifre_ozeti').notNull(),
+		/** Profilde görünen kısa tanıtım */
+		hakkinda: text('hakkinda'),
+		/** Herkese açık sayfaları arama motorlarına açık mı? Varsayılan kapalı (noindex) */
+		aramaMotorlari: boolean('arama_motorlari').notNull().default(false),
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
 	},
 	(t) => [
 		uniqueIndex('kullanicilar_kullanici_adi_tekil').on(t.kullaniciAdi),
-		uniqueIndex('kullanicilar_eposta_tekil').on(t.eposta)
+		uniqueIndex('kullanicilar_eposta_tekil').on(t.eposta),
+		check('kullanicilar_hakkinda_uzunluk', sql`char_length(${t.hakkinda}) <= 300`)
 	]
 );
 
@@ -62,6 +68,9 @@ export const oturumlar = pgTable(
 			.notNull()
 			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
 		bitis: zamanDamgasi('bitis').notNull(),
+		/** "Edge · Windows" gibi kısa cihaz açıklaması (oturum yönetimi için) */
+		cihaz: text('cihaz'),
+		sonKullanim: zamanDamgasi('son_kullanim').notNull().defaultNow(),
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
 	},
 	(t) => [index('oturumlar_kullanici_idx').on(t.kullaniciId)]

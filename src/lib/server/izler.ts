@@ -28,7 +28,36 @@ export type IzOzeti = {
 	sonDurak: { id: string; baslik: string } | null;
 };
 
-export async function izleriListele(sahipId: string, limit = 100): Promise<IzOzeti[]> {
+type IzOzetSecenekleri = {
+	limit?: number;
+	/** Listeyi gören kişi; sahibi değilse yalnızca herkese açık izler ve düğümler */
+	izleyenId?: string | null;
+	/** Yalnızca bu düğümün durak olduğu izler */
+	dugumId?: string;
+};
+
+/**
+ * İz önizlemeleri. Sahibi olmayan biri bakıyorsa yalnızca görebileceği izler listelenir ve
+ * önizlemede görmediği düğümlerin başlıkları hiç gönderilmez (durak sayısı yine doğrudur).
+ */
+export async function izleriListele(
+	sahipId: string,
+	secenekler: IzOzetSecenekleri | number = {}
+): Promise<IzOzeti[]> {
+	const {
+		limit = 100,
+		izleyenId = sahipId,
+		dugumId
+	} = typeof secenekler === 'number' ? { limit: secenekler } : secenekler;
+	const kosullar = [eq(izler.sahipId, sahipId), gorunurluk(izler, izleyenId)];
+	if (dugumId) {
+		kosullar.push(
+			inArray(
+				izler.id,
+				db.select({ izId: izAdimlari.izId }).from(izAdimlari).where(eq(izAdimlari.dugumId, dugumId))
+			)
+		);
+	}
 	const liste = await db
 		.select({
 			id: izler.id,
@@ -38,7 +67,7 @@ export async function izleriListele(sahipId: string, limit = 100): Promise<IzOze
 			guncelleme: izler.guncelleme
 		})
 		.from(izler)
-		.where(and(eq(izler.sahipId, sahipId), etkin(izler)))
+		.where(and(...kosullar))
 		.orderBy(desc(izler.guncelleme))
 		.limit(limit);
 	if (!liste.length) return [];
@@ -46,6 +75,8 @@ export async function izleriListele(sahipId: string, limit = 100): Promise<IzOze
 	const adimlar = await db
 		.select({
 			izId: izAdimlari.izId,
+			sahipId: dugumler.sahipId,
+			gizlilik: dugumler.gizlilik,
 			dugum: { id: dugumler.id, baslik: dugumler.baslik, tur: dugumler.tur }
 		})
 		.from(izAdimlari)
@@ -61,20 +92,21 @@ export async function izleriListele(sahipId: string, limit = 100): Promise<IzOze
 		)
 		.orderBy(asc(izAdimlari.izId), asc(izAdimlari.sira));
 
-	const gruplar = new Map<string, IzOzeti['duraklar']>();
+	const gruplar = new Map<string, { sayi: number; gorunur: IzOzeti['duraklar'] }>();
 	for (const a of adimlar) {
-		const grup = gruplar.get(a.izId) ?? [];
-		grup.push(a.dugum);
+		const grup = gruplar.get(a.izId) ?? { sayi: 0, gorunur: [] };
+		grup.sayi++;
+		if (gorebilirMi(a, izleyenId)) grup.gorunur.push(a.dugum);
 		gruplar.set(a.izId, grup);
 	}
 	return liste.map((iz) => {
-		const duraklar = gruplar.get(iz.id) ?? [];
+		const { sayi, gorunur } = gruplar.get(iz.id) ?? { sayi: 0, gorunur: [] };
 		return {
 			...iz,
-			durakSayisi: duraklar.length,
-			duraklar: duraklar.slice(0, 6),
-			ilkDurak: duraklar[0] ?? null,
-			sonDurak: duraklar.length > 1 ? duraklar[duraklar.length - 1] : null
+			durakSayisi: sayi,
+			duraklar: gorunur.slice(0, 6),
+			ilkDurak: gorunur[0] ?? null,
+			sonDurak: gorunur.length > 1 ? gorunur[gorunur.length - 1] : null
 		};
 	});
 }
@@ -129,7 +161,7 @@ export type IzAyrintisi = {
 		olusturma: Date;
 		guncelleme: Date;
 	};
-	sahip: { kullaniciAdi: string; ad: string };
+	sahip: { kullaniciAdi: string; ad: string; aramaMotorlari: boolean };
 	sahibiMi: boolean;
 	duraklar: (IzDuragi | GizliDurak)[];
 	/** Herkese açık izde, başkalarının göremeyeceği durak sayısı (yalnızca sahibine bilgi) */
@@ -145,7 +177,11 @@ export async function izGetir(id: string, izleyenId: string | null): Promise<IzA
 	const [kayit] = await db
 		.select({
 			iz: izler,
-			sahip: { kullaniciAdi: kullanicilar.kullaniciAdi, ad: kullanicilar.ad }
+			sahip: {
+				kullaniciAdi: kullanicilar.kullaniciAdi,
+				ad: kullanicilar.ad,
+				aramaMotorlari: kullanicilar.aramaMotorlari
+			}
 		})
 		.from(izler)
 		.innerJoin(kullanicilar, eq(izler.sahipId, kullanicilar.id))
@@ -475,14 +511,14 @@ export async function durakNotuKaydet(adimId: string, sahipId: string, not: stri
 // ——— Düğüm sayfası ve öneriler ———
 
 /** Bir düğümün durak olduğu, izleyenin görebildiği izler */
+/** Düğümün durak olduğu, izleyenin görebileceği izler (önizlemeli) */
 export async function dugumunIzleri(dugumId: string, izleyenId: string | null) {
-	return db
-		.select({ id: izler.id, baslik: izler.baslik, gizlilik: izler.gizlilik })
-		.from(izAdimlari)
-		.innerJoin(izler, eq(izAdimlari.izId, izler.id))
-		.where(and(eq(izAdimlari.dugumId, dugumId), gorunurluk(izler, izleyenId)))
-		.orderBy(desc(izler.guncelleme))
-		.limit(50);
+	const [d] = await db
+		.select({ sahipId: dugumler.sahipId })
+		.from(dugumler)
+		.where(eq(dugumler.id, dugumId));
+	if (!d) return [];
+	return izleriListele(d.sahipId, { dugumId, izleyenId, limit: 50 });
 }
 
 /** Bu düğümün henüz durak olmadığı, kullanıcının kendi izleri ("İze ekle" için) */

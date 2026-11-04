@@ -79,6 +79,8 @@ pg_restore --clean --if-exists --no-owner -h localhost -U iz -d iz_dev yedekler/
 
 `.github/workflows/denetim.yml` her gönderimde lint, tip denetimi, testler ve derlemeyi çalıştırır; ardından PostgreSQL 18 servisiyle uçtan uca testleri koşar.
 
+> Üretimde JSON içe aktarma (en çok 5 MB) için `.env`'e `BODY_SIZE_LIMIT=6M` ekleyin (adapter-node varsayılanı 512K).
+
 > `npm start` kökeni `https://` varsayar (adapter-node); yerelde düz http ile denerken formlar CSRF korumasına takılır. Yerel deneme için `npm run preview` kullanın.
 
 ## Neler var?
@@ -94,6 +96,8 @@ pg_restore --clean --if-exists --no-owner -h localhost -U iz -d iz_dev yedekler/
 - **Merak listesi:** eser durumu (merak ediyorum / sürüyor / bitti / yarım bıraktım), kimin önerdiğiyle birlikte; "bitti" denince tarih bu ay olarak yazılır.
 - **Haritanın karakterleri:** panoda kökler, kapı açanlar, kavşaklar ve bağsız düğümler; düğüm sayfasında "Açtığı kapılar".
 - **Kalıcı ağ yerleşimi:** sürüklenen düğümlerin yeri kaydedilir, yeni düğümler komşularının yanına konur.
+- **Profil ve paylaşım:** `/@kullanici` herkese açık düğüm ve izleri gösterir; özel içerik (başlıkları dahil) hiç gönderilmez. Herkese açık sayfalar varsayılan olarak arama motorlarına kapalıdır.
+- **Ayarlar:** görünen ad ve tanıtım, e-posta ve şifre değiştirme, açık oturumları görme/kapatma, verileri JSON/Markdown olarak indirme ve JSON'dan içe aktarma, hesabı silme.
 - **Bildirimler ve "Geri al":** bağ kaldırma, durak çıkarma, silme ve yeniden yerleştirme geri alınabilir; silinenler 30 gün çöp kutusunda bekler.
 
 ## Klasör yapısı

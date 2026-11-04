@@ -4,6 +4,7 @@ import { db } from '#lib/server/db/index.ts';
 import { kullanicilar } from '#lib/server/db/schema.ts';
 import { girisDogrula } from '#lib/server/dogrulama.ts';
 import { beklemeMesaji, girisSiniri, ipGirisSiniri } from '#lib/server/hizSiniri.ts';
+import { cihazAdi } from '#lib/server/cihaz.ts';
 import { jetonUret, oturumAc, oturumCereziYaz } from '#lib/server/oturum.ts';
 import { sahteDogrulama, sifreDogrula } from '#lib/server/sifre.ts';
 import { guvenliDonus } from '#lib/server/yetki.ts';
@@ -50,7 +51,7 @@ export const actions: Actions = {
 
 		girisSiniri.sifirla(anahtar);
 		const jeton = jetonUret();
-		const oturum = await oturumAc(jeton, kullanici.id);
+		const oturum = await oturumAc(jeton, kullanici.id, cihazAdi(request.headers.get('user-agent')));
 		oturumCereziYaz(cookies, jeton, oturum.bitis);
 		redirect(303, guvenliDonus(url.searchParams.get('donus')));
 	}

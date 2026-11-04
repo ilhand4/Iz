@@ -10,6 +10,8 @@ const GUN_MS = 24 * 60 * 60 * 1000;
 export const OTURUM_SURESI_MS = 30 * GUN_MS;
 /** Bitişe bu kadar kala oturum kendiliğinden uzatılır */
 const UZATMA_ESIGI_MS = 15 * GUN_MS;
+/** "Son kullanım" en fazla bu sıklıkta yazılır (her istekte yazma yapılmasın) */
+const SON_KULLANIM_ARALIGI_MS = 60 * 60 * 1000;
 
 export type OturumKullanicisi = { id: string; kullaniciAdi: string; ad: string };
 
@@ -23,10 +25,11 @@ export function jetonOzeti(jeton: string): string {
 	return createHash('sha256').update(jeton).digest('hex');
 }
 
-export async function oturumAc(jeton: string, kullaniciId: string) {
+export async function oturumAc(jeton: string, kullaniciId: string, cihaz: string | null = null) {
 	const oturum = {
 		id: jetonOzeti(jeton),
 		kullaniciId,
+		cihaz,
 		bitis: new Date(Date.now() + OTURUM_SURESI_MS)
 	};
 	await db.insert(oturumlar).values(oturum);
@@ -42,7 +45,7 @@ export async function oturumDogrula(jeton: string) {
 				kullaniciAdi: kullanicilar.kullaniciAdi,
 				ad: kullanicilar.ad
 			},
-			oturum: { id: oturumlar.id, bitis: oturumlar.bitis }
+			oturum: { id: oturumlar.id, bitis: oturumlar.bitis, sonKullanim: oturumlar.sonKullanim }
 		})
 		.from(oturumlar)
 		.innerJoin(kullanicilar, eq(oturumlar.kullaniciId, kullanicilar.id))
@@ -56,9 +59,14 @@ export async function oturumDogrula(jeton: string) {
 		return { oturum: null, kullanici: null };
 	}
 
-	if (Date.now() >= oturum.bitis.getTime() - UZATMA_ESIGI_MS) {
-		oturum.bitis = new Date(Date.now() + OTURUM_SURESI_MS);
-		await db.update(oturumlar).set({ bitis: oturum.bitis }).where(eq(oturumlar.id, oturum.id));
+	const uzat = Date.now() >= oturum.bitis.getTime() - UZATMA_ESIGI_MS;
+	const izle = Date.now() - oturum.sonKullanim.getTime() >= SON_KULLANIM_ARALIGI_MS;
+	if (uzat || izle) {
+		if (uzat) oturum.bitis = new Date(Date.now() + OTURUM_SURESI_MS);
+		await db
+			.update(oturumlar)
+			.set({ bitis: oturum.bitis, sonKullanim: new Date() })
+			.where(eq(oturumlar.id, oturum.id));
 	}
 
 	return { oturum, kullanici };

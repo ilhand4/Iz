@@ -55,3 +55,7 @@ export function beklemeMesaji(saniye: number): string {
 		? `Çok fazla deneme yapıldı. Lütfen ${dakika} dakika sonra tekrar deneyin.`
 		: `Çok fazla deneme yapıldı. Lütfen ${saniye} saniye sonra tekrar deneyin.`;
 }
+/** Kullanıcı başına: ayarlarda şifre gerektiren işlemler 15 dakikada 10 deneme */
+export const hesapSiniri = new HizSiniri(10, 15 * 60_000);
+/** Kullanıcı başına: saatte 5 içe aktarma */
+export const iceAktarmaSiniri = new HizSiniri(5, 60 * 60_000);

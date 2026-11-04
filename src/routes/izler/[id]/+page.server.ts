@@ -11,7 +11,11 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	if (!uuidMu(params.id)) error(404, BULUNAMADI);
 	const iz = await izGetir(params.id, locals.kullanici?.id ?? null);
 	if (!iz) error(404, BULUNAMADI);
-	return { ...iz, ilk: iz.sahibiMi && url.searchParams.has('ilk') };
+	return {
+		...iz,
+		ilk: iz.sahibiMi && url.searchParams.has('ilk'),
+		indekslenebilir: iz.iz.gizlilik === 'herkes' && iz.sahip.aramaMotorlari
+	};
 };
 
 export const actions: Actions = {

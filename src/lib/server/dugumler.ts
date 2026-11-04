@@ -112,7 +112,11 @@ export async function dugumGetir(id: string, izleyenId: string | null) {
 	const [sonuc] = await db
 		.select({
 			dugum: dugumler,
-			sahip: { kullaniciAdi: kullanicilar.kullaniciAdi, ad: kullanicilar.ad }
+			sahip: {
+				kullaniciAdi: kullanicilar.kullaniciAdi,
+				ad: kullanicilar.ad,
+				aramaMotorlari: kullanicilar.aramaMotorlari
+			}
 		})
 		.from(dugumler)
 		.innerJoin(kullanicilar, eq(dugumler.sahipId, kullanicilar.id))

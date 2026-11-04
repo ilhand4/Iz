@@ -22,6 +22,13 @@
       "when": 1793797875807,
       "tag": "0002_asama25_durum_cop_konum",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793801964634,
+      "tag": "0003_asama3a_hesap",
+      "breakpoints": true
     }
   ]
 }

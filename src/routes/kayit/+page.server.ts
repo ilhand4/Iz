@@ -4,6 +4,7 @@ import { db } from '#lib/server/db/index.ts';
 import { kullanicilar } from '#lib/server/db/schema.ts';
 import { kayitDogrula } from '#lib/server/dogrulama.ts';
 import { beklemeMesaji, kayitSiniri } from '#lib/server/hizSiniri.ts';
+import { cihazAdi } from '#lib/server/cihaz.ts';
 import { jetonUret, oturumAc, oturumCereziYaz } from '#lib/server/oturum.ts';
 import { sifreOzetle } from '#lib/server/sifre.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -60,7 +61,7 @@ export const actions: Actions = {
 		}
 
 		const jeton = jetonUret();
-		const oturum = await oturumAc(jeton, kullaniciId);
+		const oturum = await oturumAc(jeton, kullaniciId, cihazAdi(request.headers.get('user-agent')));
 		oturumCereziYaz(cookies, jeton, oturum.bitis);
 		// Yeni kullanıcı ilk izini üç soruda oluştursun
 		redirect(303, '/basla?hosgeldin=1');

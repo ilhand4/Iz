@@ -8,7 +8,7 @@
 - Tempo: her aşamada maddelerin hepsini bitir → `npm run check`, `npm test`, `npm run build` → tarayıcıda dene (açık/koyu tema, masaüstü/mobil ekran görüntüsü) → ROADMAP.md'yi güncelle → Türkçe commit → kısa Türkçe özet.
 - Kullanıcı Aşama 2'den itibaren işi **"profesyonel bir site tasarımcısı gözüyle"** yapmamı istedi: yalnızca özelliği değil görsel tutarlılığı, boş durumları, mobil kullanımı ve erişilebilirliği de bitmiş say.
 - Yalnızca gerçekten kullanıcının vermesi gereken kararlarda soru sor; diğerlerinde makul varsayılanı seç ve buraya not et.
-- **Sıradaki iş:** ROADMAP'teki Aşama 3a, ardından 3b → 3c (Aşama 2.5 bitti). Aşama 3'e kaynaklık eden dış değerlendirmedeki örnek kodlar olduğu gibi kullanılmaz; mevcut şemaya (uuid, `herkes`) ek sütun/tablo olarak uyarlanır.
+- **Sıradaki iş:** Aşama 3a'nın kalan maddeleri (ilk parti bitti: ayarlar, oturumlar, profil, noindex, dışa/içe aktarma), ardından 3b → 3c. Aşama 3'e kaynaklık eden dış değerlendirmedeki örnek kodlar olduğu gibi kullanılmaz; mevcut şemaya (uuid, `herkes`) ek sütun/tablo olarak uyarlanır.
 - Veritabanı şifresi ve TMDB anahtarı `.env` dosyasında; kullanıcı kendisi yazdı. Bunları okuma/yazdırma.
 
 ## Ürün
@@ -84,6 +84,17 @@
 - **İlk iz sihirbazı** (`/basla`): kayıttan sonra açılır; eser + getiren + giden → üç özel düğüm, iki bağ, bir özel iz; eser "bitti". En az iki durak zorunlu.
 - **Ağ konumları:** `ag_konumlari` (düğüm başına x/y). İlk açılışta fcose çalışır ve tüm konumlar kaydedilir; sonra harita kayıtlı konumlarla (`preset`) kurulur, yeni düğümler `eksikKonumlariYerlestir` ile kayıtlı komşularının ortasına (kimlikten sabit açıyla) konur. Sürükleme `dragfree` + 600 ms toplu PUT `/api/ag/konumlar` (sahiplik süzgeci, en çok 5000). "Yeniden yerleştir" geri alınabilir.
 - **Haritanın karakterleri** (`analiz.ts`, panoda 4+ düğüm ve 3+ bağ varsa): kökler (giriş 0, çıkış > 0), kapı açanlar (dolaylı ulaşılan ≥ 2), kavşaklar (≥ 3 komşu, Brandes arasındalığı > 0), bağsızlar (bağı ve izi yok). 2000 düğümün üstünde pahalı ölçüler atlanır. "Açtığı kapılar" = `yolBul(…, 'ileri')`.
+
+### Aşama 3a kararları
+
+- **Profil** `/@kullaniciAdi` (rota klasörü `src/routes/@[kullaniciAdi]`): sahibi baksa bile her zaman anonim izleyicinin gördüğü (`gorunurluk(…, null)`); bağlar yalnızca iki ucu da açık olanlar. Ağ sahibinin kayıtlı yerleşimiyle çizilir, `AgGorunumu kaydet={false}`.
+- **İz önizlemeleri** (`izleriListele(sahipId, { izleyenId, dugumId, limit })`): izleyen sahibi değilse yalnızca görebileceği izler; önizlemede görmediği durakların başlığı gönderilmez, `durakSayisi` yine tümünü sayar. Düğüm sayfasındaki "Geçtiği izler" de bunu kullanır.
+- **noindex:** kök düzen `page.data.indekslenebilir !== true` ise `<meta name="robots" content="noindex">` yazar. Tanıtım sayfası (`+page.ts`) her zaman `true`; profil, açık düğüm ve açık iz sayfaları sahibinin `kullanicilar.arama_motorlari` ayarına göre (varsayılan kapalı).
+- **Ayarlar** (`/ayarlar`, `hesap.ts`): şifre soran işlemler (e-posta, şifre, hesap silme) `hesapSiniri` (kullanıcı başına 15 dk'da 10). Şifre değişince mevcut oturum dışındakiler silinir. E-posta değişikliği e-posta servisi seçilene kadar yalnızca şifreyle onaylanır. Hesap silme: kullanıcı adını yazmak + şifre; her şey zincirleme silinir, `/?hesapSilindi=1`.
+- **Oturumlar:** `oturumlar.cihaz` ("Edge · Windows"; tam User-Agent saklanmaz, `cihaz.ts`) ve `son_kullanim` (en çok saatte bir yazılır). Sayfaya oturum kimliğinin (jeton özeti) yalnızca ilk 16 karakteri gider.
+- **Veri taşıma:** biçim `{ bicim: 'iz-disa-aktarma', surum: 1, … }` (`veriTasima.ts`, saf; `disaIceAktar.ts`, veritabanı). Dışa aktarmaya çöptekiler girmez. İçe aktarma eklemelidir, tek işlemde; kimlikler yeniden üretilir; aynı dış eser (haritada ya da dosyada) birleşir; konumlar yalnızca yeni düğümler için; bozuk kayıtlar atlanıp sayılır. En çok 5 MB, 5000 düğüm, 20000 bağ, 500 iz; kullanıcı başına saatte 5. Üretimde `BODY_SIZE_LIMIT=6M` gerekir (adapter-node varsayılanı 512K).
+- **Türkçe sayı + ad:** sayıdan sonra çoğul eki yok ("3 eser", "3 eserler" değil): `DUGUM_TURU_ETIKETI` kullan, `DUGUM_TURU_COGUL` başlık/süzgeç içindir.
+
 - **Kişi düğümü uyarısı:** tür kişi + gizlilik herkes seçilince formda CSS `:has()` ile mahremiyet uyarısı (JS gerekmez).
 
 ## Komutlar

@@ -4,6 +4,7 @@
 	import BagOgesi from '#lib/bilesenler/BagOgesi.svelte';
 	import DugumSecici from '#lib/bilesenler/DugumSecici.svelte';
 	import GizlilikRozeti from '#lib/bilesenler/GizlilikRozeti.svelte';
+	import IzKarti from '#lib/bilesenler/IzKarti.svelte';
 	import Simge from '#lib/bilesenler/Simge.svelte';
 	import TurRozeti from '#lib/bilesenler/TurRozeti.svelte';
 	import TurSekli from '#lib/bilesenler/TurSekli.svelte';
@@ -159,7 +160,11 @@
 						{/if}
 					</li>
 				{/if}
-				{#if !data.sahibiMi}<li>{data.sahip.ad} (@{data.sahip.kullaniciAdi}) paylaştı</li>{/if}
+				{#if !data.sahibiMi}
+					<li>
+						<a href="/@{data.sahip.kullaniciAdi}">{data.sahip.ad} (@{data.sahip.kullaniciAdi})</a> paylaştı
+					</li>
+				{/if}
 				{#if disAdres && d.disKaynak}
 					<li>
 						<a href={disAdres} rel="noopener noreferrer external" target="_blank">
@@ -337,13 +342,11 @@
 		<section class="izler yigin" aria-labelledby="izler-baslik">
 			<h2 id="izler-baslik">Geçtiği izler</h2>
 			{#if data.izler.length}
-				<ul class="iz-listesi">
+				<div class="iz-izgarasi">
 					{#each data.izler as iz (iz.id)}
-						<li>
-							<a href="/izler/{iz.id}"><Simge ad="iz" boyut={16} /> {iz.baslik}</a>
-						</li>
+						<IzKarti {iz} />
 					{/each}
-				</ul>
+				</div>
 			{:else}
 				<p class="soluk kucuk">Bu düğüm henüz bir izde durak değil.</p>
 			{/if}
@@ -576,30 +579,10 @@
 	.yol p {
 		margin: 0 0 var(--a-3);
 	}
-	.iz-listesi {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--a-2);
-	}
-	.iz-listesi a {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--a-2);
-		padding: var(--a-2) var(--a-3);
-		border: 1px solid var(--cizgi);
-		border-radius: var(--yaricap-tam);
-		background: var(--yuzey);
-		color: var(--metin);
-		font-weight: 550;
-		font-size: var(--boyut-sm);
-		text-decoration: none;
-	}
-	.iz-listesi a:hover {
-		border-color: var(--vurgu);
-		color: var(--vurgu);
+	.iz-izgarasi {
+		display: grid;
+		gap: var(--a-3);
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
 	}
 	.ize-ekle {
 		display: flex;

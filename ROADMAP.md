@@ -59,27 +59,28 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 > herkese açık düzeyin adı `herkes`; `baglar` ve `izler` tablolarını yeniden tanımlamak mevcut verileri
 > siler. Hepsi mevcut tablolara **ek sütun/tablo** olarak, veri kaybı olmadan uyarlanacak.
 
-## ⏳ Aşama 3a — Paylaşım, hesap ve keşif
+## 🚧 Aşama 3a — Paylaşım, hesap ve keşif
 
-- [ ] Herkese açık profil sayfası (`/@kullanici`): açık düğümler, izler ve açık ağ
+- [x] Herkese açık profil sayfası (`/@kullanici`): açık düğümler, izler ve açık ağ (sahibinin yerleşimiyle, kaydetmeden); sahibi bakınca "başkalarına böyle görünür" uyarısı. İz önizlemeleri izleyene göre süzülür: özel durakların başlığı hiç gönderilmez
 - [ ] Aile / grup kavramı (gruplar, üyelik, davet); "grup" gizlilik düzeyinin gerçekten çalışması
 - [ ] **Dolaylı bağlar ve gölge düğümler:** önerilen yol, gizli düğümü hiç göstermeden iki açık düğüm arasına tek bir kesikli "dolaylı bağ" çizmek (gizli düğümün türü ve sayısı da sızmaz). Gölge düğüm ise yeni, isteğe bağlı bir gizlilik düzeyi "Bağlantı görünsün, içerik gizli". Varsayılan değil (varsayılan `ozel` hiç görünmez kalır). Başkasının gördüğü ağda başlık/metin yerine yalnızca tür şekli; gerçek kimlik yerine istek başına anonim kimlik. Buzlu cam / kesikli kontur görünümü
 - [ ] **Kanonik eser çekirdeği:** kişisel düğümlerden bağımsız `kanonik_eserler` tablosu; önce Wikidata kimliği (kitap, film, kişi ve yer için ortak, ücretsiz omurga) ve dış kimlikler (Open Library / TMDB), yoksa `metin.ts` normalleştirmesiyle başlık + yapımcı + türden deterministik parmak izi. `dugumler.kanonik_eser_id` bağlantısı. Seçilen eserlerin verisi burada saklanır (dış bağlantı kırılırsa yedek)
 - [ ] **Kör kesişim:** aynı eseri ekleyen başkalarının yalnızca herkese açık izleri düğüm sayfasında önerilir; özel notlar hiç kullanılmaz
 - [ ] Keşif yolu önerileri: puan değil, başkalarının gerçek yolları ("X'ten Y'ye gidenler Z'ye de gitti")
 - [ ] Paylaşılabilir iz bağlantıları ve tür şekilleriyle otomatik Open Graph görseli (PNG)
-- [ ] Hesap ayarları: görünen ad, şifre değiştirme, e-posta değiştirme, hesap silme
+- [x] Hesap ayarları (`/ayarlar`): görünen ad, kısa tanıtım, şifre değiştirme (diğer oturumlar kapanır), e-posta değiştirme (şimdilik şifreyle onay), hesap silme (kullanıcı adı + şifre); şifre soran işlemlerde kullanıcı başına hız sınırı
 - [ ] Şifre sıfırlama ve e-posta doğrulama — **e-posta servisini kullanıcı seçecek**; seçilene kadar geliştirmede bağlantı terminale yazılır
-- [ ] Veri dışa aktarma (JSON + Markdown) ve JSON'dan içe aktarma (KVKK için de gerekli)
+- [x] Veri dışa aktarma (JSON + Markdown) ve JSON'dan içe aktarma (KVKK için de gerekli): sürümlü biçim, eklemeli içe aktarma, kimlikler yeniden üretilir, aynı dış eser birleşir, bozuk kayıtlar atlanır; en çok 5 MB
 - [ ] pg_trgm ile yazım hatasına dayanıklı arama (düğümler, izler; Türkçe sadeleştirmeyle birlikte)
 - [ ] İmleç tabanlı sayfalama: `/dugumler` (şu an 200'de kesiliyor) ve `/izler` (100)
 - [ ] Eser araması için veritabanında önbellek (UNLOGGED tablo, ~24 saat) — dış servis kotasını korur
-- [ ] Düğüm sayfasındaki "Geçtiği izler" listesi `IzKarti` önizlemesine dönüşecek (bölümün kendisi zaten var)
+- [x] Düğüm sayfasındaki "Geçtiği izler" listesi `IzKarti` önizlemesine dönüştü
 - [ ] **"Senin izin beni buraya götürdü":** başkasının açık düğümünden kendi düğümüne bağ; sahibine bildirim gider. Beğeni ve takipçi sayısı yok, sonsuz akış yok
 - [ ] Ortak izler (çiftler, aileler, kitap kulüpleri; öğretmenler için okuma izleri)
 - [ ] İz gömme (blog) ve herkese açık profil için RSS
-- [ ] Oturum yönetimi (açık oturumları gör / kapat) ve passkey ile şifresiz giriş
-- [ ] Herkese açık sayfalar varsayılan olarak arama motorlarına kapalı (noindex); isteyen açar
+- [x] Oturum yönetimi: açık oturumlar (cihaz, son kullanım), tek tek ya da topluca kapatma
+- [ ] Passkey ile şifresiz giriş
+- [x] Herkese açık sayfalar varsayılan olarak arama motorlarına kapalı (noindex); isteyen ayarlardan açar (tanıtım sayfası her zaman açık)
 
 ## ⏳ Aşama 3b — Düşünce araçları
 

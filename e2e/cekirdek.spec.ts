@@ -124,3 +124,28 @@ test('pano haritanın karakterlerini ve merak listesini gösterir', async ({ pag
 	await expect(page.getByRole('heading', { name: 'Haritanın karakterleri' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Kökler' })).toBeVisible();
 });
+
+test('ayarlar: profil kaydedilir, profil sayfası yalnızca açık içeriği gösterir', async ({
+	page
+}) => {
+	await page.goto('/ayarlar');
+	await page.getByLabel('Kısa tanıtım').fill('Kitaplardan şehirlere giden yollar.');
+	await page.getByRole('button', { name: 'Kaydet', exact: true }).click();
+	await expect(page.getByRole('status').filter({ hasText: 'Profilin kaydedildi.' })).toBeVisible();
+	await expect(page.getByText('Bu cihaz')).toBeVisible();
+
+	await page.locator('#profil a[href^="/@"]').click();
+	await expect(page).toHaveURL(/\/@e2e_/);
+	await expect(page.getByText('Kitaplardan şehirlere giden yollar.')).toBeVisible();
+	// Testlerde eklenen her şey özel: profil boş görünmeli
+	await expect(page.getByRole('heading', { name: 'Henüz herkese açık bir şey yok' })).toBeVisible();
+	await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
+});
+
+test('veriler JSON olarak indirilir', async ({ page }) => {
+	await page.goto('/ayarlar#veriler');
+	const indirme = page.waitForEvent('download');
+	await page.getByRole('link', { name: /JSON olarak indir/ }).click();
+	const dosya = await indirme;
+	expect(dosya.suggestedFilename()).toMatch(/^iz-e2e_.+\.json$/);
+});

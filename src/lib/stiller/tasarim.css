@@ -374,6 +374,11 @@ fieldset {
 	color: var(--basari);
 	border-color: color-mix(in srgb, var(--basari) 30%, transparent);
 }
+.bildirim-bilgi {
+	background: var(--vurgu-zemin);
+	color: var(--metin);
+	border-color: color-mix(in srgb, var(--vurgu) 30%, transparent);
+}
 .bildirim-uyari {
 	background: var(--uyari-zemin);
 	color: var(--uyari);

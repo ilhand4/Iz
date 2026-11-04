@@ -34,6 +34,11 @@
 	}
 </script>
 
+<svelte:head>
+	<!-- Arama motorlarına varsayılan olarak kapalı; yalnızca sayfa açıkça izin verirse dizine eklenir -->
+	{#if page.data.indekslenebilir !== true}<meta name="robots" content="noindex" />{/if}
+</svelte:head>
+
 <a class="atla" href="#icerik">İçeriğe geç</a>
 
 <header class="ust">
@@ -58,9 +63,16 @@
 			{/if}
 			<TemaDugmesi baslangic={data.tema} />
 			{#if data.kullanici}
-				<span class="kullanici kucuk soluk" title="@{data.kullanici.kullaniciAdi}">
-					{data.kullanici.ad}
-				</span>
+				<a
+					class="dugme dugme-hayalet dugme-kucuk hesap-baglantisi"
+					href="/ayarlar"
+					title="Ayarlar (@{data.kullanici.kullaniciAdi})"
+					aria-current={page.url.pathname === '/ayarlar' ? 'page' : undefined}
+				>
+					<Simge ad="ayar" />
+					<span class="gorunmez">Ayarlar:</span>
+					<span class="kullanici kucuk">{data.kullanici.ad}</span>
+				</a>
 				<form method="POST" action="/cikis">
 					<button class="dugme dugme-hayalet dugme-kucuk" aria-label="Çıkış yap" title="Çıkış yap">
 						<Simge ad="cikis" />

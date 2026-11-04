@@ -53,9 +53,15 @@
 		y?: number | null;
 	};
 	type AgBagi = { id: string; kaynakId: string; hedefId: string; not: string | null };
-	type Props = { dugumler: AgDugumu[]; baglar: AgBagi[]; odakId?: string | null };
+	type Props = {
+		dugumler: AgDugumu[];
+		baglar: AgBagi[];
+		odakId?: string | null;
+		/** Yerleşim sunucuya kaydedilsin mi? (başkasının profilinde hayır) */
+		kaydet?: boolean;
+	};
 
-	let { dugumler, baglar, odakId = null }: Props = $props();
+	let { dugumler, baglar, odakId = null, kaydet = true }: Props = $props();
 
 	let tuval: HTMLDivElement;
 	let cy: cytoscape.Core | null = null;
@@ -353,7 +359,7 @@
 	let kayitHatasiGosterildi = false;
 	async function konumlariKaydet(idler: Iterable<string>) {
 		const ag = cy;
-		if (!ag) return;
+		if (!ag || !kaydet) return;
 		const konumlar = [...idler]
 			.map((id) => ag.getElementById(id))
 			.filter((n) => n.nonempty())
@@ -705,9 +711,11 @@
 		{/if}
 	</div>
 	<p class="ipucu" id="ag-ipucu">
-		Bir düğüme dokun: bağlarını vurgular. Çift tıkla: ayrıntısına git. Sürükle: yerini değiştir
-		(yerleşim kaydedilir). Kesik kenarlılar merak listendekiler. Klavye: + / − yakınlaştır, 0
-		sığdır, Esc seçimi kaldır.
+		Bir düğüme dokun: bağlarını vurgular. Çift tıkla: ayrıntısına git.
+		{kaydet
+			? 'Sürükle: yerini değiştir (yerleşim kaydedilir). Kesik kenarlılar merak listendekiler.'
+			: 'Kesik kenarlılar henüz merak edilenler.'}
+		Klavye: + / − yakınlaştır, 0 sığdır, Esc seçimi kaldır.
 	</p>
 </div>
 

@@ -56,7 +56,9 @@
 			<GizlilikRozeti gizlilik={iz.gizlilik} />
 			<span>{data.duraklar.length} durak</span>
 			{#if aralik}<span>{aralik}</span>{/if}
-			{#if !data.sahibiMi}<span>{data.sahip.ad} (@{data.sahip.kullaniciAdi})</span>{/if}
+			{#if !data.sahibiMi}
+				<a href="/@{data.sahip.kullaniciAdi}">{data.sahip.ad} (@{data.sahip.kullaniciAdi})</a>
+			{/if}
 		</div>
 		{#snippet eylemler()}
 			{#if iz.gizlilik === 'herkes'}

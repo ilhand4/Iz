@@ -48,6 +48,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		izler,
 		secenekler,
 		eklenebilirIzler,
+		indekslenebilir: dugum.gizlilik === 'herkes' && sonuc.sahip.aramaMotorlari,
 		eklendi: url.searchParams.has('eklendi'),
 		getirenSor: url.searchParams.has('getiren')
 	};
