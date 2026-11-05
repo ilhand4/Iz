@@ -5,7 +5,7 @@
 - Kullanıcı Türkçe konuşur. **Yanıtlar, arayüz metinleri, kod yorumları ve commit mesajları Türkçe.**
 - Windows 11; PostgreSQL 18 yerelde kurulu (pgAdmin 4 ile yönetiyor). **Docker kullanılmıyor.** Node.js 26 LTS (`winget` ile kuruldu).
 - Daha önce ASP.NET Core ile kişisel site yaptı (ayrı depo); bu projede bilerek farklı bir yığın seçti.
-- Tempo: her aşamada maddelerin hepsini bitir → `npm run check`, `npm test`, `npm run build` → tarayıcıda dene (açık/koyu tema, masaüstü/mobil ekran görüntüsü) → ROADMAP.md'yi güncelle → Türkçe commit → kısa Türkçe özet.
+- Tempo: her aşamada maddelerin hepsini bitir → `npm run check`, `npm test`, `npm run build` → tarayıcıda dene (açık/koyu tema, masaüstü/mobil ekran görüntüsü) → ROADMAP.md'yi güncelle → Türkçe commit → `git push origin main` (kullanıcı 5 Kasım 2026'da push'u bana bıraktı; GitHub Desktop'un kimlik bilgileri kullanılıyor) → GitHub Actions sonucunu kontrol et → kısa Türkçe özet.
 - Kullanıcı Aşama 2'den itibaren işi **"profesyonel bir site tasarımcısı gözüyle"** yapmamı istedi: yalnızca özelliği değil görsel tutarlılığı, boş durumları, mobil kullanımı ve erişilebilirliği de bitmiş say.
 - Yalnızca gerçekten kullanıcının vermesi gereken kararlarda soru sor; diğerlerinde makul varsayılanı seç ve buraya not et.
 - **Sıradaki iş:** Aşama 5 (MapLibre + OSM harita, PostGIS, eski/yeni fotoğraf). Aşama 1–4 bitti. Açık kalan kullanıcı kararı: **e-posta servisi seçimi** (seçilene kadar iletiler geliştirmede terminale yazılır, üretimde gönderilmez). Üretim `.env`'ine `BODY_SIZE_LIMIT=6M` eklenmeli (kullanıcı yazar). Aşama 3'e kaynaklık eden dış değerlendirmedeki örnek kodlar olduğu gibi kullanılmaz; mevcut şemaya (uuid, `herkes`) ek sütun/tablo olarak uyarlanır.
