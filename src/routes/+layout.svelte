@@ -91,7 +91,7 @@
 						<span class="gorunmez">Bildirimler</span>
 						{#if data.okunmamis}<span class="sayac"
 								>{data.okunmamis > 9 ? '9+' : data.okunmamis}<span class="gorunmez">
-									okunmamış</span
+									yeni</span
 								></span
 							>{/if}
 					</a>

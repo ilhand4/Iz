@@ -345,6 +345,27 @@ async function tohumla() {
 		);
 	}
 
+	// Karar defteri: biri sonuçlanmış, biri sonucunu sorma zamanı gelmiş
+	await db.insert(schema.kararlar).values([
+		{
+			dugumId: kimlikler.almanca,
+			gerekce: 'Berlin’i kendi gözümle, kendi dilinde görmek istedim.',
+			beklenti: 'Bir yıl içinde bir film izleyebilecek kadar Almanca.',
+			guven: 60,
+			sorulacak: '2020-09-15',
+			sonuc: 'kismen',
+			sonucNotu: 'Altyazıyla izleyebiliyorum; altyazısız henüz değil.',
+			sonucTarihi: new Date('2020-09-20T10:00:00Z')
+		},
+		{
+			dugumId: kimlikler.yukseklisans,
+			gerekce: 'Berlin’de yaşamanın en gerçekçi yolu.',
+			beklenti: 'Kabul alırım ve ilk yıl burslu okurum.',
+			guven: 75,
+			sorulacak: '2021-09-01'
+		}
+	]);
+
 	// İkinci kullanıcı: bir özel, bir herkese açık düğüm (yetki denemeleri için)
 	await db.insert(dugumler).values([
 		{

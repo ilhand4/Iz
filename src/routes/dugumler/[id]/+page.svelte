@@ -16,6 +16,7 @@
 		etkiMi,
 		type DugumTuru
 	} from '#lib/sabitler.ts';
+	import { KARAR_SONUCLARI, KARAR_SONUCU_ETIKETI, type KararSonucu } from '#lib/kararDefteri.ts';
 	import { tarihYaz } from '#lib/tarih.ts';
 	import type { PageProps } from './$types';
 
@@ -50,6 +51,26 @@
 				alinti?: { hatalar: Record<string, string>; degerler: Record<string, string> };
 			} | null
 		)?.alinti ?? null
+	);
+	const kararFormu = $derived(
+		form as {
+			kararHatalari?: Record<string, string>;
+			kararDegerleri?: Record<string, string>;
+			sonucHatalari?: Record<string, string>;
+		} | null
+	);
+	const kararDeger = (ad: 'gerekce' | 'beklenti' | 'guven' | 'sorulacak') =>
+		kararFormu?.kararDegerleri?.[ad] ??
+		(ad === 'guven'
+			? (data.karar?.guven?.toString() ?? '')
+			: ad === 'sorulacak'
+				? (data.karar?.sorulacak ?? '')
+				: (data.karar?.[ad] ?? ''));
+	const sonucZamani = $derived(
+		!!data.karar &&
+			!data.karar.sonuc &&
+			!!data.karar.sorulacak &&
+			data.karar.sorulacak <= data.bugun
 	);
 	const uzakKapilar = $derived(data.kapilar.filter((k) => k.derinlik > 1));
 
@@ -268,6 +289,120 @@
 				</form>
 			{/if}
 		</div>
+	{/if}
+
+	{#if data.sahibiMi && d.tur === 'karar'}
+		<section class="karar-defteri yigin" aria-labelledby="karar-defteri-baslik">
+			<div class="satir arasi">
+				<h2 id="karar-defteri-baslik">Karar defteri</h2>
+				<a href="/kararlar" class="kucuk">Tüm kararlar ve kalibrasyon</a>
+			</div>
+			<p class="soluk kucuk">
+				Yalnızca sen görürsün; düğüm herkese açık olsa da gerekçe, güven ve sonuç paylaşılmaz.
+			</p>
+
+			{#if data.karar?.sonuc}
+				<div class="kart sonuc-karti" data-sonuc={data.karar.sonuc}>
+					<p class="ust-etiket">Sonuç</p>
+					<p class="sonuc-metni">{KARAR_SONUCU_ETIKETI[data.karar.sonuc as KararSonucu]}</p>
+					{#if data.karar.sonucNotu}<p class="not">{data.karar.sonucNotu}</p>{/if}
+					{#if data.karar.guven !== null}
+						<p class="kucuk soluk">Karar verirken %{data.karar.guven} emindin.</p>
+					{/if}
+				</div>
+			{:else if sonucZamani || kararFormu?.sonucHatalari}
+				<div class="kart sonuc-sor" role="region" aria-labelledby="sonuc-sor-baslik">
+					<p class="ust-etiket">Sonuç zamanı</p>
+					<h3 id="sonuc-sor-baslik">Beklediğin gibi oldu mu?</h3>
+					{#if data.karar?.beklenti}
+						<blockquote class="beklenti">{data.karar.beklenti}</blockquote>
+					{/if}
+					<form method="POST" action="?/kararSonucu" class="yigin" use:enhance>
+						<fieldset class="secenekler">
+							<legend class="gorunmez">Sonuç</legend>
+							{#each KARAR_SONUCLARI as s (s)}
+								<label class="cip">
+									<input type="radio" name="sonuc" value={s} required />
+									{KARAR_SONUCU_ETIKETI[s]}
+								</label>
+							{/each}
+						</fieldset>
+						{#if kararFormu?.sonucHatalari?.sonuc}
+							<span class="hata-metni" role="alert">{kararFormu.sonucHatalari.sonuc}</span>
+						{/if}
+						<Alan
+							id="sonucNotu"
+							etiket="Geriye bakınca"
+							hata={kararFormu?.sonucHatalari?.sonucNotu}
+							ipucu="İsteğe bağlı: ne öğrendin?"
+						>
+							<textarea id="sonucNotu" name="sonucNotu" rows="2" maxlength="1000"></textarea>
+						</Alan>
+						<div class="satir"><button class="dugme dugme-birincil">Sonucu kaydet</button></div>
+					</form>
+				</div>
+			{/if}
+
+			<details class="kart bag-formu" open={!data.karar || !!kararFormu?.kararHatalari}>
+				<summary>{data.karar ? 'Gerekçe ve beklenti' : 'Bu kararı deftere yaz'}</summary>
+				<form
+					method="POST"
+					action="?/kararKaydet"
+					class="yigin"
+					use:enhance={() =>
+						({ update }) =>
+							update({ reset: false })}
+				>
+					<Alan
+						id="gerekce"
+						etiket="Neden bu kararı verdin?"
+						hata={kararFormu?.kararHatalari?.gerekce}
+					>
+						<textarea id="gerekce" name="gerekce" rows="3" maxlength="2000"
+							>{kararDeger('gerekce')}</textarea
+						>
+					</Alan>
+					<Alan
+						id="beklenti"
+						etiket="Ne olmasını bekliyorsun?"
+						hata={kararFormu?.kararHatalari?.beklenti}
+						ipucu="Sonradan “oldu / olmadı” diyebileceğin kadar açık yaz."
+					>
+						<textarea id="beklenti" name="beklenti" rows="2" maxlength="1000"
+							>{kararDeger('beklenti')}</textarea
+						>
+					</Alan>
+					<div class="karar-satiri">
+						<Alan
+							id="guven"
+							etiket="Ne kadar eminsin? (%)"
+							hata={kararFormu?.kararHatalari?.guven}
+							ipucu="50 yazı tura, 90 neredeyse kesin."
+						>
+							<input
+								id="guven"
+								name="guven"
+								type="number"
+								inputmode="numeric"
+								min="0"
+								max="100"
+								step="1"
+								value={kararDeger('guven')}
+							/>
+						</Alan>
+						<Alan
+							id="sorulacak"
+							etiket="Sonucu ne zaman sorayım?"
+							hata={kararFormu?.kararHatalari?.sorulacak}
+							ipucu="Ör. 2027-06 ya da 01.06.2027"
+						>
+							<input id="sorulacak" name="sorulacak" value={kararDeger('sorulacak')} />
+						</Alan>
+					</div>
+					<div class="satir"><button class="dugme dugme-birincil">Deftere yaz</button></div>
+				</form>
+			</details>
+		</section>
 	{/if}
 
 	{#if data.alintilar.length || (data.sahibiMi && d.tur === 'eser')}
@@ -837,8 +972,92 @@
 	.etki-rozeti[data-etki='degistirdi'] {
 		box-shadow: inset 0 0 0 1.5px var(--vurgu);
 	}
-	.alintilar h2 {
+	.alintilar h2,
+	.karar-defteri h2 {
 		margin: 0;
+	}
+	.karar-defteri .arasi {
+		justify-content: space-between;
+		align-items: baseline;
+		flex-wrap: wrap;
+	}
+	.karar-defteri > p {
+		margin: 0;
+	}
+	.sonuc-sor {
+		border-left: 4px solid var(--tur-karar);
+	}
+	.sonuc-sor h3 {
+		margin: 0 0 var(--a-2);
+	}
+	.beklenti {
+		margin: 0 0 var(--a-3);
+		padding: var(--a-2) var(--a-4);
+		border-left: 3px solid var(--cizgi-guclu);
+		font-style: italic;
+		white-space: pre-line;
+	}
+	.secenekler {
+		border: 0;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--a-2);
+	}
+	.secenekler .cip {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-2);
+		min-height: 2.5rem;
+		padding: 0 var(--a-3);
+		border: 1px solid var(--cizgi-guclu);
+		border-radius: var(--yaricap-tam);
+		background: var(--yuzey);
+		font-size: var(--boyut-sm);
+		font-weight: 550;
+		cursor: pointer;
+	}
+	.secenekler .cip:has(input:checked) {
+		border-color: var(--tur-karar);
+		background: var(--tur-karar-zemin);
+	}
+	.secenekler input {
+		accent-color: var(--tur-karar);
+		margin: 0;
+	}
+	.karar-defteri .ust-etiket {
+		margin: 0 0 var(--a-1);
+		font-size: var(--boyut-xs);
+		font-weight: 650;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--tur-karar);
+	}
+	.sonuc-karti p {
+		margin: 0;
+	}
+	.sonuc-metni {
+		font-family: var(--yazi-baslik);
+		font-size: var(--boyut-xl);
+	}
+	.sonuc-karti[data-sonuc='gerceklesti'] {
+		border-left: 4px solid var(--basari);
+	}
+	.sonuc-karti[data-sonuc='kismen'] {
+		border-left: 4px solid var(--tur-karar);
+	}
+	.sonuc-karti[data-sonuc='gerceklesmedi'] {
+		border-left: 4px solid var(--metin-silik);
+	}
+	.sonuc-karti .not {
+		margin-top: var(--a-2);
+		white-space: pre-line;
+	}
+	.karar-satiri {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+		gap: var(--a-3);
 	}
 	.alinti-listesi {
 		list-style: none;

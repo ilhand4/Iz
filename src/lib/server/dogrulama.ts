@@ -696,3 +696,55 @@ export function hizliSecimDogrula(fd: FormData): Sonuc<HizliSecim> {
 		}
 	};
 }
+
+// ——— Karar Defteri ———
+
+export type KararDefteriVerisi = {
+	gerekce: string | null;
+	beklenti: string | null;
+	guven: number | null;
+	sorulacak: string | null;
+};
+
+export function kararDefteriDogrula(fd: FormData): Sonuc<KararDefteriVerisi> {
+	const v = degerleriAl(fd, ['gerekce', 'beklenti', 'guven', 'sorulacak']);
+	const hatalar: Hatalar = {};
+	if (v.gerekce.length > 2000) hatalar.gerekce = 'Gerekçe en fazla 2000 karakter olabilir.';
+	if (v.beklenti.length > 1000) hatalar.beklenti = 'Beklenti en fazla 1000 karakter olabilir.';
+	let guven: number | null = null;
+	if (v.guven) {
+		const g = Number(v.guven);
+		if (!Number.isInteger(g) || g < 0 || g > 100)
+			hatalar.guven = 'Güven 0 ile 100 arasında olmalı.';
+		else guven = g;
+	}
+	const sorulacak = tarihCoz(v.sorulacak);
+	if (sorulacak === 'gecersiz') hatalar.sorulacak = TARIH_HATASI;
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: v };
+	return {
+		tamam: true,
+		veri: {
+			gerekce: v.gerekce || null,
+			beklenti: v.beklenti || null,
+			guven,
+			sorulacak: sorulacak && sorulacak !== 'gecersiz' ? sorulacak.tarih : null
+		}
+	};
+}
+
+export function kararSonucuDogrula(
+	fd: FormData
+): Sonuc<{ sonuc: 'gerceklesti' | 'kismen' | 'gerceklesmedi'; not: string | null }> {
+	const sonuc = alan(fd, 'sonuc');
+	const not = alan(fd, 'sonucNotu');
+	const hatalar: Hatalar = {};
+	if (sonuc !== 'gerceklesti' && sonuc !== 'kismen' && sonuc !== 'gerceklesmedi')
+		hatalar.sonuc = 'Nasıl sonuçlandığını seç.';
+	if (not.length > 1000) hatalar.sonucNotu = 'Not en fazla 1000 karakter olabilir.';
+	if (Object.keys(hatalar).length)
+		return { tamam: false, hatalar, degerler: { sonuc, sonucNotu: not } };
+	return {
+		tamam: true,
+		veri: { sonuc: sonuc as 'gerceklesti' | 'kismen' | 'gerceklesmedi', not: not || null }
+	};
+}

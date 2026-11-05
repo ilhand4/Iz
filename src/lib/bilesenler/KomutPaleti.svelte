@@ -48,6 +48,7 @@
 			href: '/ice-aktar'
 		},
 		{ tur: 'eylem', id: 'e-yillik', etiket: 'İz Yıllığı', simge: 'takvim', href: '/yillik' },
+		{ tur: 'eylem', id: 'e-kararlar', etiket: 'Karar defteri', simge: 'onay', href: '/kararlar' },
 		{ tur: 'eylem', id: 'e-gruplar', etiket: 'Gruplar', simge: 'grup', href: '/gruplar' },
 		{ tur: 'eylem', id: 'e-ayarlar', etiket: 'Ayarlar', simge: 'ayar', href: '/ayarlar' }
 	];

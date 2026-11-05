@@ -26,6 +26,23 @@
 		aciklama="Yalnızca anlamlı olaylar: biri senin düğümünden kendi haritasına bir yol çizdiğinde ya da grubuna katıldığında. Beğeni, takipçi ya da akış yok."
 	/>
 
+	{#if data.kararlar.length}
+		<section class="yigin" aria-labelledby="kararlar-baslik">
+			<h2 id="kararlar-baslik" class="bolum-basligi">Sonucunu sorma zamanı gelen kararlar</h2>
+			<ul class="liste">
+				{#each data.kararlar as k (k.dugumId)}
+					<li class="yeni">
+						<span class="simge" aria-hidden="true"><Simge ad="takvim" boyut={18} /></span>
+						<span class="metin">
+							<a href="/dugumler/{k.dugumId}">“{k.baslik}”</a>
+							{#if k.beklenti}<span class="not">Beklentin: {k.beklenti}</span>{/if}
+						</span>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
+
 	{#if data.liste.length}
 		<ul class="liste">
 			{#each data.liste as b (b.id)}
@@ -57,7 +74,7 @@
 				</li>
 			{/each}
 		</ul>
-	{:else}
+	{:else if !data.kararlar.length}
 		<BosDurum
 			baslik="Henüz bildirim yok"
 			aciklama="Herkese açık düğümlerin başkalarını bir yere götürdüğünde burada görürsün."
@@ -100,6 +117,10 @@
 		flex-direction: column;
 		gap: 2px;
 		min-width: 0;
+	}
+	.bolum-basligi {
+		margin: 0;
+		font-size: var(--boyut-lg);
 	}
 	.not {
 		font-style: italic;

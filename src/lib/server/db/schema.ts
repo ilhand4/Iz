@@ -509,6 +509,36 @@ export const bagAviRedleri = pgTable(
 	(t) => [primaryKey({ columns: [t.sahipId, t.kaynakId, t.hedefId] })]
 );
 
+// ——— Karar Defteri: karar düğümünün gerekçesi, beklentisi, güveni ve sonucu ———
+
+export const kararlar = pgTable(
+	'kararlar',
+	{
+		dugumId: uuid('dugum_id')
+			.primaryKey()
+			.references(() => dugumler.id, { onDelete: 'cascade' }),
+		gerekce: text('gerekce'),
+		beklenti: text('beklenti'),
+		/** Beklentinin gerçekleşeceğine güven (%) */
+		guven: integer('guven'),
+		/** Sonucun sorulacağı gün */
+		sorulacak: date('sorulacak', { mode: 'string' }),
+		/** gerceklesti / kismen / gerceklesmedi */
+		sonuc: text('sonuc'),
+		sonucNotu: text('sonuc_notu'),
+		sonucTarihi: zamanDamgasi('sonuc_tarihi'),
+		guncelleme: zamanDamgasi('guncelleme').notNull().defaultNow()
+	},
+	(t) => [
+		index('kararlar_sorulacak_idx').on(t.sorulacak),
+		check('kararlar_guven_kontrol', sql`${t.guven} is null or ${t.guven} between 0 and 100`),
+		check(
+			'kararlar_sonuc_kontrol',
+			sql`${t.sonuc} is null or ${t.sonuc} in ('gerceklesti', 'kismen', 'gerceklesmedi')`
+		)
+	]
+);
+
 // ——— Kalıcı hız sınırı (UNLOGGED): sunucu yeniden başlasa ya da çoğalsa da sınırlar korunur ———
 
 export const hizKayitlari = pgTable(

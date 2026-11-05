@@ -11,6 +11,8 @@ import {
 	izDogrula,
 	kayitDogrula,
 	konumlarDogrula,
+	kararDefteriDogrula,
+	kararSonucuDogrula,
 	uuidMu
 } from './dogrulama';
 
@@ -343,5 +345,30 @@ describe('hizliSecimDogrula', () => {
 		expect(hizliSecimDogrula(form({ ana: `mevcut:${UUID_A}`, tarih: '32.13.2020' })).tamam).toBe(
 			false
 		);
+	});
+});
+
+describe('kararDefteriDogrula', () => {
+	it('güveni 0–100 tam sayı, tarihi esnek girdiyle alır', () => {
+		expect(
+			kararDefteriDogrula(
+				form({ gerekce: ' Deniz ', beklenti: '', guven: '70', sorulacak: '06.2027' })
+			)
+		).toEqual({
+			tamam: true,
+			veri: { gerekce: 'Deniz', beklenti: null, guven: 70, sorulacak: '2027-06-01' }
+		});
+		const kotu = kararDefteriDogrula(form({ guven: '120', sorulacak: 'yarın' }));
+		expect(kotu.tamam).toBe(false);
+		if (!kotu.tamam) expect(Object.keys(kotu.hatalar).sort()).toEqual(['guven', 'sorulacak']);
+		expect(kararDefteriDogrula(form({ guven: '7.5' })).tamam).toBe(false);
+	});
+
+	it('sonuç üç seçenekten biri olmalı', () => {
+		expect(kararSonucuDogrula(form({ sonuc: 'kismen', sonucNotu: '' }))).toEqual({
+			tamam: true,
+			veri: { sonuc: 'kismen', not: null }
+		});
+		expect(kararSonucuDogrula(form({ sonuc: 'belki' })).tamam).toBe(false);
 	});
 });

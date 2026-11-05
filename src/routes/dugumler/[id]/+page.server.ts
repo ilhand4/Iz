@@ -5,8 +5,11 @@ import {
 	alintiDogrula,
 	bagBilgisiDogrula,
 	bagDogrula,
+	kararDefteriDogrula,
+	kararSonucuDogrula,
 	uuidMu
 } from '#lib/server/dogrulama.ts';
+import { kararGetir, kararKaydet, sonucKaydet } from '#lib/server/kararDefteriDb.ts';
 import { alintiEkle, alintiKaynagi, alintilariListele, alintiSil } from '#lib/server/dusunce.ts';
 import {
 	actigiKapilar,
@@ -58,7 +61,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		gidenDis,
 		kendiSeceneklerim,
 		alintiListesi,
-		yapimciVar
+		yapimciVar,
+		karar
 	] = await Promise.all([
 		dugumBaglari(params.id, izleyenId),
 		geldigiYol(params.id, izleyenId),
@@ -76,7 +80,11 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		// Zenginleştirme önerisi: eserin yapımcısı kişi olarak haritada yoksa
 		sahibiMi && sonuc.dugum.tur === 'eser' && sonuc.dugum.altBaslik
 			? yapimciDugumu(sonuc.dugum.sahipId, sonuc.dugum.altBaslik.split(' · ')[0])
-			: Promise.resolve('yok')
+			: Promise.resolve('yok'),
+		// Karar defteri kişiseldir: yalnızca sahibine
+		sahibiMi && sonuc.dugum.tur === 'karar'
+			? kararGetir(sonuc.dugum.sahipId, params.id)
+			: Promise.resolve(null)
 	]);
 
 	// Sahip kimliği ve iç alanlar sayfaya gönderilmez
@@ -97,6 +105,18 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		gidenDis,
 		kendiSeceneklerim,
 		alintilar: alintiListesi,
+		karar: karar
+			? {
+					gerekce: karar.gerekce,
+					beklenti: karar.beklenti,
+					guven: karar.guven,
+					sorulacak: karar.sorulacak,
+					sonuc: karar.sonuc,
+					sonucNotu: karar.sonucNotu,
+					sonucTarihi: karar.sonucTarihi
+				}
+			: null,
+		bugun: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbul' }).format(new Date()),
 		yapimciOnerisi:
 			yapimciVar === null && sonuc.dugum.altBaslik ? sonuc.dugum.altBaslik.split(' · ')[0] : null,
 		wikidataOnerisi:
@@ -110,6 +130,30 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 };
 
 export const actions: Actions = {
+	kararKaydet: async ({ params, request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		if (!uuidMu(params.id)) error(404, BULUNAMADI);
+		const sonuc = kararDefteriDogrula(await request.formData());
+		if (!sonuc.tamam)
+			return fail(400, { kararHatalari: sonuc.hatalar, kararDegerleri: sonuc.degerler });
+		if (!(await kararKaydet(kullanici.id, params.id, sonuc.veri))) error(404, BULUNAMADI);
+		return { bildirim: { mesaj: 'Karar defterine yazıldı.' } };
+	},
+
+	kararSonucu: async ({ params, request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		if (!uuidMu(params.id)) error(404, BULUNAMADI);
+		const sonuc = kararSonucuDogrula(await request.formData());
+		if (!sonuc.tamam) return fail(400, { sonucHatalari: sonuc.hatalar });
+		if (!(await sonucKaydet(kullanici.id, params.id, sonuc.veri.sonuc, sonuc.veri.not)))
+			error(404, BULUNAMADI);
+		return {
+			bildirim: {
+				mesaj: 'Sonuç kaydedildi.',
+				baglanti: { href: '/kararlar', metin: 'Kalibrasyonu gör' }
+			}
+		};
+	},
 	bagKur: async ({ params, request, locals, url }) => {
 		const kullanici = girisGerekli(locals, url);
 		if (!uuidMu(params.id)) error(404, BULUNAMADI);

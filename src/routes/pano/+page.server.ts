@@ -2,6 +2,7 @@ import { haritaKarakterleri } from '#lib/analiz.ts';
 import { suresiDolanlariTemizle } from '#lib/server/copKutusu.ts';
 import { dugumSecenekleri, haritaVerisi, merakListesi, panoVerisi } from '#lib/server/dugumler.ts';
 import { bugunGecmiste, gununSorusu } from '#lib/server/geriGetirenlerDb.ts';
+import { zamaniGelenKararlar } from '#lib/server/kararDefteriDb.ts';
 import { izdekiDugumler, izleriListele, izSayisi } from '#lib/server/izler.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import type { PageServerLoad } from './$types';
@@ -14,16 +15,18 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const kullanici = girisGerekli(locals, url);
 	// Süresi dolan çöpler sahibi panoya her geldiğinde temizlenir (zamanlanmış iş gerekmez)
 	await suresiDolanlariTemizle(kullanici.id);
-	const [pano, izler, toplamIz, harita, izdekiler, merak, soru, gecmis] = await Promise.all([
-		panoVerisi(kullanici.id),
-		izleriListele(kullanici.id, 3),
-		izSayisi(kullanici.id),
-		haritaVerisi(kullanici.id),
-		izdekiDugumler(kullanici.id),
-		merakListesi(kullanici.id, 4),
-		gununSorusu(kullanici.id),
-		bugunGecmiste(kullanici.id)
-	]);
+	const [pano, izler, toplamIz, harita, izdekiler, merak, soru, gecmis, kararlar] =
+		await Promise.all([
+			panoVerisi(kullanici.id),
+			izleriListele(kullanici.id, 3),
+			izSayisi(kullanici.id),
+			haritaVerisi(kullanici.id),
+			izdekiDugumler(kullanici.id),
+			merakListesi(kullanici.id, 4),
+			gununSorusu(kullanici.id),
+			bugunGecmiste(kullanici.id),
+			zamaniGelenKararlar(kullanici.id)
+		]);
 
 	let karakterler = null;
 	if (
@@ -50,6 +53,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		merak,
 		soru,
 		gecmis,
+		kararlar,
 		secenekler: soru ? await dugumSecenekleri(kullanici.id, soru.id) : [],
 		hosgeldin: url.searchParams.has('hosgeldin')
 	};

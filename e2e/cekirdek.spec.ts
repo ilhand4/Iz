@@ -319,3 +319,32 @@ test('İz Yıllığı yılın özetini gösterir', async ({ page }) => {
 	const kart = await page.request.get('/yillik/2019/kart.png');
 	expect(kart.headers()['content-type']).toBe('image/png');
 });
+
+test('karar defteri: beklenti yazılır, sonuç kalibrasyona girer', async ({ page }) => {
+	await page.goto('/dugumler/yeni?tur=karar');
+	await page.locator('input[name="baslik"]').fill('Berlin’e taşınmak');
+	await page.locator('input[name="tarih"]').fill('2020-01');
+	await page.locator('form button.dugme-birincil').last().click();
+	await expect(page).toHaveURL(/\/dugumler\/[0-9a-f-]{36}\?eklendi=1/);
+
+	const defter = page.locator('section.karar-defteri');
+	await expect(defter.getByRole('heading', { name: 'Karar defteri' })).toBeVisible();
+	await defter.getByLabel('Ne olmasını bekliyorsun?').fill('Bir yılda alışırım.');
+	await defter.getByLabel('Ne kadar eminsin? (%)').fill('80');
+	// Sorma tarihi geçmişte: sonuç sorusu hemen belirir
+	await defter.getByLabel('Sonucu ne zaman sorayım?').fill('2021-01');
+	await defter.getByRole('button', { name: 'Deftere yaz' }).click();
+	await expect(
+		page.getByRole('status').filter({ hasText: 'Karar defterine yazıldı.' })
+	).toBeVisible();
+
+	await expect(defter.getByRole('heading', { name: 'Beklediğin gibi oldu mu?' })).toBeVisible();
+	await defter.getByText('Beklediğim gibi oldu', { exact: true }).click();
+	await defter.getByRole('button', { name: 'Sonucu kaydet' }).click();
+	await expect(page.getByRole('status').filter({ hasText: 'Sonuç kaydedildi.' })).toBeVisible();
+
+	await page.goto('/kararlar');
+	await expect(page.getByRole('heading', { level: 1, name: 'Kararlar' })).toBeVisible();
+	await expect(page.getByRole('rowheader', { name: '%80–90' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Sonuçlananlar' })).toBeVisible();
+});

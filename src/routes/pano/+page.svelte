@@ -57,8 +57,29 @@
 		</a>
 	{/if}
 
-	{#if data.soru || data.gecmis.length}
+	{#if data.soru || data.gecmis.length || data.kararlar.length}
 		<div class="hatirlaticilar">
+			{#if data.kararlar.length}
+				<section class="kart sonuc-zamani" aria-labelledby="sonuc-zamani-baslik">
+					<p class="ust-etiket">Sonuç zamanı</p>
+					<h2 id="sonuc-zamani-baslik">
+						{data.kararlar.length === 1
+							? 'Bir kararın sonucunu sorma zamanı geldi.'
+							: `${data.kararlar.length} kararın sonucunu sorma zamanı geldi.`}
+					</h2>
+					<ul>
+						{#each data.kararlar.slice(0, 3) as k (k.dugumId)}
+							<li>
+								<a href="/dugumler/{k.dugumId}"><TurSekli tur="karar" boyut={11} /> {k.baslik}</a>
+								{#if k.beklenti}<span class="kucuk soluk">Beklentin: {k.beklenti}</span>{/if}
+							</li>
+						{/each}
+					</ul>
+					{#if data.kararlar.length > 3}
+						<a class="kucuk" href="/kararlar">Hepsini gör</a>
+					{/if}
+				</section>
+			{/if}
 			{#if data.soru}
 				<section class="kart gunun-sorusu" aria-labelledby="soru-baslik">
 					<p class="ust-etiket">Günün sorusu</p>
@@ -439,6 +460,14 @@
 	.gunun-sorusu h2 a {
 		color: var(--metin);
 	}
+	.sonuc-zamani {
+		border-left: 4px solid var(--tur-karar);
+	}
+	.sonuc-zamani h2 {
+		margin: 0 0 var(--a-3);
+		font-size: var(--boyut-lg);
+	}
+	.sonuc-zamani ul,
 	.bugun ul {
 		list-style: none;
 		margin: 0;
@@ -447,6 +476,7 @@
 		flex-direction: column;
 		gap: var(--a-2);
 	}
+	.sonuc-zamani li,
 	.bugun li {
 		display: flex;
 		flex-direction: column;
@@ -455,6 +485,7 @@
 		font-size: var(--boyut-xs);
 		color: var(--metin-soluk);
 	}
+	.sonuc-zamani li a,
 	.bugun li a {
 		display: inline-flex;
 		align-items: center;

@@ -8,7 +8,7 @@
 - Tempo: her aşamada maddelerin hepsini bitir → `npm run check`, `npm test`, `npm run build` → tarayıcıda dene (açık/koyu tema, masaüstü/mobil ekran görüntüsü) → ROADMAP.md'yi güncelle → Türkçe commit → kısa Türkçe özet.
 - Kullanıcı Aşama 2'den itibaren işi **"profesyonel bir site tasarımcısı gözüyle"** yapmamı istedi: yalnızca özelliği değil görsel tutarlılığı, boş durumları, mobil kullanımı ve erişilebilirliği de bitmiş say.
 - Yalnızca gerçekten kullanıcının vermesi gereken kararlarda soru sor; diğerlerinde makul varsayılanı seç ve buraya not et.
-- **Sıradaki iş:** Aşama 3a'nın kalan maddeleri (bitenler: ayarlar, oturumlar, profil, noindex, dışa/içe aktarma, şifre sıfırlama/e-posta doğrulama, trigram arama, sayfalama, arama önbelleği, RSS, iz gömme; sıradaki parti: kanonik eser + kör kesişim + keşif önerileri), ardından 3b → 3c. Aşama 3'e kaynaklık eden dış değerlendirmedeki örnek kodlar olduğu gibi kullanılmaz; mevcut şemaya (uuid, `herkes`) ek sütun/tablo olarak uyarlanır.
+- **Sıradaki iş:** Aşama 5 (MapLibre + OSM harita, PostGIS, eski/yeni fotoğraf). Aşama 1–4 bitti. Açık kalan kullanıcı kararı: **e-posta servisi seçimi** (seçilene kadar iletiler geliştirmede terminale yazılır, üretimde gönderilmez). Üretim `.env`'ine `BODY_SIZE_LIMIT=6M` eklenmeli (kullanıcı yazar). Aşama 3'e kaynaklık eden dış değerlendirmedeki örnek kodlar olduğu gibi kullanılmaz; mevcut şemaya (uuid, `herkes`) ek sütun/tablo olarak uyarlanır.
 - Veritabanı şifresi ve TMDB anahtarı `.env` dosyasında; kullanıcı kendisi yazdı. Bunları okuma/yazdırma.
 
 ## Ürün
@@ -61,7 +61,7 @@
 - **Şifre:** en az 10, en çok 200 karakter; Argon2id (19 MiB, 2 tur). Kırpılmaz. Olmayan kullanıcıyla girişte de sahte doğrulama yapılır (zamanlama eşitleme).
 - **Kullanıcı adı:** `[a-z0-9_.]{3,30}`, Türkçe karakter yok (adres/etiket olarak kullanılacak). Görünen ad serbest. E-posta ve kullanıcı adı **Türkçe olmayan** küçültmeyle (`toLowerCase()`; "I" → "i"). Arama ise Türkçe kurallarıyla ve aksansız (`metin.ts → sadelestir`).
 - **Kayıtta** "bu e-posta zaten kayıtlı" denir (kullanılabilirlik ↔ hesap sayımı ödünleşimi; hız sınırı var).
-- **Hız sınırı bellek içi** (tek süreç): giriş IP+e-posta başına 15 dk'da 5, IP başına 15 dk'da 30; kayıt IP başına saatte 10. Çok sunuculu yayında PostgreSQL/Redis'e taşınacak.
+- **Hız sınırı kalıcı** (`sinirlar.ts → KaliciHizSiniri`, UNLOGGED `hiz_kayitlari`, `pg_advisory_xact_lock`; Redis gerekmez): giriş IP+e-posta başına 15 dk'da 5, IP başına 15 dk'da 30; kayıt IP başına saatte 10. `hizSiniri.ts` yalnızca bellek içi sınıf + `beklemeMesaji`.
 - **Tarih:** `date` + `tarih_hassasiyeti` (gun/ay/yil). Girdi: `1998`, `1998-05`, `05.1998`, `1998-05-12`, `12.05.1998`. Zaman damgaları `Europe/Istanbul` saat dilimiyle yazılır (sunucu/tarayıcı uyumu).
 - **Konum:** şimdilik `enlem`/`boylam` (double) + `yer_adi`; Aşama 5'te PostGIS.
 - **Eser arama** sunucuda yapılır (TMDB anahtarı tarayıcıya gitmez), 10 dk bellek içi önbellek, 8 sn zaman aşımı. Arama sonucundan gelen alanlar istemciden geldiği için sunucuda yeniden doğrulanır (dış kimlik deseni, görsel adresi beyaz listesi). Aynı dış eser bir kullanıcıda bir kez (kısmi tekil dizin). TMDB anahtarı **kişisel kullanım** lisanslı; gelir getiren yayında ticari lisans gerekir (ROADMAP Aşama 8). TMDB atıf metni alt bilgide ve arama sonuçlarında.
@@ -101,6 +101,38 @@
 - **Türkçe sayı + ad:** sayıdan sonra çoğul eki yok ("3 eser", "3 eserler" değil): `DUGUM_TURU_ETIKETI` kullan, `DUGUM_TURU_COGUL` başlık/süzgeç içindir.
 
 - **Kişi düğümü uyarısı:** tür kişi + gizlilik herkes seçilince formda CSS `:has()` ile mahremiyet uyarısı (JS gerekmez).
+
+### Aşama 3a (ikinci yarı) kararları
+
+- **Kanonik eser:** `kanonik_eserler` + veritabanı tetikleyicisi `kanonik_eser_bagla` (eser düğümü eklenince/değişince dış kimlikle ya da başlık+yapımcı+tür parmak iziyle bağlanır). `kesif.ts`: kör kesişim (aynı eseri ekleyen başkalarının **yalnızca açık** izleri), keşif yolları ("X'ten sonra Z'ye gidenler"), keşiften merak listesine ekleme. Yalnızca sahibine ve yalnızca eser düğümlerinde.
+- **Gruplar:** `gruplar`, `grup_uyeleri`; davet bağlantısı 7 gün (`/davet/[jeton]`). `gorunurluk()` grup arkadaşlığını `grupArkadasiSql` ile içerir; saf karşılığı `gorebilirMi(kayit, izleyenId, grupArkadasi)`. **Ortak iz:** `izler.ortak_grup_id`; grup üyeleri kendi düğümlerini durak ekleyip çıkarabilir (`duzenlemeYetkisi`), başkasının durağını yalnızca iz sahibi çıkarır.
+- **Gölge düğüm:** gizlilik `golge` (yalnızca düğümde; izlerde `IZ_GIZLILIK_DUZEYLERI`). Başkası başlık yerine yalnızca tür şeklini, istek başına anonim kimlikle görür. **Dolaylı bağ** (`dolayli.ts`): iki açık düğüm arasındaki gizli ara düğümler tek kesikli bağa indirgenir; ara düğümün türü/sayısı sızmaz.
+- **Dış bağ** ("Senin izin beni buraya götürdü"): `dis_baglar` (başkasının açık düğümünden kendi düğümüne) + `bildirim_kutusu`; hedef özelse sahibine başlığı gitmez. Zil sayacı = okunmamış bildirim + sonucu sorulacak kararlar. Beğeni/takipçi/akış yok.
+- **OG görseli:** `ogGorsel.ts` saf SVG üretir, `@resvg/resvg-js` PNG'ye çevirir (`/izler/[id]/og.png`, yalnızca açık izler; Yıllık kartı yalnızca sahibine).
+- **Passkey:** `@simplewebauthn/server` + `/browser`; `gecis_anahtarlari`; meydan okuma 5 dk'lık çerezde (`iz_meydan`). Ayarlardan eklenir/silinir, girişte "Geçiş anahtarıyla giriş yap".
+
+### Aşama 3b kararları
+
+- **`baglar.ts`** bağ katmanı (dugumBaglari, yolBul, geldigiYol, actigiKapilar, bagKur/Guncelle/Sil, cevreDugumleri…). **Bağ türü** `besler/celisir/cagristirir/sentezler`, boş = belirtilmemiş (eski bağlar etiketlenmez); ağda renk + çizgi biçemi asıl, fcose yay uzunluğu ikincil; lejant aynı zamanda süzgeç.
+- **Ağ:** görünüm/süzgeç/odak adrese yazılır (paylaşılabilir); yön tuşlarıyla komşuya geçiş; "Bağ kur" kipinde iki düğüme tıklayarak `/api/baglar`; zaman sürgüsü düğümleri sırayla gösterir (yeniden yerleşim yok); 500 düğüm üstünde odak çevresi özyinelemeli sorguyla (`cevreDugumleri`). Dönem haleleri ve etkiye göre boyut.
+- **Komut paleti** (Ctrl+K, `/api/ara`), düğüm formunda eser önerisi (`/api/eser-ara`) ve `[[…]]` satır içi bağ (kaydetmeden önce önizlenir).
+- **Dönemler** (`/donemler`, renkli bantlar), **etki** (`degistirdi/iz_birakti/gecti`, puan değil), **alıntılar** (eserlerde; bağ notu bir alıntıya işaret edebilir), **iz çatallanması** (`izler.ata_iz_id` + ayrılma sırası), **hat haritası** (`/izler/hat`, `hatHaritasi.ts`; aktarma = birden çok izin geçtiği düğüm).
+
+### Aşama 3c kararları
+
+- **İçe aktarma** (`/ice-aktar`): Goodreads/Letterboxd CSV, Spotify JSON, Kindle `My Clippings.txt` (`disKaynaklar.ts`, saf; BOM `String.fromCharCode(0xfeff)` ile, dosyada literal BOM yazma). Hepsi **özel** eklenir; aynı başlık+yapımcı birleşir, alıntılar tekrarsız. En çok 5 MB, kullanıcı başına saatte 5.
+- **Bağ avı** (`/bag-avi`): aynı yapımcı / yakın tarih çiftleri; "hayır" cevabı `bag_avi_redleri`'ne yazılır, bir daha sorulmaz.
+- **Günün sorusu** yalnızca pazartesi/çarşamba/cuma (İstanbul), gün için sabit seçim; gelen bağı olmayan düğüm. **Bugün geçmişte:** günü bilinen düğümlerin yıldönümü.
+- **Zenginleştirme:** eserin yapımcısı kişi düğümü olarak önerilir (varsa yeniden açılmaz); Wikidata yalnızca **boş** alanları doldurur (`dugumler.wikidata`).
+- **İz Yıllığı** (`/yillik/[yil]`, `kart.png`): yalnızca sahibine.
+
+### Aşama 4 kararları (Karar Defteri)
+
+- `kararlar` tablosu (düğüm başına bir satır, `dugum_id` PK): gerekçe, beklenti, güven (0–100 tam sayı), `sorulacak` (date; tarih girdisi esnek), sonuç (`gerceklesti/kismen/gerceklesmedi`), sonuç notu/tarihi. Yalnızca **karar** türündeki, sahibinin etkin düğümüne yazılır (`kararDefteriDb.ts`).
+- Defter **kişiseldir**: düğüm herkese açık olsa da defter yalnızca sahibine gösterilir; profil, OG görseli, gömme ve RSS'e hiç girmez.
+- **Açık iş:** dışa/içe aktarma biçimi (sürüm 1) Aşama 3b–4 verilerini (etki, Wikidata, bağ türü, alıntılar, dönemler, çatal, karar defteri) henüz taşımıyor; sürüm 2 ile eklenecek (içe aktarma sürüm 1'i de okumaya devam etmeli).
+- "Zamanı geldi" = sonuç yok ve `sorulacak ≤ bugün` (İstanbul günü). Zamanlanmış iş yok: pano kartı, zil sayacı ve `/bildirimler` bölümü her yüklemede sorgular.
+- Kalibrasyon (`kararDefteri.ts`, saf): 50 altı tek dilim, sonra 10'luk dilimler; "kısmen" = 0,5. Brier puanı; 5 sonuçtan az iken yorum yapılmaz. Grafik SVG + erişilebilir tablo (`/kararlar`).
 
 ## Komutlar
 

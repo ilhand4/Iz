@@ -120,6 +120,13 @@
       "when": 1793822050217,
       "tag": "0016_asama3c",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793876758508,
+      "tag": "0017_asama4_karar_defteri",
+      "breakpoints": true
     }
   ]
 }

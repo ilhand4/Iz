@@ -59,15 +59,15 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 > herkese açık düzeyin adı `herkes`; `baglar` ve `izler` tablolarını yeniden tanımlamak mevcut verileri
 > siler. Hepsi mevcut tablolara **ek sütun/tablo** olarak, veri kaybı olmadan uyarlanacak.
 
-## 🚧 Aşama 3a — Paylaşım, hesap ve keşif
+## ✅ Aşama 3a — Paylaşım, hesap ve keşif
 
 - [x] Herkese açık profil sayfası (`/@kullanici`): açık düğümler, izler ve açık ağ (sahibinin yerleşimiyle, kaydetmeden); sahibi bakınca "başkalarına böyle görünür" uyarısı. İz önizlemeleri izleyene göre süzülür: özel durakların başlığı hiç gönderilmez
-- [ ] Aile / grup kavramı (gruplar, üyelik, davet); "grup" gizlilik düzeyinin gerçekten çalışması
-- [ ] **Dolaylı bağlar ve gölge düğümler:** önerilen yol, gizli düğümü hiç göstermeden iki açık düğüm arasına tek bir kesikli "dolaylı bağ" çizmek (gizli düğümün türü ve sayısı da sızmaz). Gölge düğüm ise yeni, isteğe bağlı bir gizlilik düzeyi "Bağlantı görünsün, içerik gizli". Varsayılan değil (varsayılan `ozel` hiç görünmez kalır). Başkasının gördüğü ağda başlık/metin yerine yalnızca tür şekli; gerçek kimlik yerine istek başına anonim kimlik. Buzlu cam / kesikli kontur görünümü
-- [ ] **Kanonik eser çekirdeği:** kişisel düğümlerden bağımsız `kanonik_eserler` tablosu; önce Wikidata kimliği (kitap, film, kişi ve yer için ortak, ücretsiz omurga) ve dış kimlikler (Open Library / TMDB), yoksa `metin.ts` normalleştirmesiyle başlık + yapımcı + türden deterministik parmak izi. `dugumler.kanonik_eser_id` bağlantısı. Seçilen eserlerin verisi burada saklanır (dış bağlantı kırılırsa yedek)
-- [ ] **Kör kesişim:** aynı eseri ekleyen başkalarının yalnızca herkese açık izleri düğüm sayfasında önerilir; özel notlar hiç kullanılmaz
-- [ ] Keşif yolu önerileri: puan değil, başkalarının gerçek yolları ("X'ten Y'ye gidenler Z'ye de gitti")
-- [ ] Paylaşılabilir iz bağlantıları ve tür şekilleriyle otomatik Open Graph görseli (PNG)
+- [x] Aile / grup kavramı (gruplar, üyelik, davet); "grup" gizlilik düzeyinin gerçekten çalışması — `/gruplar`, davet bağlantısı (`/davet/<jeton>`), grup arkadaşları `grup` düzeyindeki düğüm ve izleri görür
+- [x] **Dolaylı bağlar ve gölge düğümler:** önerilen yol, gizli düğümü hiç göstermeden iki açık düğüm arasına tek bir kesikli "dolaylı bağ" çizmek (gizli düğümün türü ve sayısı da sızmaz). Gölge düğüm ise yeni, isteğe bağlı bir gizlilik düzeyi "Bağlantı görünsün, içerik gizli". Varsayılan değil (varsayılan `ozel` hiç görünmez kalır). Başkasının gördüğü ağda başlık/metin yerine yalnızca tür şekli; gerçek kimlik yerine istek başına anonim kimlik. Buzlu cam / kesikli kontur görünümü — `golge` düzeyi; profilde anonim kimlik, dolaylı bağlar `dolayli.ts`
+- [x] **Kanonik eser çekirdeği:** kişisel düğümlerden bağımsız `kanonik_eserler` tablosu; önce Wikidata kimliği (kitap, film, kişi ve yer için ortak, ücretsiz omurga) ve dış kimlikler (Open Library / TMDB), yoksa `metin.ts` normalleştirmesiyle başlık + yapımcı + türden deterministik parmak izi. `dugumler.kanonik_eser_id` bağlantısı. Seçilen eserlerin verisi burada saklanır (dış bağlantı kırılırsa yedek) — `kanonik_eserler` + tetikleyici (düğüm eklenince/değişince bağlanır)
+- [x] **Kör kesişim:** aynı eseri ekleyen başkalarının yalnızca herkese açık izleri düğüm sayfasında önerilir; özel notlar hiç kullanılmaz
+- [x] Keşif yolu önerileri: puan değil, başkalarının gerçek yolları ("X'ten Y'ye gidenler Z'ye de gitti")
+- [x] Paylaşılabilir iz bağlantıları ve tür şekilleriyle otomatik Open Graph görseli (PNG) — `/izler/<id>/og.png` (resvg)
 - [x] Hesap ayarları (`/ayarlar`): görünen ad, kısa tanıtım, şifre değiştirme (diğer oturumlar kapanır), e-posta değiştirme (şimdilik şifreyle onay), hesap silme (kullanıcı adı + şifre); şifre soran işlemlerde kullanıcı başına hız sınırı
 - [x] Şifre sıfırlama (1 saat, tek kullanımlık; tüm oturumları kapatır) ve e-posta doğrulama (kayıtta ve e-posta değişince; eski adrese bilgi iletisi). Hesap varlığı sızdırmayan yanıt, IP ve adres başına hız sınırı
 - [ ] **E-posta servisi seçimi (kullanıcının kararı):** seçilene kadar geliştirmede iletiler terminale yazılır, üretimde gönderilmez
@@ -76,48 +76,50 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 - [x] İmleç tabanlı sayfalama: `/dugumler` (60'ar) ve `/izler` (30'ar); "Daha fazla göster" sayfayı yenilemeden ekler, JavaScript'siz de çalışır
 - [x] Eser araması için veritabanında önbellek (UNLOGGED tablo, ~24 saat) — dış servis kotasını korur; veritabanı hata verirse arama yine çalışır
 - [x] Düğüm sayfasındaki "Geçtiği izler" listesi `IzKarti` önizlemesine dönüştü
-- [ ] **"Senin izin beni buraya götürdü":** başkasının açık düğümünden kendi düğümüne bağ; sahibine bildirim gider. Beğeni ve takipçi sayısı yok, sonsuz akış yok
-- [ ] Ortak izler (çiftler, aileler, kitap kulüpleri; öğretmenler için okuma izleri)
+- [x] **"Senin izin beni buraya götürdü":** başkasının açık düğümünden kendi düğümüne bağ; sahibine bildirim gider. Beğeni ve takipçi sayısı yok, sonsuz akış yok — `dis_baglar`, `/bildirimler`, üst menüde zil
+- [x] Ortak izler (çiftler, aileler, kitap kulüpleri; öğretmenler için okuma izleri) — izin bir gruba ortak yapılması; grup üyeleri kendi düğümlerini durak olarak ekler
 - [x] İz gömme (`/izler/<id>/gom`, yalnızca bu rota çerçevelenebilir; anonim görünüm) ve herkese açık profil için RSS (`/@kullanici/rss.xml`)
 - [x] Oturum yönetimi: açık oturumlar (cihaz, son kullanım), tek tek ya da topluca kapatma
-- [ ] Passkey ile şifresiz giriş
+- [x] Passkey ile şifresiz giriş — WebAuthn (`@simplewebauthn`), ayarlardan ekle/sil, giriş sayfasında
 - [x] Herkese açık sayfalar varsayılan olarak arama motorlarına kapalı (noindex); isteyen ayarlardan açar (tanıtım sayfası her zaman açık)
 
-## ⏳ Aşama 3b — Düşünce araçları
+## ✅ Aşama 3b — Düşünce araçları
 
-- [ ] Bağ katmanı `baglar.ts` olarak ayrılacak (bugün `dugumler.ts` içinde)
-- [ ] **Bağ türü (anlamsal gerilim):** besler / çelişir / çağrıştırır / sentezler; isteğe bağlı, varsayılan "belirtilmemiş" (mevcut bağlar yanlış etiketlenmesin). Ağda renk ve çizgi biçemiyle gösterilir, fcose yay uzunluğu ve esnekliği türe göre değişir; lejant
-- [ ] **Zaman sürgüsü (ağın zamanla büyümesi):** düğümün yaşandığı tarihe göre (isteğe bağlı: İz'e eklenme tarihi). Ağ bir kez yerleşir, düğümler sırayla belirir (her sürgü hareketinde yeniden yerleşim titreme yaratacağı için yapılmaz); oynat/duraklat; tarihsiz düğümler başta
-- [ ] **İz çatallanması:** `izler.ata_iz_id` + ayrılma durağı; okuma sayfasında o duraktan ayrılan alternatif izler. Önce kendi izlerinden; başkasının izinden çatallanma kanonik eser çekirdeğinden sonra (başkasının düğümleri senin ağında yok)
-- [ ] JSON uç noktaları (`+server.ts`): düğüm formunda yazarken eser araması, komut paleti araması, ağda bağ kurma
-- [ ] Ağda iki düğümü sürükleyerek bağ kurma
-- [ ] Ağda klavyeyle gezinme: yön tuşlarıyla komşu düğümlere geçiş
-- [ ] Ağ görünümünün adrese yazılması: görünüm, tür süzgeçleri, odak (paylaşılabilir bağlantı)
-- [ ] Aşamalı ağ sorgusu: düğüm sayısı eşiği (ör. 500) aşılınca odak çevresi özyinelemeli sorguyla, belirli derinlikte yüklenir; altında tüm ağ
-- [ ] Komut paleti (Ctrl+K): her sayfadan kendi düğüm ve izlerinde arama, hızlı eylemler
-- [ ] Satır içi bağ: açıklamada `[[` yazınca düğüm seçici açılır; kaydetmeden önce kurulacak bağlar önizlenir
-- [ ] Kalıcı hız sınırı: PostgreSQL UNLOGGED tablo (Redis gerekmez)
-- [ ] `.vscode/settings.json`: Python ayarı yerine Svelte/TypeScript çalışma alanı ayarları
-- [ ] Bağ türü süzgeci ("yalnızca çelişkileri göster"); renk ve çizgi biçemi asıl, fizik ayarı ikincil
-- [ ] **Hat haritası (metro görünümü):** izler hat, düğümler durak, birden fazla izin geçtiği düğümler aktarma istasyonu; yatay eksen zaman. Zaman sürgüsüyle birlikte ürünün vitrini
-- [ ] **Dönemler (hayat bölümleri):** ad + başlangıç/bitiş ("Kadıköy yılları 2004–2011"); zaman çizgisinde renkli bantlar, ağda kümeler
-- [ ] **Etki ölçeği (puan değil):** "beni değiştirdi / iz bıraktı / geçti gitti"; ağda düğüm büyüklüğü etkiye göre gösterilebilir
-- [ ] **Alıntılar:** eserlere alıntı ekleme; bağ notu bir alıntıya işaret edebilir
+- [x] Bağ katmanı `baglar.ts` olarak ayrılacak (bugün `dugumler.ts` içinde)
+- [x] **Bağ türü (anlamsal gerilim):** besler / çelişir / çağrıştırır / sentezler; isteğe bağlı, varsayılan "belirtilmemiş" (mevcut bağlar yanlış etiketlenmesin). Ağda renk ve çizgi biçemiyle gösterilir, fcose yay uzunluğu ve esnekliği türe göre değişir; lejant
+- [x] **Zaman sürgüsü (ağın zamanla büyümesi):** düğümün yaşandığı tarihe göre (isteğe bağlı: İz'e eklenme tarihi). Ağ bir kez yerleşir, düğümler sırayla belirir (her sürgü hareketinde yeniden yerleşim titreme yaratacağı için yapılmaz); oynat/duraklat; tarihsiz düğümler başta
+- [x] **İz çatallanması:** `izler.ata_iz_id` + ayrılma durağı; okuma sayfasında o duraktan ayrılan alternatif izler. Önce kendi izlerinden; başkasının izinden çatallanma kanonik eser çekirdeğinden sonra (başkasının düğümleri senin ağında yok)
+- [x] JSON uç noktaları (`+server.ts`): düğüm formunda yazarken eser araması, komut paleti araması, ağda bağ kurma
+- [x] Ağda iki düğümü sürükleyerek bağ kurma
+- [x] Ağda klavyeyle gezinme: yön tuşlarıyla komşu düğümlere geçiş
+- [x] Ağ görünümünün adrese yazılması: görünüm, tür süzgeçleri, odak (paylaşılabilir bağlantı)
+- [x] Aşamalı ağ sorgusu: düğüm sayısı eşiği (ör. 500) aşılınca odak çevresi özyinelemeli sorguyla, belirli derinlikte yüklenir; altında tüm ağ
+- [x] Komut paleti (Ctrl+K): her sayfadan kendi düğüm ve izlerinde arama, hızlı eylemler
+- [x] Satır içi bağ: açıklamada `[[` yazınca düğüm seçici açılır; kaydetmeden önce kurulacak bağlar önizlenir
+- [x] Kalıcı hız sınırı: PostgreSQL UNLOGGED tablo (Redis gerekmez)
+- [x] `.vscode/settings.json`: Python ayarı yerine Svelte/TypeScript çalışma alanı ayarları
+- [x] Bağ türü süzgeci ("yalnızca çelişkileri göster"); renk ve çizgi biçemi asıl, fizik ayarı ikincil
+- [x] **Hat haritası (metro görünümü):** izler hat, düğümler durak, birden fazla izin geçtiği düğümler aktarma istasyonu; yatay eksen zaman. Zaman sürgüsüyle birlikte ürünün vitrini
+- [x] **Dönemler (hayat bölümleri):** ad + başlangıç/bitiş ("Kadıköy yılları 2004–2011"); zaman çizgisinde renkli bantlar, ağda kümeler
+- [x] **Etki ölçeği (puan değil):** "beni değiştirdi / iz bıraktı / geçti gitti"; ağda düğüm büyüklüğü etkiye göre gösterilebilir
+- [x] **Alıntılar:** eserlere alıntı ekleme; bağ notu bir alıntıya işaret edebilir
 
-## ⏳ Aşama 3c — İçe aktarma ve geri getirenler
+## ✅ Aşama 3c — İçe aktarma ve geri getirenler
 
-- [ ] İçe aktarma: Goodreads ve Letterboxd dışa aktarma dosyaları, Spotify dinleme geçmişi, Kindle alıntıları
-- [ ] **Bağ avı:** içe aktarılan düğümler için çift çift sorular ("Kuyucaklı Yusuf'a Kürk Mantolu Madonna'dan mı geldin?")
-- [ ] Otomatik zenginleştirme: kitap eklenince yazarını kişi düğümü olarak önerme; Wikidata ile kişi ve yer bilgisi
-- [ ] **Günün sorusu:** haftada birkaç kez tek soru ("Bunu nereden duymuştun?"); haritayı geriye doğru büyütür
-- [ ] Bugün geçmişte: günü bilinen düğümlerin yıldönümleri
-- [ ] **İz Yıllığı:** yıl sonu özeti (seni en çok nereye götüren şey, en uzun zincir, yeni kümeler) ve paylaşılabilir kart
+- [x] İçe aktarma: Goodreads ve Letterboxd dışa aktarma dosyaları, Spotify dinleme geçmişi, Kindle alıntıları
+- [x] **Bağ avı:** içe aktarılan düğümler için çift çift sorular ("Kuyucaklı Yusuf'a Kürk Mantolu Madonna'dan mı geldin?")
+- [x] Otomatik zenginleştirme: kitap eklenince yazarını kişi düğümü olarak önerme; Wikidata ile kişi ve yer bilgisi
+- [x] **Günün sorusu:** haftada birkaç kez tek soru ("Bunu nereden duymuştun?"); haritayı geriye doğru büyütür
+- [x] Bugün geçmişte: günü bilinen düğümlerin yıldönümleri
+- [x] **İz Yıllığı:** yıl sonu özeti (seni en çok nereye götüren şey, en uzun zincir, yeni kümeler) ve paylaşılabilir kart
 
-## ⏳ Aşama 4 — Karar Defteri
+## ✅ Aşama 4 — Karar Defteri
 
-- [ ] Karar düğümüne gerekçe, beklenti, % güven alanları
-- [ ] "Sonucu ne zaman soralım?" tarihi; zamanı gelince hatırlatma ve sonuç kaydı
-- [ ] Kalibrasyon grafiği (söylenen güven ↔ gerçekleşen oran)
+- [x] Karar düğümüne gerekçe, beklenti, % güven alanları
+- [x] "Sonucu ne zaman soralım?" tarihi; zamanı gelince hatırlatma ve sonuç kaydı
+- [x] Kalibrasyon grafiği (söylenen güven ↔ gerçekleşen oran)
+- [x] Defter kişiseldir: düğüm herkese açık olsa da gerekçe, güven ve sonuç yalnızca sahibine görünür. Zamanı gelen kararlar panoda "Sonuç zamanı" kartında, zil sayacında ve `/bildirimler`'de; `/kararlar` sayfasında kalibrasyon grafiği (erişilebilir tablo eşliğinde), Brier puanı ve yorumu (5 sonuçtan azken yorum yapılmaz); "kısmen" yarım gerçekleşme sayılır
+- [x] Testler: 211 birim/entegrasyon testi (PGlite), 98 uçtan uca test ve axe taraması (açık/koyu, masaüstü/mobil) tamamı geçiyor
 
 ## ⏳ Aşama 5 — Harita + Bir Zamanlar Burası
 

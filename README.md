@@ -101,6 +101,13 @@ pg_restore --clean --if-exists --no-owner -h localhost -U iz -d iz_dev yedekler/
 - **Arama ve sayfalama:** Türkçe karakterlerden bağımsız, yazım hatasına dayanıklı arama (pg_trgm); uzun listelerde "Daha fazla göster".
 - **Paylaşma:** herkese açık izler başka sitelere gömülebilir; profilin RSS akışı var.
 - **Ayarlar:** görünen ad ve tanıtım, e-posta ve şifre değiştirme, açık oturumları görme/kapatma, verileri JSON/Markdown olarak indirme ve JSON'dan içe aktarma, hesabı silme.
+- **Gruplar ve ortak izler:** davet bağlantısıyla aile/kulüp grupları; `grup` gizliliği; grup üyelerinin birlikte durak eklediği izler.
+- **Gölge düğümler ve dolaylı bağlar:** "bağlantı görünsün, içerik gizli"; başkasına gizli ara düğümler tek bir kesikli bağ olarak görünür.
+- **Keşif:** aynı eseri ekleyenlerin herkese açık yolları ("buradan sonra nereye gittiler"); "Senin izin beni buraya götürdü" bildirimi (beğeni, takipçi, akış yok).
+- **Passkey:** şifresiz giriş; izler için otomatik Open Graph görseli.
+- **Düşünce araçları:** bağ türleri (besler / çelişir / çağrıştırır / sentezler), dönemler, etki ölçeği, alıntılar, iz çatallanması, hat haritası (metro görünümü), ağda zaman sürgüsü, klavyeyle gezinme, sürükleyerek bağ kurma, komut paleti (Ctrl+K), açıklamada `[[…]]` ile satır içi bağ.
+- **Geri getirenler:** Goodreads, Letterboxd, Spotify ve Kindle'dan içe aktarma; bağ avı soruları; günün sorusu; bugün geçmişte; yazarı kişi olarak ekleme ve Wikidata zenginleştirmesi; İz Yıllığı ve paylaşılabilir kartı.
+- **Karar defteri:** karar düğümüne gerekçe, beklenti ve % güven; zamanı gelince sonucu sorar; kalibrasyon grafiği ve Brier puanı (`/kararlar`, yalnızca sana açık).
 - **Bildirimler ve "Geri al":** bağ kaldırma, durak çıkarma, silme ve yeniden yerleştirme geri alınabilir; silinenler 30 gün çöp kutusunda bekler.
 
 ## Klasör yapısı
