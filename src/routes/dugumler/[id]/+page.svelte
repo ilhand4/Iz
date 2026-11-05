@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
+	import SesKaydedici from '#lib/bilesenler/SesKaydedici.svelte';
+	import { SES_DURUMU_ETIKETI, sureYaz, type SesDurumu } from '#lib/ses.ts';
 	import Alan from '#lib/bilesenler/Alan.svelte';
 	import BagOgesi from '#lib/bilesenler/BagOgesi.svelte';
 	import BagTuruSecici from '#lib/bilesenler/BagTuruSecici.svelte';
@@ -71,6 +74,13 @@
 		)?.foto ?? null
 	);
 	const cift = $derived(karsilastirmaCifti(data.fotolar));
+	const sesHata = $derived((form as { ses?: { hata: string } } | null)?.ses?.hata ?? null);
+	// Yazıya dökülmekte olan ses varsa sayfa birkaç saniyede bir tazelenir
+	$effect(() => {
+		if (!data.sesler.some((x) => x.durum === 'bekliyor' || x.durum === 'isleniyor')) return;
+		const z = setInterval(() => invalidateAll(), 4000);
+		return () => clearInterval(z);
+	});
 	const kararFormu = $derived(
 		form as {
 			kararHatalari?: Record<string, string>;
@@ -327,6 +337,108 @@
 					</li>
 				{/each}
 			</ul>
+		</section>
+	{/if}
+
+	{#if data.oneriSonucu}
+		<p class="bildirim bildirim-basari" role="status">
+			Anlatılandan {data.oneriSonucu[0]} yeni düğüm eklendi, {data.oneriSonucu[1]} bağ kuruldu.
+		</p>
+	{/if}
+
+	{#if data.sesler.length || data.sesEklenebilir}
+		<section class="sesler yigin" aria-labelledby="sesler-baslik">
+			<div class="satir arasi">
+				<h2 id="sesler-baslik">Sesli anılar</h2>
+				{#if data.sahibiMi && (data.sesler.some((x) => x.metin) || d.aciklama)}
+					<a class="kucuk" href="/dugumler/{d.id}/oneriler">Anlatılandan düğüm öner</a>
+				{/if}
+			</div>
+			{#if data.sesler.length}
+				<ul class="ses-listesi">
+					{#each data.sesler as ses (ses.id)}
+						<li class="kart">
+							<audio controls preload="none" src="/sesler/{ses.id}" aria-label="Sesli anı"></audio>
+							<div class="ses-ust kucuk soluk">
+								<span data-durum={ses.durum}
+									>{SES_DURUMU_ETIKETI[ses.durum as SesDurumu]}{ses.sure
+										? ` · ${sureYaz(ses.sure)}`
+										: ''}</span
+								>
+								{#if data.sahibiMi}
+									<span class="satir">
+										{#if ses.durum === 'hata' || (ses.durum === 'kapali' && data.yaziyaDokmeVar)}
+											<form method="POST" action="?/sesYenidenDene" use:enhance>
+												<input type="hidden" name="sesId" value={ses.id} />
+												<button class="dugme dugme-kucuk dugme-hayalet">Yeniden dene</button>
+											</form>
+										{/if}
+										<form method="POST" action="?/sesSil" use:enhance>
+											<input type="hidden" name="sesId" value={ses.id} />
+											<button class="dugme dugme-kucuk dugme-hayalet" aria-label="Sesi sil">
+												<Simge ad="cop" boyut={14} />
+											</button>
+										</form>
+									</span>
+								{/if}
+							</div>
+							{#if ses.metin}
+								<p class="ses-metni">{ses.metin}</p>
+							{/if}
+							{#if data.sahibiMi && ses.durum !== 'bekliyor' && ses.durum !== 'isleniyor'}
+								<details>
+									<summary class="kucuk">{ses.metin ? 'Metni düzelt' : 'Metni elle yaz'}</summary>
+									<form
+										method="POST"
+										action="?/sesMetni"
+										class="yigin"
+										use:enhance={() =>
+											({ update }) =>
+												update({ reset: false })}
+									>
+										<input type="hidden" name="sesId" value={ses.id} />
+										<label class="gorunmez" for="metin-{ses.id}">Sesin metni</label>
+										<textarea id="metin-{ses.id}" name="metin" rows="5" maxlength="50000"
+											>{ses.metin ?? ''}</textarea
+										>
+										<div class="satir"><button class="dugme dugme-kucuk">Kaydet</button></div>
+									</form>
+								</details>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="soluk kucuk">
+					{d.tur === 'kisi'
+						? 'Onun sesinden bir hatıra kaydet: bir şarkı, bir öğüt, bir hikâye.'
+						: 'Anlatarak kaydet; yazıya dökülen metinden kişi ve yer önerileri çıkarılır.'}
+				</p>
+			{/if}
+
+			{#if data.sesEklenebilir}
+				<details class="kart bag-formu" open={!!sesHata}>
+					<summary>Ses ekle</summary>
+					<form
+						method="POST"
+						action="?/sesEkle"
+						enctype="multipart/form-data"
+						class="yigin"
+						use:enhance
+					>
+						<SesKaydedici id="sesDosya" />
+						{#if sesHata}<p class="hata-metni" role="alert">{sesHata}</p>{/if}
+						<p class="kucuk soluk">
+							{data.yaziyaDokmeVar
+								? 'Ses bu bilgisayarda yazıya dökülür; hiçbir yere gönderilmez.'
+								: 'Yazıya dökme aracı kurulu değil: ses saklanır, metni elle yazabilirsin.'}
+							Ses yalnızca sana {d.gizlilik === 'ozel' ? '' : 've grup arkadaşlarına '}açıktır;
+							düğüm herkese açık olsa da herkese gösterilmez.
+						</p>
+						<div class="satir"><button class="dugme dugme-birincil">Kaydet</button></div>
+					</form>
+				</details>
+			{/if}
 		</section>
 	{/if}
 
@@ -1183,6 +1295,7 @@
 		box-shadow: inset 0 0 0 1.5px var(--vurgu);
 	}
 	.alintilar h2,
+	.sesler h2,
 	.yakinlar h2,
 	.fotograflar h2,
 	.karar-defteri h2 {
@@ -1265,6 +1378,60 @@
 	.sonuc-karti .not {
 		margin-top: var(--a-2);
 		white-space: pre-line;
+	}
+	.sesler .arasi {
+		justify-content: space-between;
+		align-items: baseline;
+	}
+	.ses-listesi {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-3);
+	}
+	.ses-listesi li {
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-2);
+	}
+	.ses-listesi audio {
+		width: 100%;
+	}
+	.ses-ust {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--a-2);
+	}
+	.ses-ust [data-durum='isleniyor']::before,
+	.ses-ust [data-durum='bekliyor']::before {
+		content: '';
+		display: inline-block;
+		width: 0.6rem;
+		height: 0.6rem;
+		margin-right: 0.4rem;
+		border-radius: 50%;
+		background: var(--uyari);
+		animation: nabiz 1.2s ease-in-out infinite;
+	}
+	@keyframes nabiz {
+		50% {
+			opacity: 0.3;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.ses-ust [data-durum]::before {
+			animation: none;
+		}
+	}
+	.ses-metni {
+		margin: 0;
+		white-space: pre-line;
+		font-family: var(--yazi-baslik);
+		font-size: var(--boyut-lg);
+		line-height: 1.55;
 	}
 	.yakinlar .arasi {
 		justify-content: space-between;

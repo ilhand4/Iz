@@ -39,6 +39,9 @@
 		geri={{ href: '/gruplar', etiket: 'Gruplar' }}
 	>
 		{#snippet eylemler()}
+			<a class="dugme" href="/gruplar/{g.id}/arsiv"
+				><Simge ad="takvim" boyut={18} /> Arşiv ve kitap</a
+			>
 			<a class="dugme dugme-birincil" href="/izler/yeni"
 				><Simge ad="iz" boyut={18} /> Ortak iz başlat</a
 			>

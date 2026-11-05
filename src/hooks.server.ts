@@ -1,6 +1,7 @@
 import { sequence, type Handle } from '@sveltejs/kit/hooks';
 import { aramaOnbellegi } from '#lib/server/aramaOnbellegi.ts';
 import { kaliciOnbellekKur } from '#lib/server/eserArama.ts';
+import { sesKuyrugunuBaslat } from '#lib/server/sesler.ts';
 import {
 	OTURUM_CEREZI,
 	oturumCereziSil,
@@ -73,11 +74,13 @@ const guvenlikBasliklari: Handle = async ({ event, resolve }) => {
 	} else {
 		yanit.headers.set('X-Frame-Options', 'DENY');
 	}
-	yanit.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+	yanit.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(self)');
 	return yanit;
 };
 
 // Eser araması sonuçları sunucu yeniden başlasa da (veritabanında ~24 saat) saklansın
 kaliciOnbellekKur(aramaOnbellegi);
+// Yarım kalan yazıya dökme işleri (veritabanı yoksa sessizce geçilir)
+sesKuyrugunuBaslat().catch(() => {});
 
 export const handle = sequence(guvenlikBasliklari, csrfKorumasi, oturum, tema);

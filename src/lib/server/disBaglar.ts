@@ -3,7 +3,7 @@
 // bildirim, bağı kuranın düğümü alıcıya görünmüyorsa başlığını göstermez.
 import { aliasedTable, and, count, desc, eq, isNull, sql } from 'drizzle-orm';
 import { db } from './db';
-import { bildirimKutusu, disBaglar, dugumler, gruplar, kullanicilar } from './db/schema';
+import { bildirimKutusu, disBaglar, dugumler, gruplar, kullanicilar, sorular } from './db/schema';
 import { gorunurluk } from './dugumler';
 
 const kaynakD = aliasedTable(dugumler, 'dis_kaynak');
@@ -128,11 +128,13 @@ export async function bildirimleriGetir(kullaniciId: string, limit = 50) {
 				baslik: hedefD.baslik,
 				gorunur: sql<boolean>`(${gorunurluk(hedefD, kullaniciId)})`
 			},
-			not: disBaglar.not
+			not: disBaglar.not,
+			soru: { id: sorular.id, aliciAdi: sorular.aliciAdi, metin: sorular.metin }
 		})
 		.from(bildirimKutusu)
 		.leftJoin(kullanicilar, eq(bildirimKutusu.aktorId, kullanicilar.id))
 		.leftJoin(gruplar, eq(bildirimKutusu.grupId, gruplar.id))
+		.leftJoin(sorular, eq(bildirimKutusu.soruId, sorular.id))
 		.leftJoin(disBaglar, eq(bildirimKutusu.disBagId, disBaglar.id))
 		.leftJoin(kaynakD, eq(disBaglar.kaynakId, kaynakD.id))
 		.leftJoin(hedefD, eq(disBaglar.hedefId, hedefD.id))

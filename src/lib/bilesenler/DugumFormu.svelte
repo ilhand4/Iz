@@ -439,6 +439,26 @@
 		</div>
 	</details>
 
+	<details class="konum" open={!!(d('muhurTarihi') || hatalar.muhurTarihi)}>
+		<summary>Zaman kapsülü (isteğe bağlı)</summary>
+		<div class="yigin">
+			<Alan
+				id="muhurTarihi"
+				etiket="Şu gün açılsın"
+				hata={hatalar.muhurTarihi}
+				ipucu="Ör. 01.01.2035. O güne kadar açıklama, fotoğraflar ve sesler sana bile gösterilmez; düğüm değiştirilemez. Başlık ve tarih görünür kalır."
+			>
+				<input
+					id="muhurTarihi"
+					name="muhurTarihi"
+					value={d('muhurTarihi')}
+					placeholder="01.01.2035"
+					aria-invalid={!!hatalar.muhurTarihi}
+				/>
+			</Alan>
+		</div>
+	</details>
+
 	<fieldset class="alan">
 		<legend class="etiket"
 			>Hayatındaki etkisi <span class="soluk">(isteğe bağlı, puan değil)</span></legend

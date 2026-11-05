@@ -34,3 +34,4 @@ vite.config.ts.timestamp-*
 
 # Yüklenen fotoğraflar (veritabanı yedeğine girmez; ayrıca yedeklenmeli)
 /yuklemeler
+

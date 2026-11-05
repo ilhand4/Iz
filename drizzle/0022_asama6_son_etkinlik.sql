@@ -1,0 +1,1 @@
+ALTER TABLE "kullanicilar" ADD COLUMN "son_etkinlik" timestamp with time zone DEFAULT now() NOT NULL;

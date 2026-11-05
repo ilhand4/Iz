@@ -57,67 +57,72 @@
 		</a>
 	{/if}
 
-	{#if data.soru || data.gecmis.length || data.kararlar.length}
-		<div class="hatirlaticilar">
-			{#if data.kararlar.length}
-				<section class="kart sonuc-zamani" aria-labelledby="sonuc-zamani-baslik">
-					<p class="ust-etiket">Sonuç zamanı</p>
-					<h2 id="sonuc-zamani-baslik">
-						{data.kararlar.length === 1
-							? 'Bir kararın sonucunu sorma zamanı geldi.'
-							: `${data.kararlar.length} kararın sonucunu sorma zamanı geldi.`}
-					</h2>
-					<ul>
-						{#each data.kararlar.slice(0, 3) as k (k.dugumId)}
-							<li>
-								<a href="/dugumler/{k.dugumId}"><TurSekli tur="karar" boyut={11} /> {k.baslik}</a>
-								{#if k.beklenti}<span class="kucuk soluk">Beklentin: {k.beklenti}</span>{/if}
-							</li>
-						{/each}
-					</ul>
-					{#if data.kararlar.length > 3}
-						<a class="kucuk" href="/kararlar">Hepsini gör</a>
-					{/if}
-				</section>
-			{/if}
-			{#if data.soru}
-				<section class="kart gunun-sorusu" aria-labelledby="soru-baslik">
-					<p class="ust-etiket">Günün sorusu</p>
-					<h2 id="soru-baslik">
-						<a href="/dugumler/{data.soru.id}">“{data.soru.baslik}”</a> — bunu nereden duymuştun?
-					</h2>
-					{#if data.secenekler.length}
-						<form method="POST" action="/dugumler/{data.soru.id}?/bagKur" class="yigin" use:enhance>
-							<input type="hidden" name="yon" value="gelen" />
-							<DugumSecici
-								id="soru-getiren"
-								ad="digerId"
-								secenekler={data.secenekler}
-								yerTutucu="Haritandan seç…"
-							/>
-							<div class="satir">
-								<button class="dugme dugme-birincil dugme-kucuk">Bağla</button>
-								<a class="kucuk" href="/dugumler/{data.soru.id}?getiren=1">Yeni bir şey ekle</a>
-							</div>
-						</form>
-					{/if}
-				</section>
-			{/if}
-			{#if data.gecmis.length}
-				<section class="kart bugun" aria-labelledby="bugun-baslik">
-					<p class="ust-etiket">Bugün geçmişte</p>
-					<ul>
-						{#each data.gecmis as g (g.id)}
-							<li>
-								<strong>{g.yilOnce} yıl önce bugün</strong>
-								<a href="/dugumler/{g.id}"><TurSekli tur={g.tur} boyut={11} /> {g.baslik}</a>
-							</li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
-		</div>
-	{/if}
+	<div class="hatirlaticilar">
+		{#if data.kararlar.length}
+			<section class="kart sonuc-zamani" aria-labelledby="sonuc-zamani-baslik">
+				<p class="ust-etiket">Sonuç zamanı</p>
+				<h2 id="sonuc-zamani-baslik">
+					{data.kararlar.length === 1
+						? 'Bir kararın sonucunu sorma zamanı geldi.'
+						: `${data.kararlar.length} kararın sonucunu sorma zamanı geldi.`}
+				</h2>
+				<ul>
+					{#each data.kararlar.slice(0, 3) as k (k.dugumId)}
+						<li>
+							<a href="/dugumler/{k.dugumId}"><TurSekli tur="karar" boyut={11} /> {k.baslik}</a>
+							{#if k.beklenti}<span class="kucuk soluk">Beklentin: {k.beklenti}</span>{/if}
+						</li>
+					{/each}
+				</ul>
+				{#if data.kararlar.length > 3}
+					<a class="kucuk" href="/kararlar">Hepsini gör</a>
+				{/if}
+			</section>
+		{/if}
+		{#if data.soru}
+			<section class="kart gunun-sorusu" aria-labelledby="soru-baslik">
+				<p class="ust-etiket">Günün sorusu</p>
+				<h2 id="soru-baslik">
+					<a href="/dugumler/{data.soru.id}">“{data.soru.baslik}”</a> — bunu nereden duymuştun?
+				</h2>
+				{#if data.secenekler.length}
+					<form method="POST" action="/dugumler/{data.soru.id}?/bagKur" class="yigin" use:enhance>
+						<input type="hidden" name="yon" value="gelen" />
+						<DugumSecici
+							id="soru-getiren"
+							ad="digerId"
+							secenekler={data.secenekler}
+							yerTutucu="Haritandan seç…"
+						/>
+						<div class="satir">
+							<button class="dugme dugme-birincil dugme-kucuk">Bağla</button>
+							<a class="kucuk" href="/dugumler/{data.soru.id}?getiren=1">Yeni bir şey ekle</a>
+						</div>
+					</form>
+				{/if}
+			</section>
+		{/if}
+		<section class="kart haftanin-sorusu" aria-labelledby="haftanin-baslik">
+			<p class="ust-etiket">Bu hafta bir yakınına sor</p>
+			<h2 id="haftanin-baslik">“{data.haftaninSorusu}”</h2>
+			<a class="dugme dugme-kucuk" href="/sorular?soru={encodeURIComponent(data.haftaninSorusu)}"
+				>Bağlantı oluştur</a
+			>
+		</section>
+		{#if data.gecmis.length}
+			<section class="kart bugun" aria-labelledby="bugun-baslik">
+				<p class="ust-etiket">Bugün geçmişte</p>
+				<ul>
+					{#each data.gecmis as g (g.id)}
+						<li>
+							<strong>{g.yilOnce} yıl önce bugün</strong>
+							<a href="/dugumler/{g.id}"><TurSekli tur={g.tur} boyut={11} /> {g.baslik}</a>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
+	</div>
 
 	<form method="GET" action="/hizli" class="hizli-ekle" role="search" aria-label="Hızlı ekle">
 		<label for="hizli-metin" class="hizli-etiket">
@@ -459,6 +464,12 @@
 	}
 	.gunun-sorusu h2 a {
 		color: var(--metin);
+	}
+	.haftanin-sorusu h2 {
+		margin: 0 0 var(--a-3);
+		font-size: var(--boyut-lg);
+		font-family: var(--yazi-baslik);
+		font-weight: 500;
 	}
 	.sonuc-zamani {
 		border-left: 4px solid var(--tur-karar);

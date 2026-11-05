@@ -48,7 +48,10 @@
 			{#each data.liste as b (b.id)}
 				<li class:yeni={!b.okundu}>
 					<span class="simge" aria-hidden="true">
-						<Simge ad={b.tur === 'grup_katilim' ? 'grup' : 'iz'} boyut={18} />
+						<Simge
+							ad={b.tur === 'grup_katilim' ? 'grup' : b.tur === 'soru_yaniti' ? 'kisi' : 'iz'}
+							boyut={18}
+						/>
 					</span>
 					<span class="metin">
 						{#if b.tur === 'dis_bag'}
@@ -62,6 +65,11 @@
 								götürdüğünü söyledi.
 							</span>
 							{#if b.not}<span class="not">“{b.not}”</span>{/if}
+						{:else if b.tur === 'soru_yaniti'}
+							<span>
+								<strong>{b.soru?.aliciAdi}</strong> sorunu yanıtladı:
+								<a href="/sorular">“{b.soru?.metin}”</a>
+							</span>
 						{:else}
 							<span>
 								<a href="/@{b.aktor?.kullaniciAdi}">{b.aktor?.ad}</a>

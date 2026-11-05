@@ -194,10 +194,13 @@ export type DugumVerisi = {
 	durum: EserDurumu | null;
 	/** Etki ölçeği; formda alan yoksa dokunulmaz */
 	etki?: Etki | null;
+	/** Zaman kapsülünün açılış günü (yalnızca formda alan varsa) */
+	muhurTarihi?: string | null;
 };
 
 const DUGUM_ALANLARI = [
 	'tur',
+	'muhurTarihi',
 	'eserTuru',
 	'baslik',
 	'altBaslik',
@@ -265,6 +268,7 @@ export function dugumDogrula(fd: FormData): Sonuc<DugumVerisi> {
 		else hatalar.durum = 'Geçerli bir durum seçin.';
 	}
 
+	const muhur = muhurCoz(fd, hatalar);
 	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: d };
 
 	const konumVar = typeof enlem === 'number' && typeof boylam === 'number';
@@ -284,9 +288,30 @@ export function dugumDogrula(fd: FormData): Sonuc<DugumVerisi> {
 			yerAdi: d.yerAdi || null,
 			gizlilik: gizlilik as Gizlilik,
 			durum,
-			...(fd.has('etki') ? { etki: etkiMi(fd.get('etki')) ? (fd.get('etki') as Etki) : null } : {})
+			...(fd.has('etki') ? { etki: etkiMi(fd.get('etki')) ? (fd.get('etki') as Etki) : null } : {}),
+			...(muhur !== undefined ? { muhurTarihi: muhur } : {})
 		}
 	};
+}
+
+/** Zaman kapsülünün açılış günü: boş = kapsül yok; dolu ise gelecekte bir gün olmalı */
+function muhurCoz(fd: FormData, hatalar: Hatalar): string | null | undefined {
+	if (!fd.has('muhurTarihi')) return undefined;
+	const girdi = alan(fd, 'muhurTarihi');
+	if (!girdi) return null;
+	const t = tarihCoz(girdi);
+	if (!t || t === 'gecersiz') {
+		hatalar.muhurTarihi = TARIH_HATASI;
+		return undefined;
+	}
+	const bugun = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbul' }).format(
+		new Date()
+	);
+	if (t.tarih <= bugun) {
+		hatalar.muhurTarihi = 'Açılış günü gelecekte olmalı.';
+		return undefined;
+	}
+	return t.tarih;
 }
 
 // ——— Dönemler ve alıntılar ———

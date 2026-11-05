@@ -13,6 +13,7 @@ async function sahibinDugumu(id: string, kullaniciId: string) {
 	if (!uuidMu(id)) error(404, BULUNAMADI);
 	const sonuc = await dugumGetir(id, kullaniciId);
 	if (!sonuc || sonuc.dugum.sahipId !== kullaniciId) error(404, BULUNAMADI);
+	if (sonuc.dugum.muhurlu) error(423, 'Bu zaman kapsülü açılana kadar düzenlenemez.');
 	return sonuc.dugum;
 }
 
@@ -37,7 +38,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			yerAdi: metin(d.yerAdi),
 			gizlilik: d.gizlilik,
 			durum: d.durum ?? '',
-			etki: d.etki ?? ''
+			etki: d.etki ?? '',
+			muhurTarihi: d.muhurTarihi ?? ''
 		}
 	};
 };

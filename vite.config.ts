@@ -29,6 +29,8 @@ export default defineConfig({
 					'style-src': ['self', 'unsafe-inline'],
 					'img-src': ['self', 'data:', ...gorselKaynaklari],
 					'font-src': ['self'],
+					// Sesli anı kaydının gönderilmeden önce dinlenmesi (MediaRecorder → blob:)
+					'media-src': ['self', 'blob:'],
 					// Harita karoları, stil, yazı tipleri ve simgeler (OpenFreeMap)
 					'connect-src': ['self', 'https://tiles.openfreemap.org'],
 					'form-action': ['self'],

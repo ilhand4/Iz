@@ -67,6 +67,11 @@ export async function oturumDogrula(jeton: string) {
 			.update(oturumlar)
 			.set({ bitis: oturum.bitis, sonKullanim: new Date() })
 			.where(eq(oturumlar.id, oturum.id));
+		// Dijital vasiyetin sayacı: kullanıcı geldikçe sıfırlanır
+		await db
+			.update(kullanicilar)
+			.set({ sonEtkinlik: new Date() })
+			.where(eq(kullanicilar.id, kullanici.id));
 	}
 
 	return { oturum, kullanici };

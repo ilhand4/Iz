@@ -70,6 +70,8 @@ export const kullanicilar = pgTable(
 		hakkinda: text('hakkinda'),
 		/** Herkese açık sayfaları arama motorlarına açık mı? Varsayılan kapalı (noindex) */
 		aramaMotorlari: boolean('arama_motorlari').notNull().default(false),
+		/** Son oturum kullanımı (en çok saatte bir yazılır); dijital vasiyetin zamanlayıcısı */
+		sonEtkinlik: zamanDamgasi('son_etkinlik').notNull().defaultNow(),
 		/** E-posta adresinin doğrulandığı an (null: doğrulanmadı) */
 		epostaDogrulandi: zamanDamgasi('eposta_dogrulandi'),
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
@@ -244,6 +246,8 @@ export const dugumler = pgTable(
 		wikidata: text('wikidata'),
 		/** Etki ölçeği (puan değil): degistirdi / iz_birakti / gecti; null: belirtilmemiş */
 		etki: text('etki'),
+		/** Zaman kapsülü: bu güne kadar içerik (açıklama, fotoğraf, ses) sahibine bile gösterilmez */
+		muhurTarihi: date('muhur_tarihi', { mode: 'string' }),
 		/** Eserin ortak kaydı (tetikleyiciyle doldurulur; eser değilse null) */
 		kanonikEserId: uuid('kanonik_eser_id').references(() => kanonikEserler.id, {
 			onDelete: 'set null'
@@ -435,17 +439,24 @@ export const bildirimKutusu = pgTable(
 		aliciId: uuid('alici_id')
 			.notNull()
 			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
-		/** dis_bag: biri senin düğümünden kendi düğümüne bağ kurdu; grup_katilim: grubuna biri katıldı */
+		/**
+		 * dis_bag: biri senin düğümünden kendi düğümüne bağ kurdu; grup_katilim: grubuna biri katıldı;
+		 * soru_yaniti: bir yakının sorduğun soruyu yanıtladı
+		 */
 		tur: text('tur').notNull(),
 		aktorId: uuid('aktor_id').references(() => kullanicilar.id, { onDelete: 'cascade' }),
 		disBagId: uuid('dis_bag_id').references(() => disBaglar.id, { onDelete: 'cascade' }),
 		grupId: uuid('grup_id').references(() => gruplar.id, { onDelete: 'cascade' }),
+		soruId: uuid('soru_id').references((): AnyPgColumn => sorular.id, { onDelete: 'cascade' }),
 		okundu: zamanDamgasi('okundu'),
 		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
 	},
 	(t) => [
 		index('bildirim_kutusu_alici_idx').on(t.aliciId, t.olusturma),
-		check('bildirim_kutusu_tur_kontrol', sql`${t.tur} in ('dis_bag', 'grup_katilim')`)
+		check(
+			'bildirim_kutusu_tur_kontrol',
+			sql`${t.tur} in ('dis_bag', 'grup_katilim', 'soru_yaniti')`
+		)
 	]
 );
 
@@ -605,5 +616,89 @@ export const fotograflar = pgTable(
 		check('fotograflar_donem_kontrol', sql`${t.donem} in ('eski', 'yeni')`),
 		check('fotograflar_hak_kontrol', sql`${t.hak} in ('kendi', 'aile', 'izinli', 'kamu')`),
 		check('fotograflar_yil_kontrol', sql`${t.yil} is null or ${t.yil} between 1800 and 2200`)
+	]
+);
+
+// ——— Sesli anılar: kayıt ve yerel yazıya dökme (whisper.cpp) ———
+
+export const sesler = pgTable(
+	'sesler',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		/** Arşivin sahibi (yakınının yanıtıysa soruyu soran) */
+		sahipId: uuid('sahip_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		dugumId: uuid('dugum_id').references(() => dugumler.id, { onDelete: 'cascade' }),
+		soruId: uuid('soru_id').references((): AnyPgColumn => sorular.id, { onDelete: 'cascade' }),
+		uzanti: text('uzanti').notNull(),
+		boyut: integer('boyut').notNull(),
+		/** Saniye (yazıya dökülürken hesaplanır) */
+		sure: integer('sure'),
+		metin: text('metin'),
+		/** bekliyor / isleniyor / tamam / hata / kapali (yazıya dökme aracı yok) */
+		durum: text('durum').notNull().default('bekliyor'),
+		hata: text('hata'),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow(),
+		islenme: zamanDamgasi('islenme')
+	},
+	(t) => [
+		index('sesler_dugum_idx').on(t.dugumId),
+		index('sesler_soru_idx').on(t.soruId),
+		index('sesler_durum_idx').on(t.durum),
+		check(
+			'sesler_durum_kontrol',
+			sql`${t.durum} in ('bekliyor', 'isleniyor', 'tamam', 'hata', 'kapali')`
+		)
+	]
+);
+
+// ——— Yakınlara soru: hesap gerektirmeyen bağlantıyla yanıt (yazılı ya da sesli) ———
+
+export const sorular = pgTable(
+	'sorular',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		sahipId: uuid('sahip_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		/** Soruların sorulduğu yakın (haritadaki kişi düğümü, isteğe bağlı) */
+		kisiId: uuid('kisi_id').references(() => dugumler.id, { onDelete: 'set null' }),
+		aliciAdi: text('alici_adi').notNull(),
+		metin: text('metin').notNull(),
+		/** Yanıt bağlantısındaki jetonun SHA-256 özeti */
+		jetonOzeti: text('jeton_ozeti').notNull().unique(),
+		sonGecerlilik: zamanDamgasi('son_gecerlilik').notNull(),
+		yanitMetni: text('yanit_metni'),
+		yanitlanma: zamanDamgasi('yanitlanma'),
+		/** Yanıttan oluşturulan anı düğümü */
+		aniId: uuid('ani_id').references(() => dugumler.id, { onDelete: 'set null' }),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		index('sorular_sahip_idx').on(t.sahipId, t.olusturma),
+		check('sorular_metin_kontrol', sql`length(${t.metin}) between 1 and 500`)
+	]
+);
+
+// ——— Dijital vasiyet: uzun süre giriş yapılmazsa arşiv güvenilen kişiye açılır ———
+
+export const vasiyetler = pgTable(
+	'vasiyetler',
+	{
+		sahipId: uuid('sahip_id')
+			.primaryKey()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		varisId: uuid('varis_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		/** Son girişten bu kadar ay sonra arşiv varise açılır */
+		beklemeAy: integer('bekleme_ay').notNull(),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		index('vasiyetler_varis_idx').on(t.varisId),
+		check('vasiyetler_bekleme_kontrol', sql`${t.beklemeAy} in (3, 6, 12, 24)`),
+		check('vasiyetler_kendisi_degil', sql`${t.sahipId} <> ${t.varisId}`)
 	]
 );

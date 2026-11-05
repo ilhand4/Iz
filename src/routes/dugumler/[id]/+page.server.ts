@@ -13,8 +13,17 @@ import {
 import { kararGetir, kararKaydet, sonucKaydet } from '#lib/server/kararDefteriDb.ts';
 import { fotoEkle, fotograflariListele, fotoSil } from '#lib/server/fotograflar.ts';
 import { yakindakiler } from '#lib/server/konumlar.ts';
+import {
+	sesEkle,
+	sesleriListele,
+	sesMetniGuncelle,
+	sesSil,
+	yenidenDene
+} from '#lib/server/sesler.ts';
+import { araclariBul } from '#lib/server/yaziyaDokme.ts';
+import { EN_BUYUK_SES_MB, SESLI_TURLER } from '#lib/ses.ts';
 import { beklemeMesaji } from '#lib/server/hizSiniri.ts';
-import { fotoSiniri } from '#lib/server/sinirlar.ts';
+import { fotoSiniri, sesSiniri } from '#lib/server/sinirlar.ts';
 import { EN_BUYUK_FOTO_MB, FOTOGRAFLI_TURLER } from '#lib/fotograf.ts';
 import { alintiEkle, alintiKaynagi, alintilariListele, alintiSil } from '#lib/server/dusunce.ts';
 import {
@@ -70,7 +79,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		yapimciVar,
 		karar,
 		fotolar,
-		yakinlar
+		yakinlar,
+		sesListesi
 	] = await Promise.all([
 		dugumBaglari(params.id, izleyenId),
 		geldigiYol(params.id, izleyenId),
@@ -99,6 +109,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		// PostGIS: sahibin 2 km içindeki diğer düğümleri
 		sahibiMi && sonuc.dugum.enlem !== null
 			? yakindakiler(sonuc.dugum.sahipId, params.id)
+			: Promise.resolve([]),
+		SESLI_TURLER.includes(sonuc.dugum.tur)
+			? sesleriListele(params.id, izleyenId)
 			: Promise.resolve([])
 	]);
 
@@ -133,6 +146,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			: null,
 		fotolar,
 		yakinlar,
+		sesler: sesListesi,
+		sesEklenebilir: sahibiMi && SESLI_TURLER.includes(sonuc.dugum.tur),
+		yaziyaDokmeVar: sahibiMi && SESLI_TURLER.includes(sonuc.dugum.tur) && araclariBul() !== null,
 		fotoEklenebilir: sahibiMi && FOTOGRAFLI_TURLER.includes(sonuc.dugum.tur),
 		bugun: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbul' }).format(new Date()),
 		yapimciOnerisi:
@@ -143,6 +159,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			!sonuc.dugum.wikidata,
 		indekslenebilir: dugum.gizlilik === 'herkes' && sonuc.sahip.aramaMotorlari,
 		eklendi: url.searchParams.has('eklendi'),
+		oneriSonucu: /^\d+-\d+$/.test(url.searchParams.get('oneriler') ?? '')
+			? url.searchParams.get('oneriler')!.split('-').map(Number)
+			: null,
 		getirenSor: url.searchParams.has('getiren')
 	};
 };
@@ -185,6 +204,50 @@ export const actions: Actions = {
 				}
 			});
 		return { bildirim: { mesaj: 'Fotoğraf eklendi.' } };
+	},
+
+	sesEkle: async ({ params, request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		if (!uuidMu(params.id)) error(404, BULUNAMADI);
+		const dosya = (await request.formData()).get('ses');
+		const hata = (mesaj: string, kod = 400) => fail(kod, { ses: { hata: mesaj } });
+		if (!(dosya instanceof File) || dosya.size === 0)
+			return hata('Bir kayıt yap ya da ses dosyası seç.');
+		if (dosya.size > EN_BUYUK_SES_MB * 1024 * 1024)
+			return hata(`Ses ${EN_BUYUK_SES_MB} MB’tan büyük olamaz.`, 413);
+		const sinir = await sesSiniri.dene(kullanici.id);
+		if (!sinir.izin) return hata(beklemeMesaji(sinir.beklemeSaniye), 429);
+		const sonuc = await sesEkle(kullanici.id, params.id, new Uint8Array(await dosya.arrayBuffer()));
+		if (sonuc === 'yetkisiz') error(404, BULUNAMADI);
+		if (sonuc === 'dolu') return hata('Bu düğüme daha fazla ses eklenemez.');
+		if (sonuc === 'gecersiz')
+			return hata('Bu dosya tanınmadı. WebM, Ogg/Opus, M4A, MP3, WAV ya da FLAC bir ses seç.');
+		return { bildirim: { mesaj: 'Ses kaydedildi; yazıya dökülünce metni burada görünür.' } };
+	},
+
+	sesMetni: async ({ request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const fd = await request.formData();
+		const id = alan(fd, 'sesId');
+		const metin = alan(fd, 'metin');
+		if (!uuidMu(id)) error(404, 'Ses bulunamadı.');
+		if (metin.length > 50000) return fail(400, { ses: { hata: 'Metin çok uzun.' } });
+		if (!(await sesMetniGuncelle(id, kullanici.id, metin || null))) error(404, 'Ses bulunamadı.');
+		return { bildirim: { mesaj: 'Metin kaydedildi.' } };
+	},
+
+	sesYenidenDene: async ({ request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const id = alan(await request.formData(), 'sesId');
+		if (!uuidMu(id) || !(await yenidenDene(id, kullanici.id))) error(404, 'Ses bulunamadı.');
+		return { bildirim: { mesaj: 'Yeniden yazıya dökülüyor.' } };
+	},
+
+	sesSil: async ({ request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const id = alan(await request.formData(), 'sesId');
+		if (!uuidMu(id) || !(await sesSil(id, kullanici.id))) error(404, 'Ses bulunamadı.');
+		return { bildirim: { mesaj: 'Ses silindi.' } };
 	},
 
 	fotoSil: async ({ request, locals, url }) => {

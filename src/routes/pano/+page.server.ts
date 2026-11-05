@@ -5,6 +5,7 @@ import { dugumSecenekleri, haritaVerisi, merakListesi, panoVerisi } from '#lib/s
 import { bugunGecmiste, gununSorusu } from '#lib/server/geriGetirenlerDb.ts';
 import { zamaniGelenKararlar } from '#lib/server/kararDefteriDb.ts';
 import { izdekiDugumler, izleriListele, izSayisi } from '#lib/server/izler.ts';
+import { haftaninSorusu } from '#lib/sorular.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import type { PageServerLoad } from './$types';
 
@@ -57,6 +58,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		soru,
 		gecmis,
 		kararlar,
+		haftaninSorusu: haftaninSorusu(),
 		secenekler: soru ? await dugumSecenekleri(kullanici.id, soru.id) : [],
 		hosgeldin: url.searchParams.has('hosgeldin')
 	};

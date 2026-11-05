@@ -34,6 +34,11 @@ export function etkin(tablo: { silinme: AnyPgColumn }): SQL {
 	return isNull(tablo.silinme);
 }
 
+/** Zaman kapsülü açılmış ya da hiç mühürlenmemiş (İstanbul günüyle) */
+export function muhursuz(tablo: { muhurTarihi: AnyPgColumn }): SQL {
+	return sql`(${tablo.muhurTarihi} is null or ${tablo.muhurTarihi} <= (now() at time zone 'Europe/Istanbul')::date)`;
+}
+
 /** gorebilirMi kuralının SQL karşılığı; çöp kutusundakiler kimseye görünmez */
 export function gorunurluk(
 	tablo: { sahipId: AnyPgColumn; gizlilik: AnyPgColumn; silinme: AnyPgColumn },
@@ -44,13 +49,24 @@ export function gorunurluk(
 		? (or(
 				eq(tablo.sahipId, izleyenId),
 				herkes,
-				and(eq(tablo.gizlilik, 'grup'), grupArkadasiSql(tablo.sahipId, izleyenId))
+				and(eq(tablo.gizlilik, 'grup'), grupArkadasiSql(tablo.sahipId, izleyenId)),
+				varisSql(tablo.sahipId, izleyenId)
 			) as SQL)
 		: herkes;
 	return and(kim, etkin(tablo)) as SQL;
 }
 
 /** Sahip ile izleyen en az bir grupta birlikte mi? (gorebilirMi'nin grupArkadasi koşulu) */
+/**
+ * Dijital vasiyet: sahibi, belirlediği süre boyunca hiç gelmediyse varisi her şeyini (salt okunur)
+ * görür. Yazma sorguları sahip_id ile süzüldüğü için varis hiçbir şeyi değiştiremez.
+ */
+export function varisSql(sahipSutun: AnyPgColumn, izleyenId: string): SQL {
+	return sql`exists (select 1 from vasiyetler v join kullanicilar k on k.id = v.sahip_id
+		where v.sahip_id = ${sahipSutun} and v.varis_id = ${izleyenId}
+		and k.son_etkinlik < now() - make_interval(months => v.bekleme_ay))`;
+}
+
 export function grupArkadasiSql(sahipSutun: AnyPgColumn, izleyenId: string): SQL {
 	return sql`exists (select 1 from grup_uyeleri ga join grup_uyeleri gb on ga.grup_id = gb.grup_id
 		where ga.kullanici_id = ${sahipSutun} and gb.kullanici_id = ${izleyenId})`;
@@ -190,10 +206,10 @@ export async function dugumSecenekleri(
 		.limit(2000);
 }
 
-/** Düğümü getirir; izleyen göremiyorsa null (var olduğunu da belli etmemek için) */
 /** Sayfaya gidebilecek düğüm sütunları: PostGIS noktası (ikili metin) hariç */
 const { konum: _konum, ...dugumSutunlari } = getTableColumns(dugumler);
 
+/** Düğümü getirir; izleyen göremiyorsa null (var olduğunu da belli etmemek için) */
 export async function dugumGetir(id: string, izleyenId: string | null) {
 	const [sonuc] = await db
 		.select({
@@ -207,7 +223,16 @@ export async function dugumGetir(id: string, izleyenId: string | null) {
 		.from(dugumler)
 		.innerJoin(kullanicilar, eq(dugumler.sahipId, kullanicilar.id))
 		.where(and(eq(dugumler.id, id), gorunurluk(dugumler, izleyenId)));
-	return sonuc ?? null;
+	if (!sonuc) return null;
+	// Zaman kapsülü: açılış gününe kadar içerik kimseye (sahibine de) gönderilmez
+	const bugun = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbul' }).format(
+		new Date()
+	);
+	const muhurlu = !!sonuc.dugum.muhurTarihi && sonuc.dugum.muhurTarihi > bugun;
+	return {
+		...sonuc,
+		dugum: { ...sonuc.dugum, aciklama: muhurlu ? null : sonuc.dugum.aciklama, muhurlu }
+	};
 }
 
 export type DisBilgi = { disKaynak: string; disKimlik: string; gorselUrl: string | null };
@@ -239,7 +264,10 @@ export async function dugumGuncelle(id: string, sahipId: string, veri: DugumVeri
 	const sonuc = await db
 		.update(dugumler)
 		.set({ ...veri, guncelleme: new Date() })
-		.where(and(eq(dugumler.id, id), eq(dugumler.sahipId, sahipId), etkin(dugumler)))
+		// Zaman kapsülü açılana kadar düğüm değiştirilemez
+		.where(
+			and(eq(dugumler.id, id), eq(dugumler.sahipId, sahipId), etkin(dugumler), muhursuz(dugumler))
+		)
 		.returning({ id: dugumler.id });
 	return sonuc.length > 0;
 }

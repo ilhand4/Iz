@@ -141,6 +141,27 @@
       "when": 1793880256071,
       "tag": "0019_asama5_postgis",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793882149318,
+      "tag": "0020_asama6_aile_hafizasi",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793882804437,
+      "tag": "0021_asama6_soru_bildirimi",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793883265062,
+      "tag": "0022_asama6_son_etkinlik",
+      "breakpoints": true
     }
   ]
 }

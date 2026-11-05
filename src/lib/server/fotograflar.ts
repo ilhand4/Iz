@@ -1,17 +1,19 @@
-// Fotoğraf yükleme, saklama ve sunma. Dosyalar diskte (`yuklemeler/fotograflar/`), satırlar veritabanında.
+// Fotoğraf yükleme, saklama ve sunma. Dosyalar diskte (depolama.ts → `~/.iz/yuklemeler/fotograflar/`),
+// satırlar veritabanında.
 // Yüklenen her görsel yeniden kodlanır: EXIF (GPS konumu, cihaz bilgisi) silinir, yönü düzeltilir,
 // en çok 2000 piksele küçültülür. Görünürlük düğümün görünürlüğüdür (gölge ve çöptekiler dahil değil).
 import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { and, asc, count, eq, inArray } from 'drizzle-orm';
 import sharp from 'sharp';
 import { DUGUM_BASINA_FOTO, FOTOGRAFLI_TURLER } from '../fotograf';
 import { db } from './db';
+import { yuklemeKlasoru } from './depolama';
 import { dugumler, fotograflar } from './db/schema';
 import type { FotoBilgisi } from './dogrulama';
-import { etkin, gorunurluk } from './dugumler';
+import { etkin, gorunurluk, muhursuz } from './dugumler';
 
-let klasor = resolve('yuklemeler', 'fotograflar');
+let klasor = yuklemeKlasoru('fotograflar');
 
 /** Testler geçici bir klasör kullanır */
 export function fotoKlasoruAyarla(yeni: string) {
@@ -118,7 +120,9 @@ export async function fotograflariListele(dugumId: string, izleyenId: string | n
 		})
 		.from(fotograflar)
 		.innerJoin(dugumler, eq(fotograflar.dugumId, dugumler.id))
-		.where(and(eq(fotograflar.dugumId, dugumId), gorunurluk(dugumler, izleyenId)))
+		.where(
+			and(eq(fotograflar.dugumId, dugumId), gorunurluk(dugumler, izleyenId), muhursuz(dugumler))
+		)
 		.orderBy(asc(fotograflar.olusturma));
 }
 
@@ -128,7 +132,7 @@ export async function fotoDosyasi(id: string, izleyenId: string | null, kucuk: b
 		.select({ gizlilik: dugumler.gizlilik })
 		.from(fotograflar)
 		.innerJoin(dugumler, eq(fotograflar.dugumId, dugumler.id))
-		.where(and(eq(fotograflar.id, id), gorunurluk(dugumler, izleyenId)));
+		.where(and(eq(fotograflar.id, id), gorunurluk(dugumler, izleyenId), muhursuz(dugumler)));
 	if (!satir) return null;
 	return { yol: dosyaYolu(id, kucuk), herkeseAcik: satir.gizlilik === 'herkes' };
 }

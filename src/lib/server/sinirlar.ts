@@ -67,6 +67,10 @@ export const hesapSiniri = new KaliciHizSiniri('hesap', 10, 15 * DAKIKA);
 export const iceAktarmaSiniri = new KaliciHizSiniri('ice_aktarma', 5, 60 * DAKIKA);
 /** Fotoğraf yükleme: kullanıcı başına saatte 40 */
 export const fotoSiniri = new KaliciHizSiniri('foto', 40, 60 * DAKIKA);
+/** Ses yükleme: kullanıcı başına saatte 30 */
+export const sesSiniri = new KaliciHizSiniri('ses', 30, 60 * DAKIKA);
+/** Hesapsız soru yanıtı: IP başına saatte 20 */
+export const yanitSiniri = new KaliciHizSiniri('yanit', 20, 60 * DAKIKA);
 /** IP başına: saatte 5 şifre sıfırlama isteği */
 export const sifirlamaSiniri = new KaliciHizSiniri('sifirlama', 5, 60 * DAKIKA);
 /** E-posta adresi başına: saatte 3 sıfırlama iletisi */
