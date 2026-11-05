@@ -527,3 +527,52 @@ test('anıya ses eklenir; zaman kapsülü içeriği gizler', async ({ page }) =>
 	await expect(page.getByRole('status').filter({ hasText: 'Zaman kapsülü açıldı.' })).toBeVisible();
 	await expect(page.locator('.ses-listesi audio')).toHaveCount(1);
 });
+
+test('çeviri masası: iki çeviri yan yana, fark vurgusu, oy ve alıntı sınırı uyarısı', async ({
+	page
+}) => {
+	await page.goto('/ceviri');
+	await page.locator('#m-baslik').fill('Suç ve Ceza');
+	await page.locator('#m-ozgunDil').fill('Rusça');
+	await page.getByRole('button', { name: 'Masayı aç' }).click();
+	await expect(page).toHaveURL(/\/ceviri\/[0-9a-f-]{36}$/);
+
+	await page.getByText('Paragraf ekle', { exact: true }).click();
+	await page.locator('#yer').fill('Birinci bölüm, açılış');
+	await page.getByRole('button', { name: 'Paragrafı ekle' }).click();
+	await expect(
+		page.getByRole('heading', { level: 2, name: 'Birinci bölüm, açılış' })
+	).toBeVisible();
+
+	const ceviriler = [
+		[
+			'Temmuz başlarında, çok sıcak bir akşamüstü genç bir adam odasından çıktı.',
+			'Birinci',
+			'1940'
+		],
+		['Temmuzun başında, sıcak bir akşam vakti genç adamın biri odadan çıktı.', 'İkinci', '1955']
+	];
+	for (const [metin, cevirmen, yil] of ceviriler) {
+		await page.locator('details.ekle').evaluate((d) => ((d as HTMLDetailsElement).open = true));
+		await page.locator('textarea[name="metin"]').fill(metin);
+		await page.locator('input[name="cevirmen"]').fill(cevirmen);
+		await page.locator('input[name="yil"]').fill(yil);
+		await page.locator('input[name="dayanak"][value="kamu"]').check();
+		await page.getByRole('button', { name: 'Ekle', exact: true }).click();
+		await expect(
+			page.getByRole('status').filter({ hasText: 'Çeviri eklendi.' }).last()
+		).toBeVisible();
+	}
+	await expect(page.locator('.ceviri')).toHaveCount(2);
+	await page.getByLabel('Farkları vurgula').check();
+	await expect(page.locator('.ceviri mark').first()).toBeVisible();
+	// Ortak sözcük vurgulanmaz
+	await expect(page.locator('.ceviri mark', { hasText: 'sıcak' })).toHaveCount(0);
+
+	const oy = page.getByRole('button', { name: /Birinci çevirisini beğen/ });
+	await oy.click();
+	await expect(oy).toHaveAttribute('aria-pressed', 'true');
+
+	// Kısa alıntı sınırı: 600 karakterden uzun çeviri girilemez
+	await expect(page.locator('textarea[name="metin"]')).toHaveAttribute('maxlength', '600');
+});

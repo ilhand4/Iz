@@ -162,6 +162,13 @@
       "when": 1793883265062,
       "tag": "0022_asama6_son_etkinlik",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793899961587,
+      "tag": "0023_asama7_ceviri_masasi",
+      "breakpoints": true
     }
   ]
 }

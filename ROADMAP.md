@@ -142,11 +142,12 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 - [x] Dijital vasiyet: güvenilen İz kullanıcısı varis; 3/6/12/24 ay hiç gelinmezse tüm arşiv ona salt okunur açılır ve indirilebilir (`/emanet`)
 - [x] Testler: 244 birim/entegrasyon testi, 119 uçtan uca test ve axe taraması tamamı geçiyor
 
-## ⏳ Aşama 7 — Çeviri Masası
+## ✅ Aşama 7 — Çeviri Masası
 
-- [ ] Aynı paragrafın farklı Türkçe çevirileri yan yana
-- [ ] Oylama, yorum; çeviriyi eser düğümüne bağlama
-- [ ] **Telif riski:** telifli çevirilerden sistemli paragraf karşılaştırması FSEK'teki alıntı serbestisinin sınırlarını aşabilir; kısa alıntı, telif süresi dolmuş eserler ya da yayınevi izniyle sınırlandırılmalı
+- [x] Aynı paragrafın farklı Türkçe çevirileri yan yana (`/ceviri`, `/ceviri/<id>`): paragraf yeri ve isteğe bağlı özgün metin; "Farkları vurgula" ile her çevirinin ötekilerde karşılığı olmayan sözcükleri (sözcük düzeyinde LCS, Türkçe sadeleştirmeyle)
+- [x] Oylama (paragraf başına tek oy, ikinci tıklama geri alır), yorum; masa eser düğümüne bağlanır ve düğüm sayfasında görünür
+- [x] **Telif (kullanıcı kararı: kısa alıntı + beyan):** çeviri en çok 600 karakter; çevirmen zorunlu, yayınevi/yıl isteğe bağlı; dayanak zorunlu (telif süresi dolmuş / izinli / inceleme amaçlı kısa alıntı); alıntı dayanaklı çeviri içeren paragraf masa başına en çok 5; masalar varsayılan özel; sayfada telif notu
+- [x] Testler: 253 birim/entegrasyon testi, 124 uçtan uca test ve axe taraması tamamı geçiyor
 
 ## ⏳ Aşama 8 — PWA, İngilizce, yayına alma
 

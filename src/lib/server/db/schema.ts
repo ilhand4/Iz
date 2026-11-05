@@ -702,3 +702,110 @@ export const vasiyetler = pgTable(
 		check('vasiyetler_kendisi_degil', sql`${t.sahipId} <> ${t.varisId}`)
 	]
 );
+
+// ——— Çeviri Masası: aynı paragrafın farklı Türkçe çevirileri, oy ve yorum ———
+
+export const ceviriMasalari = pgTable(
+	'ceviri_masalari',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		sahipId: uuid('sahip_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		/** Masanın bağlı olduğu eser düğümü (sahibinin haritasında) */
+		eserId: uuid('eser_id').references(() => dugumler.id, { onDelete: 'set null' }),
+		baslik: text('baslik').notNull(),
+		/** Özgün dil, ör. "Rusça" */
+		ozgunDil: text('ozgun_dil'),
+		aciklama: text('aciklama'),
+		gizlilik: gizlilik('gizlilik').notNull().default('ozel'),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		index('ceviri_masalari_sahip_idx').on(t.sahipId, t.olusturma),
+		index('ceviri_masalari_eser_idx').on(t.eserId),
+		check('ceviri_masalari_gizlilik_kontrol', sql`${t.gizlilik}::text <> 'golge'`)
+	]
+);
+
+export const ceviriParagraflari = pgTable(
+	'ceviri_paragraflari',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		masaId: uuid('masa_id')
+			.notNull()
+			.references(() => ceviriMasalari.id, { onDelete: 'cascade' }),
+		sira: integer('sira').notNull(),
+		/** Eserdeki yeri: "1. bölüm, 3. paragraf" */
+		yer: text('yer'),
+		/** Özgün metin (isteğe bağlı; kısa) */
+		ozgun: text('ozgun'),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [index('ceviri_paragraflari_masa_idx').on(t.masaId, t.sira)]
+);
+
+export const ceviriler = pgTable(
+	'ceviriler',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		paragrafId: uuid('paragraf_id')
+			.notNull()
+			.references(() => ceviriParagraflari.id, { onDelete: 'cascade' }),
+		ekleyenId: uuid('ekleyen_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		metin: text('metin').notNull(),
+		cevirmen: text('cevirmen').notNull(),
+		yayinevi: text('yayinevi'),
+		yil: integer('yil'),
+		/** Telif dayanağı: kamu (süresi dolmuş) / izinli / alinti (inceleme amaçlı kısa alıntı) */
+		dayanak: text('dayanak').notNull(),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		index('ceviriler_paragraf_idx').on(t.paragrafId),
+		check('ceviriler_metin_kontrol', sql`length(${t.metin}) between 1 and 600`),
+		check('ceviriler_dayanak_kontrol', sql`${t.dayanak} in ('kamu', 'izinli', 'alinti')`)
+	]
+);
+
+/** Paragraf başına bir oy: "bu paragrafta en çok bu çeviriyi beğendim" */
+export const ceviriOylari = pgTable(
+	'ceviri_oylari',
+	{
+		paragrafId: uuid('paragraf_id')
+			.notNull()
+			.references(() => ceviriParagraflari.id, { onDelete: 'cascade' }),
+		kullaniciId: uuid('kullanici_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		ceviriId: uuid('ceviri_id')
+			.notNull()
+			.references(() => ceviriler.id, { onDelete: 'cascade' }),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		primaryKey({ columns: [t.paragrafId, t.kullaniciId] }),
+		index('ceviri_oylari_ceviri_idx').on(t.ceviriId)
+	]
+);
+
+export const ceviriYorumlari = pgTable(
+	'ceviri_yorumlari',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		ceviriId: uuid('ceviri_id')
+			.notNull()
+			.references(() => ceviriler.id, { onDelete: 'cascade' }),
+		yazarId: uuid('yazar_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		metin: text('metin').notNull(),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		index('ceviri_yorumlari_ceviri_idx').on(t.ceviriId, t.olusturma),
+		check('ceviri_yorumlari_metin_kontrol', sql`length(${t.metin}) between 1 and 1000`)
+	]
+);

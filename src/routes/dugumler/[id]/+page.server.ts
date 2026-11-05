@@ -13,6 +13,7 @@ import {
 import { kararGetir, kararKaydet, sonucKaydet } from '#lib/server/kararDefteriDb.ts';
 import { fotoEkle, fotograflariListele, fotoSil } from '#lib/server/fotograflar.ts';
 import { yakindakiler } from '#lib/server/konumlar.ts';
+import { eserinMasalari } from '#lib/server/ceviriMasasi.ts';
 import {
 	sesEkle,
 	sesleriListele,
@@ -81,7 +82,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		karar,
 		fotolar,
 		yakinlar,
-		sesListesi
+		sesListesi,
+		masalar
 	] = await Promise.all([
 		dugumBaglari(params.id, izleyenId),
 		geldigiYol(params.id, izleyenId),
@@ -113,7 +115,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			: Promise.resolve([]),
 		SESLI_TURLER.includes(sonuc.dugum.tur)
 			? sesleriListele(params.id, izleyenId)
-			: Promise.resolve([])
+			: Promise.resolve([]),
+		sonuc.dugum.tur === 'eser' ? eserinMasalari(params.id, izleyenId) : Promise.resolve([])
 	]);
 
 	// Sahip kimliği ve iç alanlar sayfaya gönderilmez
@@ -148,6 +151,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		fotolar,
 		yakinlar,
 		sesler: sesListesi,
+		ceviriMasalari: masalar,
 		sesEklenebilir: sahibiMi && SESLI_TURLER.includes(sonuc.dugum.tur),
 		yaziyaDokmeVar: sahibiMi && SESLI_TURLER.includes(sonuc.dugum.tur) && araclariBul() !== null,
 		fotoEklenebilir: sahibiMi && FOTOGRAFLI_TURLER.includes(sonuc.dugum.tur),

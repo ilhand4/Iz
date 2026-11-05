@@ -375,6 +375,20 @@
 		</section>
 	{/if}
 
+	{#if d.tur === 'eser' && (data.ceviriMasalari.length || data.sahibiMi)}
+		<section class="ceviri-masalari satir" aria-label="Çeviri masaları">
+			<Simge ad="kopyala" boyut={16} />
+			{#each data.ceviriMasalari as m (m.id)}
+				<a href="/ceviri/{m.id}">Çeviri masası: {m.baslik}</a>
+			{/each}
+			{#if data.sahibiMi}
+				<a class="kucuk soluk" href="/ceviri?eser={d.id}"
+					>{data.ceviriMasalari.length ? 'Yeni masa aç' : 'Çevirilerini karşılaştır: masa aç'}</a
+				>
+			{/if}
+		</section>
+	{/if}
+
 	{#if data.oneriSonucu}
 		<p class="bildirim bildirim-basari" role="status">
 			Anlatılandan {data.oneriSonucu[0]} yeni düğüm eklendi, {data.oneriSonucu[1]} bağ kuruldu.
@@ -1413,6 +1427,12 @@
 	.sonuc-karti .not {
 		margin-top: var(--a-2);
 		white-space: pre-line;
+	}
+	.ceviri-masalari {
+		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--a-2) var(--a-3);
+		color: var(--metin-soluk);
 	}
 	.kapsul {
 		display: flex;

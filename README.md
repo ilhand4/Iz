@@ -112,6 +112,7 @@ pg_restore --clean --if-exists --no-owner -h localhost -U iz -d iz_dev yedekler/
 - **Harita:** konumlu düğümler OpenStreetMap üzerinde (MapLibre); konumu haritaya tıklayarak seçme; PostGIS ile "Yakınındakiler".
 - **Bir zamanlar burası:** yer ve anı düğümlerine eski ve yeni fotoğraf; kaydırmalı önce/sonra karşılaştırması; hak beyanı; konum ve cihaz bilgileri (EXIF) yüklenirken silinir.
 - **Aile hafızası:** sesli anı kaydı ve bu bilgisayarda Türkçe yazıya dökme (whisper.cpp); anlatılandan kişi/yer/yıl önerileri; yakınlara hesapsız yanıtlanan sorular (yazılı ya da sesli, WhatsApp ile gönderilir); aile arşivi ve yazdırılabilir A5 kitap; zaman kapsülü; dijital vasiyet.
+- **Çeviri masası:** aynı paragrafın farklı Türkçe çevirileri yan yana, farkları vurgulama, oy ve yorum; kısa alıntı ve kaynak kuralıyla.
 - **Karar defteri:** karar düğümüne gerekçe, beklenti ve % güven; zamanı gelince sonucu sorar; kalibrasyon grafiği ve Brier puanı (`/kararlar`, yalnızca sana açık).
 - **Bildirimler ve "Geri al":** bağ kaldırma, durak çıkarma, silme ve yeniden yerleştirme geri alınabilir; silinenler 30 gün çöp kutusunda bekler.
 

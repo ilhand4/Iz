@@ -8,7 +8,7 @@
 - Tempo: her aşamada maddelerin hepsini bitir → `npm run check`, `npm test`, `npm run build` → tarayıcıda dene (açık/koyu tema, masaüstü/mobil ekran görüntüsü) → ROADMAP.md'yi güncelle → Türkçe commit → `git push origin main` (kullanıcı 5 Kasım 2026'da push'u bana bıraktı; GitHub Desktop'un kimlik bilgileri kullanılıyor) → GitHub Actions sonucunu kontrol et → kısa Türkçe özet.
 - Kullanıcı Aşama 2'den itibaren işi **"profesyonel bir site tasarımcısı gözüyle"** yapmamı istedi: yalnızca özelliği değil görsel tutarlılığı, boş durumları, mobil kullanımı ve erişilebilirliği de bitmiş say.
 - Yalnızca gerçekten kullanıcının vermesi gereken kararlarda soru sor; diğerlerinde makul varsayılanı seç ve buraya not et.
-- **Sıradaki iş:** Aşama 7 (Çeviri Masası). Aşama 1–6 bitti. Açık kalan kullanıcı kararı: **e-posta servisi seçimi** (seçilene kadar iletiler geliştirmede terminale yazılır, üretimde gönderilmez). Üretim `.env`'ine `BODY_SIZE_LIMIT=30M` eklenmeli (kullanıcı yazar; sesli yanıtlar 25 MB'a kadar). Aşama 3'e kaynaklık eden dış değerlendirmedeki örnek kodlar olduğu gibi kullanılmaz; mevcut şemaya (uuid, `herkes`) ek sütun/tablo olarak uyarlanır.
+- **Sıradaki iş:** Aşama 8 (PWA, İngilizce arayüz, yayına alma). Aşama 1–7 bitti. Açık kalan kullanıcı kararı: **e-posta servisi seçimi** (seçilene kadar iletiler geliştirmede terminale yazılır, üretimde gönderilmez). Üretim `.env`'ine `BODY_SIZE_LIMIT=30M` eklenmeli (kullanıcı yazar; sesli yanıtlar 25 MB'a kadar). Aşama 3'e kaynaklık eden dış değerlendirmedeki örnek kodlar olduğu gibi kullanılmaz; mevcut şemaya (uuid, `herkes`) ek sütun/tablo olarak uyarlanır.
 - Veritabanı şifresi ve TMDB anahtarı `.env` dosyasında; kullanıcı kendisi yazdı. Bunları okuma/yazdırma.
 
 ## Ürün
@@ -155,6 +155,13 @@
 - **Arşiv ve kitap** (`arsiv.ts`, `ArsivKitabi.svelte`): grup arşivi yalnızca üyelerin **grup** gizlilikli (herkese açıklar değil) anı/yer/kişileri; kişisel kitap sahibin hepsi. PDF kitaplığı yok: `@media print` + `@page A5`, "Yazdır ya da PDF olarak kaydet".
 - **Zaman kapsülü** (`dugumler.muhur_tarihi`): `muhursuz()` koşulu fotoğraf/ses/arşiv/öneri/Wikidata sorgularında; `dugumGetir` açıklamayı boşaltıp `muhurlu` döner; `dugumGuncelle` mühürlüyü güncellemez, düzenleme sayfası 423. Mühürlü düğüme ses eklenebilir (kapsüle girer). "Beklemeden aç" = `kapsuluAc`. Dışa aktarmada açıklama yer alır (sahibinin verisi).
 - **Dijital vasiyet** (`vasiyetler`, `kullanicilar.son_etkinlik`): sayaç oturum kullanıldıkça (saatte en çok bir) sıfırlanır. `varisSql` `gorunurluk()` içinde: süre dolunca varis her şeyi görür, yazma sorguları sahip_id ile süzüldüğü için salt okunur. `/emanet` (bekleyenler de görünür), `/emanet/[kullaniciAdi]` kitap + JSON indirme.
+
+### Aşama 7 kararları (Çeviri Masası)
+
+- **Telif (kullanıcı kararı, Kasım 2026): kısa alıntı + beyan.** `ceviri.ts`: `CEVIRI_EN_UZUN = 600`, `ALINTI_PARAGRAF_SINIRI = 5` (yalnızca `alinti` dayanaklı çeviri içeren paragraflar sayılır; aynı paragrafa ikinci alıntı serbest), paragraf başına en çok 8 çeviri. Dayanak `kamu / izinli / alinti` (CHECK). Çevirmen zorunlu. Sınır `ceviriEkle` içinde masa satırı `FOR UPDATE` kilitlenerek denetlenir.
+- **Tablolar:** `ceviri_masalari` (gizlilik `golge` olamaz, `eser_id` yalnızca sahibin eseri), `ceviri_paragraflari` (sira), `ceviriler`, `ceviri_oylari` (PK paragraf+kullanıcı: paragraf başına tek oy), `ceviri_yorumlari`.
+- **Erişim** (`ceviriMasasi.ts`): görme masa gizliliğiyle; paragraf/ayar yalnızca sahibi; çeviri ekleme sahibi + (grup/herkes masasında) grup arkadaşları; oy ve yorum masayı gören her girişli kullanıcı; silme yazarı ya da masa sahibi. Eser bağlantısı izleyen eseri göremiyorsa gönderilmez. Saatte 60 çeviri/yorum.
+- **Fark vurgusu** istemcide (`sozcukFarki`): bir sözcük, paragraftaki **öteki çevirilerin hepsinde** karşılıksızsa `<mark>`.
 
 ## Komutlar
 

@@ -49,6 +49,7 @@
 			href: '/ice-aktar'
 		},
 		{ tur: 'eylem', id: 'e-yillik', etiket: 'İz Yıllığı', simge: 'takvim', href: '/yillik' },
+		{ tur: 'eylem', id: 'e-ceviri', etiket: 'Çeviri masası', simge: 'kopyala', href: '/ceviri' },
 		{ tur: 'eylem', id: 'e-kitap', etiket: 'Kitabım', simge: 'takvim', href: '/kitap' },
 		{ tur: 'eylem', id: 'e-sorular', etiket: 'Yakınlara sorular', simge: 'kisi', href: '/sorular' },
 		{

@@ -11,7 +11,9 @@ import {
 	izDogrula,
 	kayitDogrula,
 	konumlarDogrula,
+	ceviriDogrula,
 	kararDefteriDogrula,
+	masaDogrula,
 	kararSonucuDogrula,
 	uuidMu
 } from './dogrulama';
@@ -386,5 +388,31 @@ describe('zaman kapsülü tarihi', () => {
 		// Alan formda yoksa dokunulmaz
 		const yok = dugumDogrula(form(temel));
 		expect(yok.tamam && 'muhurTarihi' in yok.veri).toBe(false);
+	});
+});
+
+describe('çeviri masası doğrulaması', () => {
+	it('kısa alıntı sınırını, kaynağı ve dayanağı zorunlu tutar', () => {
+		const iyi = ceviriDogrula(
+			form({
+				metin: 'Temmuz başlarında…',
+				cevirmen: 'Mazlum Beyhan',
+				yil: '1983',
+				dayanak: 'alinti'
+			})
+		);
+		expect(iyi).toMatchObject({ tamam: true, veri: { yil: 1983, yayinevi: null } });
+		const kotu = ceviriDogrula(form({ metin: 'x'.repeat(601), dayanak: 'baska' }));
+		expect(kotu.tamam).toBe(false);
+		if (!kotu.tamam)
+			expect(Object.keys(kotu.hatalar).sort()).toEqual(['cevirmen', 'dayanak', 'metin']);
+	});
+
+	it('masa gizliliği gölge olamaz; varsayılan özel', () => {
+		expect(masaDogrula(form({ baslik: 'Suç ve Ceza' }))).toMatchObject({
+			tamam: true,
+			veri: { gizlilik: 'ozel', eserId: null }
+		});
+		expect(masaDogrula(form({ baslik: 'X', gizlilik: 'golge' })).tamam).toBe(false);
 	});
 });

@@ -71,6 +71,8 @@ export const fotoSiniri = new KaliciHizSiniri('foto', 40, 60 * DAKIKA);
 export const sesSiniri = new KaliciHizSiniri('ses', 30, 60 * DAKIKA);
 /** Hesapsız soru yanıtı: IP başına saatte 20 */
 export const yanitSiniri = new KaliciHizSiniri('yanit', 20, 60 * DAKIKA);
+/** Çeviri masası yorumu ve çevirisi: kullanıcı başına saatte 60 */
+export const ceviriSiniri = new KaliciHizSiniri('ceviri', 60, 60 * DAKIKA);
 /** IP başına: saatte 5 şifre sıfırlama isteği */
 export const sifirlamaSiniri = new KaliciHizSiniri('sifirlama', 5, 60 * DAKIKA);
 /** E-posta adresi başına: saatte 3 sıfırlama iletisi */

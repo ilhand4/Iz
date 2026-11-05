@@ -1,4 +1,5 @@
 // Form doğrulama: saf fonksiyonlar, Türkçe hata mesajları (birim testleri: dogrulama.test.ts)
+import { CEVIRI_EN_UZUN, dayanakMi, OZGUN_EN_UZUN, type Dayanak } from '../ceviri';
 import {
 	fotoDonemiMi,
 	fotoHakkiMi,
@@ -818,6 +819,88 @@ export function fotoBilgisiDogrula(fd: FormData): Sonuc<FotoBilgisi> {
 			aciklama: v.aciklama || null,
 			kaynak: v.kaynak || null,
 			hak: v.hak as FotoHakki
+		}
+	};
+}
+
+// ——— Çeviri Masası ———
+
+export type MasaVerisi = {
+	baslik: string;
+	ozgunDil: string | null;
+	aciklama: string | null;
+	gizlilik: 'ozel' | 'grup' | 'herkes';
+	eserId: string | null;
+};
+
+export function masaDogrula(fd: FormData): Sonuc<MasaVerisi> {
+	const v = degerleriAl(fd, ['baslik', 'ozgunDil', 'aciklama', 'gizlilik', 'eserId']);
+	const hatalar: Hatalar = {};
+	if (!v.baslik) hatalar.baslik = 'Masaya bir ad ver (ör. eserin adı).';
+	else if (v.baslik.length > 160) hatalar.baslik = 'En fazla 160 karakter.';
+	if (v.ozgunDil.length > 40) hatalar.ozgunDil = 'En fazla 40 karakter.';
+	if (v.aciklama.length > 1000) hatalar.aciklama = 'En fazla 1000 karakter.';
+	const gizlilik = v.gizlilik || 'ozel';
+	if (gizlilik !== 'ozel' && gizlilik !== 'grup' && gizlilik !== 'herkes')
+		hatalar.gizlilik = 'Geçerli bir gizlilik seç.';
+	if (v.eserId && !uuidMu(v.eserId)) hatalar.eserId = 'Geçerli bir eser seç.';
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: v };
+	return {
+		tamam: true,
+		veri: {
+			baslik: v.baslik,
+			ozgunDil: v.ozgunDil || null,
+			aciklama: v.aciklama || null,
+			gizlilik: gizlilik as MasaVerisi['gizlilik'],
+			eserId: v.eserId || null
+		}
+	};
+}
+
+export function paragrafDogrula(fd: FormData): Sonuc<{ yer: string | null; ozgun: string | null }> {
+	const v = degerleriAl(fd, ['yer', 'ozgun']);
+	const hatalar: Hatalar = {};
+	if (v.yer.length > 120) hatalar.yer = 'En fazla 120 karakter.';
+	if (v.ozgun.length > OZGUN_EN_UZUN)
+		hatalar.ozgun = `Özgün metin en fazla ${OZGUN_EN_UZUN} karakter olabilir.`;
+	if (!v.yer && !v.ozgun) hatalar.yer = 'Paragrafın yerini ya da özgün metnini yaz.';
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: v };
+	return { tamam: true, veri: { yer: v.yer || null, ozgun: v.ozgun || null } };
+}
+
+export type CeviriVerisi = {
+	metin: string;
+	cevirmen: string;
+	yayinevi: string | null;
+	yil: number | null;
+	dayanak: Dayanak;
+};
+
+export function ceviriDogrula(fd: FormData): Sonuc<CeviriVerisi> {
+	const v = degerleriAl(fd, ['metin', 'cevirmen', 'yayinevi', 'yil', 'dayanak']);
+	const hatalar: Hatalar = {};
+	if (!v.metin) hatalar.metin = 'Çeviri metnini yaz.';
+	else if (v.metin.length > CEVIRI_EN_UZUN)
+		hatalar.metin = `Kısa alıntı sınırı: en fazla ${CEVIRI_EN_UZUN} karakter (şu an ${v.metin.length}).`;
+	if (!v.cevirmen) hatalar.cevirmen = 'Çevirmenin adı zorunlu (kaynak gösterilmeli).';
+	else if (v.cevirmen.length > 120) hatalar.cevirmen = 'En fazla 120 karakter.';
+	if (v.yayinevi.length > 120) hatalar.yayinevi = 'En fazla 120 karakter.';
+	let yil: number | null = null;
+	if (v.yil) {
+		const y = Number(v.yil);
+		if (!Number.isInteger(y) || y < 1500 || y > 2100) hatalar.yil = 'Geçerli bir yıl yaz.';
+		else yil = y;
+	}
+	if (!dayanakMi(v.dayanak)) hatalar.dayanak = 'Bu metni hangi dayanakla eklediğini seç.';
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: v };
+	return {
+		tamam: true,
+		veri: {
+			metin: v.metin,
+			cevirmen: v.cevirmen,
+			yayinevi: v.yayinevi || null,
+			yil,
+			dayanak: v.dayanak as Dayanak
 		}
 	};
 }
