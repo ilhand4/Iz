@@ -5,11 +5,17 @@ import {
 	alintiDogrula,
 	bagBilgisiDogrula,
 	bagDogrula,
+	fotoBilgisiDogrula,
 	kararDefteriDogrula,
 	kararSonucuDogrula,
 	uuidMu
 } from '#lib/server/dogrulama.ts';
 import { kararGetir, kararKaydet, sonucKaydet } from '#lib/server/kararDefteriDb.ts';
+import { fotoEkle, fotograflariListele, fotoSil } from '#lib/server/fotograflar.ts';
+import { yakindakiler } from '#lib/server/konumlar.ts';
+import { beklemeMesaji } from '#lib/server/hizSiniri.ts';
+import { fotoSiniri } from '#lib/server/sinirlar.ts';
+import { EN_BUYUK_FOTO_MB, FOTOGRAFLI_TURLER } from '#lib/fotograf.ts';
 import { alintiEkle, alintiKaynagi, alintilariListele, alintiSil } from '#lib/server/dusunce.ts';
 import {
 	actigiKapilar,
@@ -62,7 +68,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		kendiSeceneklerim,
 		alintiListesi,
 		yapimciVar,
-		karar
+		karar,
+		fotolar,
+		yakinlar
 	] = await Promise.all([
 		dugumBaglari(params.id, izleyenId),
 		geldigiYol(params.id, izleyenId),
@@ -84,7 +92,14 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		// Karar defteri kişiseldir: yalnızca sahibine
 		sahibiMi && sonuc.dugum.tur === 'karar'
 			? kararGetir(sonuc.dugum.sahipId, params.id)
-			: Promise.resolve(null)
+			: Promise.resolve(null),
+		FOTOGRAFLI_TURLER.includes(sonuc.dugum.tur)
+			? fotograflariListele(params.id, izleyenId)
+			: Promise.resolve([]),
+		// PostGIS: sahibin 2 km içindeki diğer düğümleri
+		sahibiMi && sonuc.dugum.enlem !== null
+			? yakindakiler(sonuc.dugum.sahipId, params.id)
+			: Promise.resolve([])
 	]);
 
 	// Sahip kimliği ve iç alanlar sayfaya gönderilmez
@@ -116,6 +131,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 					sonucTarihi: karar.sonucTarihi
 				}
 			: null,
+		fotolar,
+		yakinlar,
+		fotoEklenebilir: sahibiMi && FOTOGRAFLI_TURLER.includes(sonuc.dugum.tur),
 		bugun: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbul' }).format(new Date()),
 		yapimciOnerisi:
 			yapimciVar === null && sonuc.dugum.altBaslik ? sonuc.dugum.altBaslik.split(' · ')[0] : null,
@@ -130,6 +148,52 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 };
 
 export const actions: Actions = {
+	fotoEkle: async ({ params, request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		if (!uuidMu(params.id)) error(404, BULUNAMADI);
+		const fd = await request.formData();
+		const bilgi = fotoBilgisiDogrula(fd);
+		const dosya = fd.get('dosya');
+		const hatalar: Record<string, string> = bilgi.tamam ? {} : { ...bilgi.hatalar };
+		if (!(dosya instanceof File) || dosya.size === 0) hatalar.dosya = 'Bir fotoğraf seç.';
+		else if (dosya.size > EN_BUYUK_FOTO_MB * 1024 * 1024)
+			hatalar.dosya = `Fotoğraf ${EN_BUYUK_FOTO_MB} MB’tan büyük olamaz.`;
+		const degerler = bilgi.tamam ? {} : bilgi.degerler;
+		if (!bilgi.tamam || Object.keys(hatalar).length)
+			return fail(400, { foto: { hatalar, degerler } });
+		const sinir = await fotoSiniri.dene(kullanici.id);
+		if (!sinir.izin)
+			return fail(429, {
+				foto: { hatalar: { dosya: beklemeMesaji(sinir.beklemeSaniye) }, degerler }
+			});
+		const sonuc = await fotoEkle(
+			kullanici.id,
+			params.id,
+			bilgi.veri,
+			new Uint8Array(await (dosya as File).arrayBuffer())
+		);
+		if (sonuc === 'yetkisiz') error(404, BULUNAMADI);
+		if (sonuc === 'dolu')
+			return fail(400, {
+				foto: { hatalar: { dosya: 'Bu düğüme daha fazla fotoğraf eklenemez.' }, degerler }
+			});
+		if (sonuc === 'gecersiz')
+			return fail(400, {
+				foto: {
+					hatalar: { dosya: 'Bu dosya okunamadı. JPEG, PNG, WebP ya da AVIF bir fotoğraf seç.' },
+					degerler
+				}
+			});
+		return { bildirim: { mesaj: 'Fotoğraf eklendi.' } };
+	},
+
+	fotoSil: async ({ request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const id = alan(await request.formData(), 'fotoId');
+		if (!uuidMu(id) || !(await fotoSil(id, kullanici.id))) error(404, 'Fotoğraf bulunamadı.');
+		return { bildirim: { mesaj: 'Fotoğraf silindi.' } };
+	},
+
 	kararKaydet: async ({ params, request, locals, url }) => {
 		const kullanici = girisGerekli(locals, url);
 		if (!uuidMu(params.id)) error(404, BULUNAMADI);

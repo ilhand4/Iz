@@ -12,3 +12,8 @@ CREATE DATABASE iz_dev
 	LOCALE_PROVIDER icu
 	ICU_LOCALE 'tr-TR'
 	TEMPLATE template0;
+
+-- 3) PostGIS (Aşama 5): önce Stack Builder → PostgreSQL 18 → Spatial Extensions → PostGIS Bundle kurulur.
+--    Sonra pgAdmin'de iz_dev veritabanını seçip, yine "postgres" kullanıcısıyla:
+--    (Eklenti güvenilir değildir; iz rolü kendisi açamaz. Açıldıktan sonra migration'lar çalışır.)
+CREATE EXTENSION IF NOT EXISTS postgis;

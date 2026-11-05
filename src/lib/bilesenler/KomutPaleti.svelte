@@ -23,6 +23,7 @@
 		{ tur: 'eylem', id: 'e-iz', etiket: 'Yeni iz başlat', simge: 'iz', href: '/izler/yeni' },
 		{ tur: 'eylem', id: 'e-ara', etiket: 'Eser ara', simge: 'ara', href: '/ara' },
 		{ tur: 'eylem', id: 'e-ag', etiket: 'Ağ görünümü', simge: 'dugumler', href: '/dugumler/ag' },
+		{ tur: 'eylem', id: 'e-harita', etiket: 'Harita', simge: 'harita', href: '/dugumler/harita' },
 		{
 			tur: 'eylem',
 			id: 'e-zaman',

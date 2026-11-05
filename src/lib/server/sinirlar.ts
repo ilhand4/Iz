@@ -65,6 +65,8 @@ export const kayitSiniri = new KaliciHizSiniri('kayit', 10, 60 * DAKIKA);
 export const hesapSiniri = new KaliciHizSiniri('hesap', 10, 15 * DAKIKA);
 /** Kullanıcı başına: saatte 5 içe aktarma */
 export const iceAktarmaSiniri = new KaliciHizSiniri('ice_aktarma', 5, 60 * DAKIKA);
+/** Fotoğraf yükleme: kullanıcı başına saatte 40 */
+export const fotoSiniri = new KaliciHizSiniri('foto', 40, 60 * DAKIKA);
 /** IP başına: saatte 5 şifre sıfırlama isteği */
 export const sifirlamaSiniri = new KaliciHizSiniri('sifirlama', 5, 60 * DAKIKA);
 /** E-posta adresi başına: saatte 3 sıfırlama iletisi */

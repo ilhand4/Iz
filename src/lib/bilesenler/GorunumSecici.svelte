@@ -20,7 +20,7 @@
 			href: '/dugumler/zaman',
 			simge: 'zaman'
 		},
-		{ ad: 'harita', etiket: 'Harita', kisa: 'Harita', href: null, simge: 'harita' }
+		{ ad: 'harita', etiket: 'Harita', kisa: 'Harita', href: '/dugumler/harita', simge: 'harita' }
 	];
 </script>
 

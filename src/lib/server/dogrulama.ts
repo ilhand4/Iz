@@ -1,5 +1,12 @@
 // Form doğrulama: saf fonksiyonlar, Türkçe hata mesajları (birim testleri: dogrulama.test.ts)
 import {
+	fotoDonemiMi,
+	fotoHakkiMi,
+	KAYNAK_GEREKEN_HAKLAR,
+	type FotoDonemi,
+	type FotoHakki
+} from '../fotograf';
+import {
 	bagTuruMu,
 	dugumTuruMu,
 	eserDurumuMu,
@@ -746,5 +753,46 @@ export function kararSonucuDogrula(
 	return {
 		tamam: true,
 		veri: { sonuc: sonuc as 'gerceklesti' | 'kismen' | 'gerceklesmedi', not: not || null }
+	};
+}
+
+// ——— Fotoğraflar ———
+
+export type FotoBilgisi = {
+	donem: FotoDonemi;
+	yil: number | null;
+	aciklama: string | null;
+	kaynak: string | null;
+	hak: FotoHakki;
+};
+
+/** Dosyanın kendisi ayrıca (sunucuda, görsel kitaplığıyla) doğrulanır */
+export function fotoBilgisiDogrula(fd: FormData): Sonuc<FotoBilgisi> {
+	const v = degerleriAl(fd, ['donem', 'yil', 'aciklama', 'kaynak', 'hak']);
+	const hatalar: Hatalar = {};
+	if (!fotoDonemiMi(v.donem)) hatalar.donem = 'Eski mi, yeni mi?';
+	let yil: number | null = null;
+	if (v.yil) {
+		const y = Number(v.yil);
+		if (!Number.isInteger(y) || y < 1800 || y > 2200)
+			hatalar.yil = 'Yıl 1800 ile 2200 arasında olmalı.';
+		else yil = y;
+	}
+	if (v.aciklama.length > 300) hatalar.aciklama = 'Açıklama en fazla 300 karakter olabilir.';
+	if (v.kaynak.length > 200) hatalar.kaynak = 'Kaynak en fazla 200 karakter olabilir.';
+	if (!fotoHakkiMi(v.hak)) hatalar.hak = 'Bu fotoğrafı neye dayanarak paylaştığını seç.';
+	else if (KAYNAK_GEREKEN_HAKLAR.includes(v.hak) && !v.kaynak)
+		hatalar.kaynak = 'Kaynağı yaz: kimin izniyle, hangi lisansla ya da hangi arşivden.';
+	if (alan(fd, 'onay') !== 'evet') hatalar.onay = 'Yüklemeden önce hak beyanını onaylamalısın.';
+	if (Object.keys(hatalar).length) return { tamam: false, hatalar, degerler: v };
+	return {
+		tamam: true,
+		veri: {
+			donem: v.donem as FotoDonemi,
+			yil,
+			aciklama: v.aciklama || null,
+			kaynak: v.kaynak || null,
+			hak: v.hak as FotoHakki
+		}
 	};
 }

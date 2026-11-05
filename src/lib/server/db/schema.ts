@@ -2,6 +2,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import {
 	boolean,
 	check,
+	customType,
 	date,
 	doublePrecision,
 	index,
@@ -25,6 +26,14 @@ import {
 	GIZLILIK_DUZEYLERI,
 	TARIH_HASSASIYETLERI
 } from '../../sabitler';
+
+/**
+ * PostGIS coğrafi noktası (WGS 84). Uygulama koordinatları enlem/boylam sütunlarına yazar;
+ * bu sütun onlardan üretilir ve mesafe sorguları (GiST dizini) için kullanılır.
+ */
+const cografiNokta = customType<{ data: string; driverData: string }>({
+	dataType: () => 'geography(Point, 4326)'
+});
 
 // ——— Sabit değer listeleri (enum) ———
 
@@ -238,7 +247,12 @@ export const dugumler = pgTable(
 		/** Eserin ortak kaydı (tetikleyiciyle doldurulur; eser değilse null) */
 		kanonikEserId: uuid('kanonik_eser_id').references(() => kanonikEserler.id, {
 			onDelete: 'set null'
-		})
+		}),
+		/** PostGIS noktası; enlem/boylamdan üretilir (yazılmaz) */
+		konum: cografiNokta('konum').generatedAlwaysAs(
+			(): SQL =>
+				sql`case when ${dugumler.enlem} is not null and ${dugumler.boylam} is not null then st_setsrid(st_makepoint(${dugumler.boylam}, ${dugumler.enlem}), 4326)::geography end`
+		)
 	},
 	(t) => [
 		index('dugumler_sahip_idx').on(t.sahipId, t.olusturma),
@@ -247,6 +261,7 @@ export const dugumler = pgTable(
 		index('dugumler_gizlilik_idx').on(t.gizlilik),
 		index('dugumler_arama_trgm_idx').using('gin', sql`${t.aramaMetni} gin_trgm_ops`),
 		index('dugumler_kanonik_idx').on(t.kanonikEserId),
+		index('dugumler_konum_idx').using('gist', t.konum),
 		// Aynı kullanıcı aynı dış eseri iki kez eklemesin (çöp kutusundakiler sayılmaz)
 		uniqueIndex('dugumler_dis_kaynak_tekil')
 			.on(t.sahipId, t.disKaynak, t.disKimlik)
@@ -558,3 +573,37 @@ export type Dugum = typeof dugumler.$inferSelect;
 export type YeniDugum = typeof dugumler.$inferInsert;
 export type Bag = typeof baglar.$inferSelect;
 export type { DugumTuru, EserDurumu, EserTuru, Gizlilik, TarihHassasiyeti } from '../../sabitler';
+
+// ——— Fotoğraflar: "Bir zamanlar burası" (eski / yeni) ———
+
+export const fotograflar = pgTable(
+	'fotograflar',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		sahipId: uuid('sahip_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		dugumId: uuid('dugum_id')
+			.notNull()
+			.references(() => dugumler.id, { onDelete: 'cascade' }),
+		/** eski / yeni */
+		donem: text('donem').notNull(),
+		/** Çekildiği yıl (biliniyorsa) */
+		yil: integer('yil'),
+		aciklama: text('aciklama'),
+		/** Kim çekti, nereden: "Babamın albümü", "SALT Araştırma" */
+		kaynak: text('kaynak'),
+		/** Hak beyanı: kendi / aile / izinli / kamu */
+		hak: text('hak').notNull(),
+		genislik: integer('genislik').notNull(),
+		yukseklik: integer('yukseklik').notNull(),
+		boyut: integer('boyut').notNull(),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [
+		index('fotograflar_dugum_idx').on(t.dugumId, t.olusturma),
+		check('fotograflar_donem_kontrol', sql`${t.donem} in ('eski', 'yeni')`),
+		check('fotograflar_hak_kontrol', sql`${t.hak} in ('kendi', 'aile', 'izinli', 'kamu')`),
+		check('fotograflar_yil_kontrol', sql`${t.yil} is null or ${t.yil} between 1800 and 2200`)
+	]
+);

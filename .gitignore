@@ -31,3 +31,6 @@ vite.config.ts.timestamp-*
 /playwright-report
 /e2e/.oturum
 /yedekler
+
+# Yüklenen fotoğraflar (veritabanı yedeğine girmez; ayrıca yedeklenmeli)
+/yuklemeler

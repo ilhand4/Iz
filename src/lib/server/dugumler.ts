@@ -2,7 +2,19 @@
 // - Okuma: sahibi her şeyi görür; başkaları yalnızca "herkes" düğümlerini.
 // - Yazma: yalnızca sahibi (her sorgu sahip_id ile süzülür).
 // - Çöp kutusundaki düğümler (silinme dolu) hiçbir okuma ve yazma sorgusunda görünmez.
-import { and, asc, count, desc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	getTableColumns,
+	inArray,
+	isNull,
+	or,
+	sql,
+	type SQL
+} from 'drizzle-orm';
 import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { DugumTuru, EserDurumu, EserTuru, Gizlilik, TarihHassasiyeti } from '../sabitler';
 import { sadelestir } from '../metin';
@@ -179,10 +191,13 @@ export async function dugumSecenekleri(
 }
 
 /** Düğümü getirir; izleyen göremiyorsa null (var olduğunu da belli etmemek için) */
+/** Sayfaya gidebilecek düğüm sütunları: PostGIS noktası (ikili metin) hariç */
+const { konum: _konum, ...dugumSutunlari } = getTableColumns(dugumler);
+
 export async function dugumGetir(id: string, izleyenId: string | null) {
 	const [sonuc] = await db
 		.select({
-			dugum: dugumler,
+			dugum: dugumSutunlari,
 			sahip: {
 				kullaniciAdi: kullanicilar.kullaniciAdi,
 				ad: kullanicilar.ad,

@@ -122,12 +122,14 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 - [x] Dışa/içe aktarma biçimi sürüm 2: etki, Wikidata, bağ türü, alıntılar, dönemler, iz çatallanması ve karar defteri de taşınır; sürüm 1 dosyaları okunmaya devam eder
 - [x] Testler: 214 birim/entegrasyon testi (PGlite), 99 uçtan uca test ve axe taraması (açık/koyu, masaüstü/mobil) tamamı geçiyor
 
-## ⏳ Aşama 5 — Harita + Bir Zamanlar Burası
+## ✅ Aşama 5 — Harita + Bir Zamanlar Burası
 
-- [ ] MapLibre + OpenStreetMap harita görünümü; konumu haritadan seçme
-- [ ] PostGIS'e geçiş (konum sütunları → geography)
-- [ ] Eski/yeni fotoğraf yükleme, kaydırmalı önce/sonra karşılaştırması
-- [ ] Yüklenen eski fotoğraflar için hak beyanı
+- [x] MapLibre + OpenStreetMap harita görünümü (`/dugumler/harita`; karolar OpenFreeMap'ten, anahtarsız; açık/koyu stil temayla değişir). Aynı noktadaki düğümler tek işaretçide; işaretçiler tür rengi ve şekliyle, klavyeyle odaklanabilir düğmeler; bağlar kesikli çizgi; yanında erişilebilir yer listesi. Düğüm sayfasından "Haritada gör"
+- [x] Konumu haritadan seçme: düğüm formunda "Haritadan seç" (tıkla ya da işaretçiyi sürükle), "Şu anki konumum"; JavaScript yoksa enlem/boylam elle yazılır
+- [x] PostGIS'e geçiş: `dugumler.konum geography(Point, 4326)` enlem/boylamdan **üretilen** sütun + GiST dizini (yazan kod değişmedi, veri kaybı yok). İlk kullanım: düğüm sayfasında "Yakınındakiler" (2 km)
+- [x] Eski/yeni fotoğraf yükleme (yer ve anı düğümlerinde, düğüm başına 12), kaydırmalı önce/sonra karşılaştırması (klavyeyle ve ekran okuyucuyla kullanılabilir kaydırıcı); yüklenen görsel yeniden kodlanır: EXIF/GPS silinir, en çok 2000 px WebP
+- [x] Yüklenen fotoğraflar için hak beyanı: dayanak (kendim çektim / aile arşivi / izinli ya da açık lisanslı / kamu malı), izinli ve kamu malında kaynak zorunlu, onay kutusu; herkese açık düğümde uyarı
+- [x] Testler: 227 birim/entegrasyon testi (PGlite + PostGIS), 105 uçtan uca test ve axe taraması tamamı geçiyor
 
 ## ⏳ Aşama 6 — Aile Hafızası
 

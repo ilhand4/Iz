@@ -29,7 +29,8 @@ export default defineConfig({
 					'style-src': ['self', 'unsafe-inline'],
 					'img-src': ['self', 'data:', ...gorselKaynaklari],
 					'font-src': ['self'],
-					'connect-src': ['self'],
+					// Harita karoları, stil, yazı tipleri ve simgeler (OpenFreeMap)
+					'connect-src': ['self', 'https://tiles.openfreemap.org'],
 					'form-action': ['self'],
 					'frame-ancestors': ['none'],
 					'base-uri': ['self'],

@@ -15,6 +15,7 @@
 	import Alan from './Alan.svelte';
 	import DugumSecici, { type SecenekDugum } from './DugumSecici.svelte';
 	import GizlilikSecici from './GizlilikSecici.svelte';
+	import KonumSecici from './KonumSecici.svelte';
 	import TurSekli from './TurSekli.svelte';
 
 	type Props = {
@@ -51,6 +52,8 @@
 	let baslik = $state(d('baslik'));
 	let altBaslik = $state(d('altBaslik'));
 	let yil = $state(d('yil'));
+	let enlem = $state(d('enlem'));
+	let boylam = $state(d('boylam'));
 	let form: HTMLFormElement | undefined = $state();
 	let oneriler = $state<{ baslik: string; altBaslik: string | null; yil: number | null }[]>([]);
 	let oneriZamanlayici: ReturnType<typeof setTimeout> | undefined;
@@ -415,7 +418,7 @@
 					<input
 						id="enlem"
 						name="enlem"
-						value={d('enlem')}
+						bind:value={enlem}
 						inputmode="decimal"
 						placeholder="40.9909"
 						aria-invalid={!!hatalar.enlem}
@@ -425,14 +428,14 @@
 					<input
 						id="boylam"
 						name="boylam"
-						value={d('boylam')}
+						bind:value={boylam}
 						inputmode="decimal"
 						placeholder="29.0303"
 						aria-invalid={!!hatalar.boylam}
 					/>
 				</Alan>
 			</div>
-			<p class="kucuk soluk">Harita görünümü geldiğinde konumu haritadan seçebileceksin.</p>
+			<KonumSecici bind:enlem bind:boylam />
 		</div>
 	</details>
 
@@ -682,10 +685,6 @@
 	.konum[open] summary {
 		margin-bottom: var(--a-3);
 	}
-	.konum p {
-		margin: 0;
-	}
-
 	/* Kişi düğümü herkese açık yapılırken mahremiyet uyarısı (JavaScript gerekmez) */
 	.kisi-uyarisi {
 		display: none;

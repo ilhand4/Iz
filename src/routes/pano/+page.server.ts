@@ -1,5 +1,6 @@
 import { haritaKarakterleri } from '#lib/analiz.ts';
 import { suresiDolanlariTemizle } from '#lib/server/copKutusu.ts';
+import { sahipsizFotograflariTemizle } from '#lib/server/fotograflar.ts';
 import { dugumSecenekleri, haritaVerisi, merakListesi, panoVerisi } from '#lib/server/dugumler.ts';
 import { bugunGecmiste, gununSorusu } from '#lib/server/geriGetirenlerDb.ts';
 import { zamaniGelenKararlar } from '#lib/server/kararDefteriDb.ts';
@@ -15,6 +16,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const kullanici = girisGerekli(locals, url);
 	// Süresi dolan çöpler sahibi panoya her geldiğinde temizlenir (zamanlanmış iş gerekmez)
 	await suresiDolanlariTemizle(kullanici.id);
+	// Kalıcı silinen düğümlerin fotoğraf dosyaları (en çok saatte bir tarar)
+	void sahipsizFotograflariTemizle().catch(() => {});
 	const [pano, izler, toplamIz, harita, izdekiler, merak, soru, gecmis, kararlar] =
 		await Promise.all([
 			panoVerisi(kullanici.id),

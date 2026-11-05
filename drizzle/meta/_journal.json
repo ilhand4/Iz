@@ -127,6 +127,20 @@
       "when": 1793876758508,
       "tag": "0017_asama4_karar_defteri",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793879469122,
+      "tag": "0018_asama5_fotograflar",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793880256071,
+      "tag": "0019_asama5_postgis",
+      "breakpoints": true
     }
   ]
 }

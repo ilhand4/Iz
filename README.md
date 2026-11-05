@@ -79,7 +79,8 @@ pg_restore --clean --if-exists --no-owner -h localhost -U iz -d iz_dev yedekler/
 
 `.github/workflows/denetim.yml` her gönderimde lint, tip denetimi, testler ve derlemeyi çalıştırır; ardından PostgreSQL 18 servisiyle uçtan uca testleri koşar.
 
-> Üretimde JSON içe aktarma (en çok 5 MB) için `.env`'e `BODY_SIZE_LIMIT=6M` ekleyin (adapter-node varsayılanı 512K).
+> Üretimde JSON içe aktarma (en çok 5 MB) ve fotoğraf yükleme (en çok 15 MB) için `.env`'e `BODY_SIZE_LIMIT=16M` ekleyin (adapter-node varsayılanı 512K). Yüklenen fotoğraflar `yuklemeler/` klasöründedir; veritabanı yedeğine girmez, ayrıca yedekleyin.
+> PostGIS gerekir: Stack Builder → Spatial Extensions → PostGIS Bundle, ardından `postgres` kullanıcısıyla `CREATE EXTENSION postgis;` (bkz. `db/kurulum.sql`).
 
 > `npm start` kökeni `https://` varsayar (adapter-node); yerelde düz http ile denerken formlar CSRF korumasına takılır. Yerel deneme için `npm run preview` kullanın.
 
@@ -107,6 +108,8 @@ pg_restore --clean --if-exists --no-owner -h localhost -U iz -d iz_dev yedekler/
 - **Passkey:** şifresiz giriş; izler için otomatik Open Graph görseli.
 - **Düşünce araçları:** bağ türleri (besler / çelişir / çağrıştırır / sentezler), dönemler, etki ölçeği, alıntılar, iz çatallanması, hat haritası (metro görünümü), ağda zaman sürgüsü, klavyeyle gezinme, sürükleyerek bağ kurma, komut paleti (Ctrl+K), açıklamada `[[…]]` ile satır içi bağ.
 - **Geri getirenler:** Goodreads, Letterboxd, Spotify ve Kindle'dan içe aktarma; bağ avı soruları; günün sorusu; bugün geçmişte; yazarı kişi olarak ekleme ve Wikidata zenginleştirmesi; İz Yıllığı ve paylaşılabilir kartı.
+- **Harita:** konumlu düğümler OpenStreetMap üzerinde (MapLibre); konumu haritaya tıklayarak seçme; PostGIS ile "Yakınındakiler".
+- **Bir zamanlar burası:** yer ve anı düğümlerine eski ve yeni fotoğraf; kaydırmalı önce/sonra karşılaştırması; hak beyanı; konum ve cihaz bilgileri (EXIF) yüklenirken silinir.
 - **Karar defteri:** karar düğümüne gerekçe, beklenti ve % güven; zamanı gelince sonucu sorar; kalibrasyon grafiği ve Brier puanı (`/kararlar`, yalnızca sana açık).
 - **Bildirimler ve "Geri al":** bağ kaldırma, durak çıkarma, silme ve yeniden yerleştirme geri alınabilir; silinenler 30 gün çöp kutusunda bekler.
 

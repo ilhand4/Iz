@@ -294,8 +294,8 @@
 				<h2 id="veriler-baslik">Verilerin</h2>
 				<p class="kucuk soluk">
 					Haritan senindir. Düğüm, bağ ve izlerini; alıntılarını, dönemlerini ve karar defterini
-					istediğin zaman indirebilir, başka bir İz hesabına taşıyabilirsin. Çöp kutusundakiler
-					indirilmez.
+					istediğin zaman indirebilir, başka bir İz hesabına taşıyabilirsin. Çöp kutusundakiler ve
+					yüklediğin fotoğraf dosyaları bu dosyaya girmez.
 				</p>
 				<div class="satir">
 					<a class="dugme" href="/ayarlar/disa-aktar?bicim=json" download>

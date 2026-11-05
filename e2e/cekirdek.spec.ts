@@ -374,3 +374,69 @@ test('dışa aktarılan JSON karar defterini taşır ve geri içe aktarılır', 
 	await expect(page.getByRole('rowheader', { name: '%80–90' })).toBeVisible();
 	await expect(page.getByRole('row', { name: /%80–90\s+2\s+%100/ })).toBeVisible();
 });
+
+test('harita görünümü yerleri listeler; konum haritadan seçilebilir', async ({ page }) => {
+	await page.goto('/dugumler/yeni?tur=yer');
+	await page.locator('input[name="baslik"]').fill('Galata Kulesi');
+	await page.getByText('Konum (isteğe bağlı)').click();
+	await page.locator('#enlem').fill('41.025631');
+	await page.locator('#boylam').fill('28.974177');
+	await page.locator('form button.dugme-birincil').last().click();
+	await expect(page).toHaveURL(/\/dugumler\/[0-9a-f-]{36}\?eklendi=1/);
+	await page.getByRole('link', { name: 'Haritada gör' }).click();
+
+	await expect(page).toHaveURL(/\/dugumler\/harita\?odak=/);
+	await expect(page.getByRole('heading', { level: 1, name: 'Harita' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 2, name: 'Galata Kulesi' })).toBeVisible();
+	await expect(page.getByRole('button', { name: /Galata Kulesi/ }).first()).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+});
+
+test('yer düğümüne eski ve yeni fotoğraf eklenir, karşılaştırılır', async ({ page }) => {
+	const sharp = (await import('sharp')).default;
+	const gorsel = (renk: string) =>
+		sharp({ create: { width: 800, height: 600, channels: 3, background: renk } })
+			.jpeg()
+			.toBuffer();
+	await page.goto('/dugumler/harita');
+	await page
+		.getByRole('button', { name: /Galata Kulesi/ })
+		.last()
+		.click();
+	await page.getByRole('link', { name: /Galata Kulesi/ }).click();
+	await expect(page.getByRole('heading', { name: 'Bir zamanlar burası' })).toBeVisible();
+
+	for (const [donem, yil, renk] of [
+		['eski', '1955', '#7a5c3a'],
+		['yeni', '2026', '#3a6a9a']
+	] as const) {
+		// İlk yüklemeden sonra bölüm açık kalır: tıklamak onu kapatırdı
+		await page
+			.locator('.fotograflar details')
+			.evaluate((d) => ((d as HTMLDetailsElement).open = true));
+		await page.locator('#fotoDosya').setInputFiles({
+			name: `${yil}.jpg`,
+			mimeType: 'image/jpeg',
+			buffer: await gorsel(renk)
+		});
+		await page.locator(`input[name="donem"][value="${donem}"]`).check();
+		await page.locator('#fotoYil').fill(yil);
+		await page.locator('input[name="hak"][value="kendi"]').check();
+		await page.locator('input[name="onay"]').check();
+		await page.getByRole('button', { name: 'Yükle' }).click();
+		await expect(
+			page.getByRole('status').filter({ hasText: 'Fotoğraf eklendi.' }).last()
+		).toBeVisible();
+	}
+	const kaydirici = page.getByRole('slider', { name: 'Eski fotoğrafın ne kadarı görünsün' });
+	await expect(kaydirici).toBeVisible();
+	await kaydirici.focus();
+	await page.keyboard.press('End');
+	await expect(kaydirici).toHaveValue('100');
+	const yanit = await page.request.get(
+		(await page.locator('.foto-izgarasi img').first().getAttribute('src'))!
+	);
+	expect(yanit.headers()['content-type']).toBe('image/webp');
+});

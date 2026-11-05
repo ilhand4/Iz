@@ -22,6 +22,7 @@ import { dogrulamaGonder, epostaDegistiBildir } from '#lib/server/epostaJetonu.t
 import { beklemeMesaji } from '#lib/server/hizSiniri.ts';
 import { dogrulamaSiniri, hesapSiniri, iceAktarmaSiniri } from '#lib/server/sinirlar.ts';
 import { oturumCereziSil } from '#lib/server/oturum.ts';
+import { sahipsizFotograflariTemizle } from '#lib/server/fotograflar.ts';
 import { iceAktarmaDogrula } from '#lib/server/veriTasima.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -193,6 +194,8 @@ export const actions: Actions = {
 			return fail(400, { sil: { hatalar: { sifre: 'Şifre hatalı.' }, degerler: {} } });
 		}
 		oturumCereziSil(cookies);
+		// Satırlar zincirleme silindi; diskteki fotoğraf dosyaları da (10 dk'lık pay sonrası) temizlenir
+		void sahipsizFotograflariTemizle(true).catch(() => {});
 		redirect(303, '/?hesapSilindi=1');
 	}
 };

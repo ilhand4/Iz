@@ -16,7 +16,18 @@
 		etkiMi,
 		type DugumTuru
 	} from '#lib/sabitler.ts';
+	import OnceSonra from '#lib/bilesenler/OnceSonra.svelte';
+	import {
+		EN_BUYUK_FOTO_MB,
+		FOTO_DONEMI_ETIKETI,
+		FOTO_HAKKI_ETIKETI,
+		FOTO_HAKLARI,
+		karsilastirmaCifti,
+		type FotoDonemi,
+		type FotoHakki
+	} from '#lib/fotograf.ts';
 	import { KARAR_SONUCLARI, KARAR_SONUCU_ETIKETI, type KararSonucu } from '#lib/kararDefteri.ts';
+	import { mesafeYaz } from '#lib/konumlar.ts';
 	import { tarihYaz } from '#lib/tarih.ts';
 	import type { PageProps } from './$types';
 
@@ -52,6 +63,14 @@
 			} | null
 		)?.alinti ?? null
 	);
+	const fotoHata = $derived(
+		(
+			form as {
+				foto?: { hatalar: Record<string, string>; degerler: Record<string, string> };
+			} | null
+		)?.foto ?? null
+	);
+	const cift = $derived(karsilastirmaCifti(data.fotolar));
 	const kararFormu = $derived(
 		form as {
 			kararHatalari?: Record<string, string>;
@@ -222,6 +241,9 @@
 						{d.yerAdi ?? ''}
 						{#if d.enlem !== null && d.boylam !== null}
 							<span class="koordinat">({d.enlem.toFixed(4)}, {d.boylam.toFixed(4)})</span>
+							{#if data.sahibiMi}
+								<a href="/dugumler/harita?odak={d.id}">Haritada gör</a>
+							{/if}
 						{/if}
 					</li>
 				{/if}
@@ -289,6 +311,194 @@
 				</form>
 			{/if}
 		</div>
+	{/if}
+
+	{#if data.yakinlar.length}
+		<section class="yakinlar yigin" aria-labelledby="yakinlar-baslik">
+			<div class="satir arasi">
+				<h2 id="yakinlar-baslik">Yakınındakiler</h2>
+				<a class="kucuk" href="/dugumler/harita?odak={d.id}">Haritada gör</a>
+			</div>
+			<ul>
+				{#each data.yakinlar as y (y.id)}
+					<li>
+						<a href="/dugumler/{y.id}"><TurSekli tur={y.tur} boyut={12} /> {y.baslik}</a>
+						<small class="soluk">{y.mesafe === 0 ? 'aynı yerde' : mesafeYaz(y.mesafe)}</small>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
+
+	{#if data.fotolar.length || data.fotoEklenebilir}
+		<section class="fotograflar yigin" aria-labelledby="fotograflar-baslik">
+			<h2 id="fotograflar-baslik">{d.tur === 'yer' ? 'Bir zamanlar burası' : 'Fotoğraflar'}</h2>
+			{#if cift}
+				<OnceSonra eski={cift.eski} yeni={cift.yeni} baslik={d.baslik} />
+			{/if}
+			{#if data.fotolar.length}
+				<ul class="foto-izgarasi">
+					{#each data.fotolar as f (f.id)}
+						<li>
+							<figure>
+								<a href="/fotograflar/{f.id}" target="_blank" rel="noopener">
+									<img
+										src="/fotograflar/{f.id}?k=1"
+										alt="{d.baslik}, {f.yil ??
+											FOTO_DONEMI_ETIKETI[f.donem as FotoDonemi].toLocaleLowerCase(
+												'tr-TR'
+											)}{f.aciklama ? `: ${f.aciklama}` : ''}"
+										width={f.genislik}
+										height={f.yukseklik}
+										loading="lazy"
+									/>
+								</a>
+								<figcaption>
+									<span class="foto-ust">
+										<span class="rozet" data-donem={f.donem}
+											>{FOTO_DONEMI_ETIKETI[f.donem as FotoDonemi]}{f.yil
+												? ` · ${f.yil}`
+												: ''}</span
+										>
+										{#if data.sahibiMi}
+											<form method="POST" action="?/fotoSil" use:enhance>
+												<input type="hidden" name="fotoId" value={f.id} />
+												<button class="dugme dugme-kucuk dugme-hayalet" aria-label="Fotoğrafı sil">
+													<Simge ad="cop" boyut={14} />
+												</button>
+											</form>
+										{/if}
+									</span>
+									{#if f.aciklama}<span>{f.aciklama}</span>{/if}
+									<small class="soluk">
+										{FOTO_HAKKI_ETIKETI[f.hak as FotoHakki]}{f.kaynak ? ` · ${f.kaynak}` : ''}
+									</small>
+								</figcaption>
+							</figure>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="soluk kucuk">
+					{d.tur === 'yer'
+						? 'Buranın eski bir fotoğrafını ve bugünkü hâlini ekle; ikisi yan yana kaydırılarak karşılaştırılır.'
+						: 'Bu anıya ait fotoğrafları ekleyebilirsin.'}
+				</p>
+			{/if}
+
+			{#if data.fotoEklenebilir}
+				<details class="kart bag-formu" open={!!fotoHata}>
+					<summary>Fotoğraf ekle</summary>
+					<form
+						method="POST"
+						action="?/fotoEkle"
+						enctype="multipart/form-data"
+						class="yigin"
+						use:enhance
+					>
+						<Alan
+							id="fotoDosya"
+							etiket="Fotoğraf"
+							hata={fotoHata?.hatalar.dosya}
+							ipucu="JPEG, PNG, WebP ya da AVIF; en fazla {EN_BUYUK_FOTO_MB} MB. Konum ve cihaz bilgileri (EXIF) yüklenirken silinir."
+						>
+							<input
+								id="fotoDosya"
+								name="dosya"
+								type="file"
+								accept="image/jpeg,image/png,image/webp,image/avif"
+								required
+							/>
+						</Alan>
+						<fieldset class="secenekler">
+							<legend>Ne zamanın fotoğrafı?</legend>
+							<label class="cip"
+								><input
+									type="radio"
+									name="donem"
+									value="eski"
+									checked={(fotoHata?.degerler.donem ?? 'eski') === 'eski'}
+								/> Eski</label
+							>
+							<label class="cip"
+								><input
+									type="radio"
+									name="donem"
+									value="yeni"
+									checked={fotoHata?.degerler.donem === 'yeni'}
+								/> Yeni (bugün)</label
+							>
+						</fieldset>
+						<div class="karar-satiri">
+							<Alan id="fotoYil" etiket="Yılı" hata={fotoHata?.hatalar.yil} ipucu="İsteğe bağlı">
+								<input
+									id="fotoYil"
+									name="yil"
+									inputmode="numeric"
+									maxlength="4"
+									value={fotoHata?.degerler.yil ?? ''}
+								/>
+							</Alan>
+							<Alan id="fotoAciklama" etiket="Açıklama" hata={fotoHata?.hatalar.aciklama}>
+								<input
+									id="fotoAciklama"
+									name="aciklama"
+									maxlength="300"
+									value={fotoHata?.degerler.aciklama ?? ''}
+								/>
+							</Alan>
+						</div>
+						<fieldset class="hak">
+							<legend>Bu fotoğrafı neye dayanarak paylaşıyorsun?</legend>
+							{#each FOTO_HAKLARI as h (h)}
+								<label
+									><input
+										type="radio"
+										name="hak"
+										value={h}
+										required
+										checked={fotoHata?.degerler.hak === h}
+									/>
+									{FOTO_HAKKI_ETIKETI[h]}</label
+								>
+							{/each}
+							{#if fotoHata?.hatalar.hak}
+								<span class="hata-metni" role="alert">{fotoHata.hatalar.hak}</span>
+							{/if}
+						</fieldset>
+						<Alan
+							id="fotoKaynak"
+							etiket="Kaynak"
+							hata={fotoHata?.hatalar.kaynak}
+							ipucu="Kim çekti, nereden? İzinli ya da kamu malı fotoğraflarda zorunlu (ör. “SALT Araştırma, CC BY-SA”)."
+						>
+							<input
+								id="fotoKaynak"
+								name="kaynak"
+								maxlength="200"
+								value={fotoHata?.degerler.kaynak ?? ''}
+							/>
+						</Alan>
+						<label class="onay">
+							<input type="checkbox" name="onay" value="evet" required />
+							<span
+								>Bu fotoğrafı yüklemeye ve düğümün gizlilik ayarına göre paylaşmaya hakkım olduğunu
+								beyan ederim. Fotoğraftaki kişilerin mahremiyetine dikkat ederim.</span
+							>
+						</label>
+						{#if fotoHata?.hatalar.onay}
+							<span class="hata-metni" role="alert">{fotoHata.hatalar.onay}</span>
+						{/if}
+						{#if d.gizlilik === 'herkes'}
+							<p class="bildirim bildirim-uyari kucuk">
+								Bu düğüm herkese açık: fotoğraf da herkese görünür.
+							</p>
+						{/if}
+						<div class="satir"><button class="dugme dugme-birincil">Yükle</button></div>
+					</form>
+				</details>
+			{/if}
+		</section>
 	{/if}
 
 	{#if data.sahibiMi && d.tur === 'karar'}
@@ -973,6 +1183,8 @@
 		box-shadow: inset 0 0 0 1.5px var(--vurgu);
 	}
 	.alintilar h2,
+	.yakinlar h2,
+	.fotograflar h2,
 	.karar-defteri h2 {
 		margin: 0;
 	}
@@ -1053,6 +1265,99 @@
 	.sonuc-karti .not {
 		margin-top: var(--a-2);
 		white-space: pre-line;
+	}
+	.yakinlar .arasi {
+		justify-content: space-between;
+		align-items: baseline;
+	}
+	.yakinlar ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--a-2);
+	}
+	.yakinlar li {
+		display: inline-flex;
+		align-items: baseline;
+		gap: var(--a-2);
+		padding: var(--a-1) var(--a-3);
+		border: 1px solid var(--cizgi);
+		border-radius: var(--yaricap-tam);
+		background: var(--yuzey);
+	}
+	.yakinlar li a {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-1);
+		color: var(--metin);
+		font-weight: 550;
+	}
+	.foto-izgarasi {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: var(--a-3);
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+	}
+	.foto-izgarasi figure {
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-2);
+	}
+	.foto-izgarasi img {
+		display: block;
+		width: 100%;
+		height: auto;
+		aspect-ratio: 4 / 3;
+		object-fit: cover;
+		border-radius: var(--yaricap);
+		background: var(--yuzey-2);
+	}
+	.foto-izgarasi figcaption {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		font-size: var(--boyut-sm);
+	}
+	.foto-ust {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--a-2);
+	}
+	.rozet[data-donem='eski'] {
+		background: var(--uyari-zemin);
+		color: var(--uyari);
+	}
+	.hak {
+		border: 0;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-2);
+	}
+	.hak legend,
+	.secenekler legend {
+		margin-bottom: var(--a-2);
+		font-weight: 600;
+		font-size: var(--boyut-sm);
+	}
+	.hak label,
+	.onay {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--a-2);
+		font-size: var(--boyut-sm);
+	}
+	.hak input,
+	.onay input {
+		margin-top: 0.2rem;
+		accent-color: var(--vurgu);
 	}
 	.karar-satiri {
 		display: grid;
