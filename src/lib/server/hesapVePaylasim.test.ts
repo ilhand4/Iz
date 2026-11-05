@@ -9,8 +9,17 @@ vi.mock('./db/index.ts', async () => {
 });
 
 const { db } = await import('./db/index.ts');
-const { baglar, dugumler, izAdimlari, izler, kullanicilar, oturumlar } =
-	await import('./db/schema.ts');
+const {
+	alintilar,
+	baglar,
+	donemler,
+	dugumler,
+	izAdimlari,
+	izler,
+	kararlar,
+	kullanicilar,
+	oturumlar
+} = await import('./db/schema.ts');
 const hesap = await import('./hesap.ts');
 const { profilGetir, profilVerisi } = await import('./profil.ts');
 const izModulu = await import('./izler.ts');
@@ -218,7 +227,15 @@ describe('veri taşıma', () => {
 			disKimlik: 'OL1W'
 		});
 		const rapor = await iceAktar(banu, sonuc);
-		expect(rapor).toEqual({ dugum: 2, birlesen: 1, bag: 3, iz: 2, atlanan: 0 });
+		expect(rapor).toEqual({
+			dugum: 2,
+			birlesen: 1,
+			bag: 3,
+			iz: 2,
+			alinti: 0,
+			donem: 0,
+			atlanan: 0
+		});
 
 		const banununki = await disaAktar(banu);
 		expect(banununki.dugumler.map((x) => x.baslik).sort()).toEqual([
@@ -258,5 +275,82 @@ describe('veri taşıma', () => {
 		const yeni = await kullaniciEkle('cem');
 		const rapor = await iceAktar(yeni, sonuc);
 		expect(rapor).toMatchObject({ dugum: 2, birlesen: 1, bag: 1 });
+	});
+
+	it('sürüm 2: karar defteri, alıntı, bağ türü, etki, dönem ve çatallanma da taşınır', async () => {
+		const deniz = await kullaniciEkle('deniz');
+		const karar = await dugum(deniz, 'Taşınmak', 'ozel', { tur: 'karar', etki: 'degistirdi' });
+		const kitap = await dugum(deniz, 'Kitap', 'ozel', {
+			tur: 'eser',
+			eserTuru: 'kitap',
+			wikidata: 'Q42'
+		});
+		const [alinti] = await db
+			.insert(alintilar)
+			.values({ sahipId: deniz, dugumId: kitap, metin: 'Bir satır', yer: 's. 4' })
+			.returning({ id: alintilar.id });
+		await db.insert(baglar).values({
+			sahipId: deniz,
+			kaynakId: kitap,
+			hedefId: karar,
+			tur: 'besler',
+			alintiId: alinti.id,
+			not: 'Bu cümle'
+		});
+		await db.insert(kararlar).values({
+			dugumId: karar,
+			beklenti: 'Sakin bir yıl',
+			guven: 70,
+			sonuc: 'kismen',
+			sonucTarihi: new Date('2026-01-02T03:04:05Z')
+		});
+		await db
+			.insert(donemler)
+			.values({ sahipId: deniz, ad: 'Kadıköy yılları', baslangic: '2004-01-01', renk: 'mavi' });
+		const [ata] = await db
+			.insert(izler)
+			.values({ sahipId: deniz, baslik: 'Ana iz' })
+			.returning({ id: izler.id });
+		await db
+			.insert(izler)
+			.values({ sahipId: deniz, baslik: 'Çatal', ataIzId: ata.id, ayrilmaSirasi: 1 });
+
+		const disari = await disaAktar(deniz);
+		expect(disari.surum).toBe(2);
+		const sonuc = iceAktarmaDogrula(JSON.parse(JSON.stringify(disari)));
+		if (!sonuc.tamam) throw new Error(sonuc.hata);
+		const ece = await kullaniciEkle('ece');
+		expect(await iceAktar(ece, sonuc)).toMatchObject({
+			dugum: 2,
+			bag: 1,
+			iz: 2,
+			alinti: 1,
+			donem: 1
+		});
+
+		const geri = await disaAktar(ece);
+		const k = geri.dugumler.find((x) => x.baslik === 'Taşınmak')!;
+		expect(k).toMatchObject({ etki: 'degistirdi' });
+		expect(k.karar).toMatchObject({
+			beklenti: 'Sakin bir yıl',
+			guven: 70,
+			sonuc: 'kismen',
+			sonucTarihi: '2026-01-02T03:04:05.000Z'
+		});
+		expect(geri.dugumler.find((x) => x.baslik === 'Kitap')).toMatchObject({ wikidata: 'Q42' });
+		expect(geri.alintilar).toEqual([expect.objectContaining({ metin: 'Bir satır', yer: 's. 4' })]);
+		expect(geri.baglar).toEqual([
+			expect.objectContaining({ tur: 'besler', alintiId: geri.alintilar![0].id })
+		]);
+		expect(geri.donemler).toEqual([
+			{ ad: 'Kadıköy yılları', baslangic: '2004-01-01', bitis: null, renk: 'mavi' }
+		]);
+		const ana = geri.izler.find((i) => i.baslik === 'Ana iz')!;
+		expect(geri.izler.find((i) => i.baslik === 'Çatal')).toMatchObject({
+			ataIzId: ana.id,
+			ayrilmaSirasi: 1
+		});
+		// Kimlikler yeni
+		expect(ana.id).not.toBe(ata.id);
 	});
 });

@@ -89,7 +89,7 @@ describe('iceAktarmaDogrula', () => {
 	it('tanınmayan biçimi, sürümü ve aşırı büyük dosyayı reddeder', () => {
 		expect(iceAktarmaDogrula([]).tamam).toBe(false);
 		expect(iceAktarmaDogrula({ ...ornek, bicim: 'baska' }).tamam).toBe(false);
-		expect(iceAktarmaDogrula({ ...ornek, surum: 2 }).tamam).toBe(false);
+		expect(iceAktarmaDogrula({ ...ornek, surum: 3 }).tamam).toBe(false);
 		expect(
 			iceAktarmaDogrula({ ...ornek, dugumler: Array.from({ length: 5001 }, () => ({})) }).tamam
 		).toBe(false);
@@ -142,5 +142,76 @@ describe('iceAktarmaDogrula', () => {
 			izler: []
 		});
 		expect(s.tamam && s.veri.dugumler[0].tarih).toBe(null);
+	});
+
+	it('sürüm 2 alanlarını temizler: yanlış düğümdeki alıntı, karar dışı defter, eksik ata iz', () => {
+		const ALINTI = '33333333-3333-4333-8333-333333333333';
+		const IZ = '44444444-4444-4444-8444-444444444444';
+		const s = iceAktarmaDogrula({
+			...ornek,
+			surum: 2,
+			dugumler: [
+				{ ...ornek.dugumler[0], etki: 'cok', karar: { guven: 70 } },
+				{
+					...ornek.dugumler[1],
+					tur: 'karar',
+					eserTuru: null,
+					wikidata: 'Q1; DROP',
+					karar: { guven: 140, sorulacak: '2027-02-30', sonuc: 'kismen', sonucNotu: 'Not' }
+				}
+			],
+			// Alıntı A düğümünde ama bağın kaynağı B: bağ alıntısız kurulur
+			alintilar: [{ id: ALINTI, dugumId: A, metin: '  Satır  ', yer: null }],
+			baglar: [{ kaynakId: B, hedefId: A, tur: 'celisir', alintiId: ALINTI }],
+			izler: [{ id: IZ, ataIzId: B, ayrilmaSirasi: 2, baslik: 'Çatal', duraklar: [] }],
+			donemler: [
+				{ ad: 'Kadıköy', baslangic: '2004-01-01', bitis: '2003-01-01' },
+				{ ad: 'Berlin', baslangic: '2019-09-01', bitis: null, renk: 'neon' }
+			]
+		});
+		if (!s.tamam) throw new Error(s.hata);
+		expect(s.veri.dugumler[0]).toMatchObject({ etki: null, karar: null });
+		expect(s.veri.dugumler[1]).toMatchObject({
+			wikidata: null,
+			karar: { guven: null, sorulacak: null, sonuc: 'kismen', sonucNotu: 'Not' }
+		});
+		expect(s.veri.alintilar).toEqual([{ id: ALINTI, dugumId: A, metin: 'Satır', yer: null }]);
+		expect(s.veri.baglar[0]).toMatchObject({ tur: 'celisir', alintiId: null });
+		expect(s.veri.izler[0]).toMatchObject({ ataIzId: null, ayrilmaSirasi: null });
+		expect(s.veri.donemler).toEqual([
+			{ ad: 'Berlin', baslangic: '2019-09-01', bitis: null, renk: 'kiremit' }
+		]);
+		expect(s.atlanan).toBe(1);
+	});
+
+	it('Markdown karar defterini, alıntıları ve dönemleri yazar', () => {
+		const md = markdownYaz({
+			...ornek,
+			surum: 2,
+			dugumler: [
+				{
+					...ornek.dugumler[0],
+					tur: 'karar',
+					etki: 'degistirdi',
+					karar: {
+						gerekce: null,
+						beklenti: 'Sakin bir yıl',
+						guven: 70,
+						sorulacak: null,
+						sonuc: 'gerceklesti',
+						sonucNotu: null,
+						sonucTarihi: null
+					}
+				}
+			],
+			baglar: [],
+			izler: [],
+			alintilar: [{ id: B, dugumId: A, metin: 'Bir satır', yer: 's. 4' }],
+			donemler: [{ ad: 'Kadıköy yılları', baslangic: '2004-01-01', bitis: null, renk: 'mavi' }]
+		});
+		expect(md).toContain('- **Kadıköy yılları** · 2004 – sürüyor');
+		expect(md).toContain('> Bir satır (s. 4)');
+		expect(md).toContain('- Güven: %70');
+		expect(md).toContain('- Sonuç: Beklediğim gibi oldu');
 	});
 });

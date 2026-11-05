@@ -348,3 +348,29 @@ test('karar defteri: beklenti yazılır, sonuç kalibrasyona girer', async ({ pa
 	await expect(page.getByRole('rowheader', { name: '%80–90' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Sonuçlananlar' })).toBeVisible();
 });
+
+test('dışa aktarılan JSON karar defterini taşır ve geri içe aktarılır', async ({ page }) => {
+	const yanit = await page.request.get('/ayarlar/disa-aktar?bicim=json');
+	expect(yanit.ok()).toBe(true);
+	const veri = await yanit.json();
+	expect(veri.surum).toBe(2);
+	const karar = veri.dugumler.find((d: { baslik: string }) => d.baslik === 'Berlin’e taşınmak');
+	expect(karar.karar).toMatchObject({ guven: 80, sonuc: 'gerceklesti' });
+
+	// Yalnızca karar düğümünü içeren küçük bir dosya: eklemeli içe aktarma yeni bir kopya açar
+	const dosya = { ...veri, dugumler: [karar], baglar: [], izler: [], alintilar: [], donemler: [] };
+	await page.goto('/ayarlar#veriler');
+	await page.locator('#dosya').setInputFiles({
+		name: 'iz.json',
+		mimeType: 'application/json',
+		buffer: Buffer.from(JSON.stringify(dosya), 'utf8')
+	});
+	await page.getByRole('button', { name: 'İçe aktar', exact: true }).click();
+	await expect(
+		page.getByRole('status').filter({ hasText: 'İçe aktarıldı: 1 düğüm' })
+	).toBeVisible();
+
+	await page.goto('/kararlar');
+	await expect(page.getByRole('rowheader', { name: '%80–90' })).toBeVisible();
+	await expect(page.getByRole('row', { name: /%80–90\s+2\s+%100/ })).toBeVisible();
+});

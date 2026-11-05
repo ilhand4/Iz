@@ -119,7 +119,8 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 - [x] "Sonucu ne zaman soralım?" tarihi; zamanı gelince hatırlatma ve sonuç kaydı
 - [x] Kalibrasyon grafiği (söylenen güven ↔ gerçekleşen oran)
 - [x] Defter kişiseldir: düğüm herkese açık olsa da gerekçe, güven ve sonuç yalnızca sahibine görünür. Zamanı gelen kararlar panoda "Sonuç zamanı" kartında, zil sayacında ve `/bildirimler`'de; `/kararlar` sayfasında kalibrasyon grafiği (erişilebilir tablo eşliğinde), Brier puanı ve yorumu (5 sonuçtan azken yorum yapılmaz); "kısmen" yarım gerçekleşme sayılır
-- [x] Testler: 211 birim/entegrasyon testi (PGlite), 98 uçtan uca test ve axe taraması (açık/koyu, masaüstü/mobil) tamamı geçiyor
+- [x] Dışa/içe aktarma biçimi sürüm 2: etki, Wikidata, bağ türü, alıntılar, dönemler, iz çatallanması ve karar defteri de taşınır; sürüm 1 dosyaları okunmaya devam eder
+- [x] Testler: 214 birim/entegrasyon testi (PGlite), 99 uçtan uca test ve axe taraması (açık/koyu, masaüstü/mobil) tamamı geçiyor
 
 ## ⏳ Aşama 5 — Harita + Bir Zamanlar Burası
 

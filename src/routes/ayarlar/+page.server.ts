@@ -162,16 +162,20 @@ export const actions: Actions = {
 		const sonuc = iceAktarmaDogrula(ham);
 		if (!sonuc.tamam) return hata(sonuc.hata);
 		const rapor = await iceAktar(kullanici.id, sonuc);
-		const parcalar = [
+		const eklenen = [
 			`${rapor.dugum} düğüm`,
 			`${rapor.bag} bağ`,
-			`${rapor.iz} iz eklendi`,
+			`${rapor.iz} iz`,
+			rapor.alinti ? `${rapor.alinti} alıntı` : null,
+			rapor.donem ? `${rapor.donem} dönem` : null
+		].filter(Boolean);
+		const ekler = [
 			rapor.birlesen ? `${rapor.birlesen} eser haritandakiyle birleşti` : null,
 			rapor.atlanan ? `${rapor.atlanan} bozuk kayıt atlandı` : null
 		].filter(Boolean);
 		return {
 			bildirim: {
-				mesaj: `İçe aktarıldı: ${parcalar.join(', ')}.`,
+				mesaj: `İçe aktarıldı: ${eklenen.join(', ')} eklendi${ekler.length ? `; ${ekler.join(', ')}` : ''}.`,
 				baglanti: { href: '/dugumler', metin: 'Düğümler' }
 			}
 		};

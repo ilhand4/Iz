@@ -1,17 +1,26 @@
 // Veri taşıma: dışa aktarma (JSON + Markdown) ve JSON'dan içe aktarma.
-// Biçim dosyası sürümlüdür ("iz-disa-aktarma", sürüm 1). İçe aktarma eklemelidir: hiçbir şey silinmez,
+// Biçim dosyası sürümlüdür ("iz-disa-aktarma"; sürüm 2, sürüm 1 dosyaları da okunur). İçe aktarma eklemelidir: hiçbir şey silinmez,
 // kimlikler yeniden üretilir, aynı dış eser zaten haritadaysa yenisi açılmaz.
 // Doğrulama ve Markdown saf fonksiyonlardır (birim testleri: veriTasima.test.ts).
+import { KARAR_SONUCU_ETIKETI, kararSonucuMu, type KararSonucu } from '../kararDefteri';
 import {
+	bagTuruMu,
+	BAG_TURU_ETIKETI,
+	DONEM_RENKLERI,
 	DUGUM_TURU_ETIKETI,
 	dugumTuruMu,
 	ESER_TURU_ETIKETI,
 	eserDurumuMu,
 	eserTuruMu,
+	ETKI_ETIKETI,
+	etkiMi,
 	gizlilikMi,
+	type BagTuru,
+	type DonemRengi,
 	type DugumTuru,
 	type EserDurumu,
 	type EserTuru,
+	type Etki,
 	type Gizlilik,
 	type TarihHassasiyeti
 } from '../sabitler';
@@ -19,8 +28,27 @@ import { tarihYaz } from '../tarih';
 import { disKimlikGecerliMi, gorselGuvenliMi } from './eserArama';
 
 export const DISA_AKTARMA_BICIMI = 'iz-disa-aktarma';
-export const DISA_AKTARMA_SURUMU = 1;
-export const ICE_AKTARMA_SINIRI = { dugum: 5000, bag: 20000, iz: 500, durak: 200 };
+export const DISA_AKTARMA_SURUMU = 2;
+/** İçe aktarmanın okuyabildiği sürümler (eski dosyalar geçerli kalır) */
+const DESTEKLENEN_SURUMLER = [1, 2];
+export const ICE_AKTARMA_SINIRI = {
+	dugum: 5000,
+	bag: 20000,
+	iz: 500,
+	durak: 200,
+	alinti: 20000,
+	donem: 500
+};
+
+export type TasinanKarar = {
+	gerekce: string | null;
+	beklenti: string | null;
+	guven: number | null;
+	sorulacak: string | null;
+	sonuc: KararSonucu | null;
+	sonucNotu: string | null;
+	sonucTarihi: string | null;
+};
 
 export type TasinanDugum = {
 	id: string;
@@ -42,6 +70,10 @@ export type TasinanDugum = {
 	gorselUrl: string | null;
 	x?: number | null;
 	y?: number | null;
+	// Sürüm 2
+	etki?: Etki | null;
+	wikidata?: string | null;
+	karar?: TasinanKarar | null;
 };
 export type TasinanBag = {
 	kaynakId: string;
@@ -49,8 +81,16 @@ export type TasinanBag = {
 	not: string | null;
 	tarih: string | null;
 	tarihHassasiyeti: TarihHassasiyeti | null;
+	// Sürüm 2
+	tur?: BagTuru | null;
+	alintiId?: string | null;
 };
 export type TasinanIz = {
+	/** Sürüm 2: yalnızca çatallanmayı (ata iz) eşlemek için; içe aktarmada yeniden üretilir */
+	id?: string;
+	ataIzId?: string | null;
+	/** Ata izde ayrılınan durağın sırası (1'den) */
+	ayrilmaSirasi?: number | null;
 	baslik: string;
 	aciklama: string | null;
 	gizlilik: Gizlilik;
@@ -64,9 +104,23 @@ export type DisaAktarma = {
 	dugumler: TasinanDugum[];
 	baglar: TasinanBag[];
 	izler: TasinanIz[];
+	// Sürüm 2
+	alintilar?: TasinanAlinti[];
+	donemler?: TasinanDonem[];
+};
+export type TasinanAlinti = { id: string; dugumId: string; metin: string; yer: string | null };
+export type TasinanDonem = {
+	ad: string;
+	baslangic: string;
+	bitis: string | null;
+	renk: DonemRengi;
 };
 
 // ——— Markdown ———
+
+function tekSatir(metin: string) {
+	return metin.replace(/\s+/g, ' ');
+}
 
 function satirSonu(metin: string) {
 	// Markdown'da tek satır sonu görünmez; paragraf içi satırları korumak için iki boşluk
@@ -86,6 +140,19 @@ export function markdownYaz(veri: DisaAktarma): string {
 		''
 	);
 	if (veri.hesap.hakkinda) s.push(`> ${satirSonu(veri.hesap.hakkinda)}`, '');
+
+	if (veri.donemler?.length) {
+		s.push('## Dönemler', '');
+		for (const d of veri.donemler) {
+			s.push(
+				`- **${d.ad}** · ${d.baslangic.slice(0, 4)} – ${d.bitis ? d.bitis.slice(0, 4) : 'sürüyor'}`
+			);
+		}
+		s.push('');
+	}
+	const alintilar = new Map<string, TasinanAlinti[]>();
+	for (const a of veri.alintilar ?? [])
+		alintilar.set(a.dugumId, [...(alintilar.get(a.dugumId) ?? []), a]);
 
 	if (veri.izler.length) {
 		s.push('## İzler', '');
@@ -108,12 +175,29 @@ export function markdownYaz(veri: DisaAktarma): string {
 		s.push(`- ${bilgiler}`);
 		if (d.tarih && d.tarihHassasiyeti) s.push(`- Tarih: ${tarihYaz(d.tarih, d.tarihHassasiyeti)}`);
 		if (d.yerAdi) s.push(`- Yer: ${d.yerAdi}`);
+		if (d.etki) s.push(`- Etkisi: ${ETKI_ETIKETI[d.etki]}`);
 		if (d.aciklama) s.push('', satirSonu(d.aciklama));
+		for (const a of alintilar.get(d.id) ?? []) {
+			s.push('', `> ${satirSonu(a.metin)}${a.yer ? ` (${a.yer})` : ''}`);
+		}
+		if (d.karar) {
+			const k = d.karar;
+			s.push('', 'Karar defteri:');
+			if (k.gerekce) s.push(`- Gerekçe: ${tekSatir(k.gerekce)}`);
+			if (k.beklenti) s.push(`- Beklenti: ${tekSatir(k.beklenti)}`);
+			if (k.guven !== null) s.push(`- Güven: %${k.guven}`);
+			if (k.sonuc) {
+				s.push(
+					`- Sonuç: ${KARAR_SONUCU_ETIKETI[k.sonuc]}${k.sonucNotu ? ` — ${tekSatir(k.sonucNotu)}` : ''}`
+				);
+			} else if (k.sorulacak) s.push(`- Sonucu sorulacak: ${k.sorulacak}`);
+		}
 		const gidenler = giden.get(d.id) ?? [];
 		if (gidenler.length) {
 			s.push('', 'Beni şuna götürdü:');
 			for (const b of gidenler) {
-				s.push(`- ${ad.get(b.hedefId) ?? '?'}${b.not ? ` — ${b.not.replace(/\s+/g, ' ')}` : ''}`);
+				const tur = b.tur ? ` (${BAG_TURU_ETIKETI[b.tur].toLocaleLowerCase('tr-TR')})` : '';
+				s.push(`- ${ad.get(b.hedefId) ?? '?'}${tur}${b.not ? ` — ${tekSatir(b.not)}` : ''}`);
 			}
 		}
 		s.push('');
@@ -169,17 +253,25 @@ export function iceAktarmaDogrula(girdi: unknown): IceAktarmaSonucu {
 	if (!nesneMi(girdi) || girdi.bicim !== DISA_AKTARMA_BICIMI) {
 		return { tamam: false, hata: 'Bu dosya bir İz dışa aktarma dosyası değil.' };
 	}
-	if (girdi.surum !== DISA_AKTARMA_SURUMU) {
+	if (typeof girdi.surum !== 'number' || !DESTEKLENEN_SURUMLER.includes(girdi.surum)) {
 		return { tamam: false, hata: 'Bu dosyanın sürümü desteklenmiyor.' };
 	}
 	const { dugumler: d, baglar: b, izler: i } = girdi;
+	// Sürüm 1'de bu listeler yok
+	const a = girdi.alintilar ?? [];
+	const dn = girdi.donemler ?? [];
+	if (!Array.isArray(a) || !Array.isArray(dn)) {
+		return { tamam: false, hata: 'Dosyadaki alıntı ya da dönem listesi bozuk.' };
+	}
 	if (!Array.isArray(d) || !Array.isArray(b) || !Array.isArray(i)) {
 		return { tamam: false, hata: 'Dosyada düğüm, bağ ya da iz listesi eksik.' };
 	}
 	if (
 		d.length > ICE_AKTARMA_SINIRI.dugum ||
 		b.length > ICE_AKTARMA_SINIRI.bag ||
-		i.length > ICE_AKTARMA_SINIRI.iz
+		i.length > ICE_AKTARMA_SINIRI.iz ||
+		a.length > ICE_AKTARMA_SINIRI.alinti ||
+		dn.length > ICE_AKTARMA_SINIRI.donem
 	) {
 		return {
 			tamam: false,
@@ -235,7 +327,51 @@ export function iceAktarmaDogrula(girdi: unknown): IceAktarmaSonucu {
 			disKimlik,
 			gorselUrl,
 			x: sayi(x.x, -1e7, 1e7),
-			y: sayi(x.y, -1e7, 1e7)
+			y: sayi(x.y, -1e7, 1e7),
+			etki: etkiMi(x.etki) ? x.etki : null,
+			wikidata:
+				typeof x.wikidata === 'string' && /^Q\d{1,12}$/.test(x.wikidata) ? x.wikidata : null,
+			karar: tur === 'karar' ? kararTemizle(x.karar) : null
+		});
+	}
+
+	const alintilar: TasinanAlinti[] = [];
+	/** alıntı kimliği → düğüm kimliği (bağın alıntısı kaynak düğümünden olmalı) */
+	const alintiKimlikleri = new Map<string, string>();
+	for (const x of a) {
+		const m = nesneMi(x) ? metin(x.metin, 2000) : null;
+		if (
+			!nesneMi(x) ||
+			!m ||
+			typeof x.id !== 'string' ||
+			!UUID.test(x.id) ||
+			alintiKimlikleri.has(x.id) ||
+			typeof x.dugumId !== 'string' ||
+			!kimlikler.has(x.dugumId)
+		) {
+			atlanan++;
+			continue;
+		}
+		alintiKimlikleri.set(x.id, x.dugumId);
+		alintilar.push({ id: x.id, dugumId: x.dugumId, metin: m, yer: metin(x.yer, 60) });
+	}
+
+	const donemler: TasinanDonem[] = [];
+	for (const x of dn) {
+		const ad = nesneMi(x) ? metin(x.ad, 80) : null;
+		const baslangic = nesneMi(x) ? gunMu(x.baslangic) : null;
+		const bitis = nesneMi(x) ? gunMu(x.bitis) : null;
+		if (!nesneMi(x) || !ad || !baslangic || (bitis && bitis < baslangic)) {
+			atlanan++;
+			continue;
+		}
+		donemler.push({
+			ad,
+			baslangic,
+			bitis,
+			renk: (DONEM_RENKLERI as readonly unknown[]).includes(x.renk)
+				? (x.renk as DonemRengi)
+				: 'kiremit'
 		});
 	}
 
@@ -259,11 +395,17 @@ export function iceAktarmaDogrula(girdi: unknown): IceAktarmaSonucu {
 			kaynakId: x.kaynakId,
 			hedefId: x.hedefId,
 			not: metin(x.not, 1000),
-			...tarihCifti(x)
+			...tarihCifti(x),
+			tur: bagTuruMu(x.tur) ? x.tur : null,
+			alintiId:
+				typeof x.alintiId === 'string' && alintiKimlikleri.get(x.alintiId) === x.kaynakId
+					? x.alintiId
+					: null
 		});
 	}
 
 	const izler: TasinanIz[] = [];
+	const izKimlikleri = new Set<string>();
 	for (const x of i) {
 		const baslik = nesneMi(x) ? metin(x.baslik, 120) : null;
 		if (!nesneMi(x) || !baslik || !Array.isArray(x.duraklar)) {
@@ -283,7 +425,13 @@ export function iceAktarmaDogrula(girdi: unknown): IceAktarmaSonucu {
 			gorulen.add(durak.dugumId);
 			duraklar.push({ dugumId: durak.dugumId, not: metin(durak.not, 2000) });
 		}
+		const id = typeof x.id === 'string' && UUID.test(x.id) && !izKimlikleri.has(x.id) ? x.id : null;
+		if (id) izKimlikleri.add(id);
+		const sira = sayi(x.ayrilmaSirasi, 1, ICE_AKTARMA_SINIRI.durak);
 		izler.push({
+			...(id ? { id } : {}),
+			ataIzId: typeof x.ataIzId === 'string' && UUID.test(x.ataIzId) ? x.ataIzId : null,
+			ayrilmaSirasi: sira === null ? null : Math.trunc(sira),
 			baslik,
 			aciklama: metin(x.aciklama, 2000),
 			gizlilik: gizlilikMi(x.gizlilik) && x.gizlilik !== 'golge' ? x.gizlilik : 'ozel',
@@ -291,9 +439,46 @@ export function iceAktarmaDogrula(girdi: unknown): IceAktarmaSonucu {
 		});
 	}
 
+	// Ata iz dosyada yoksa (ya da kendisiyse) çatallanma bilgisi düşer
+	for (const iz of izler) {
+		if (!iz.ataIzId || !izKimlikleri.has(iz.ataIzId) || iz.ataIzId === iz.id) {
+			iz.ataIzId = null;
+			iz.ayrilmaSirasi = null;
+		}
+	}
+
 	return {
 		tamam: true,
-		veri: { bicim: DISA_AKTARMA_BICIMI, surum: DISA_AKTARMA_SURUMU, dugumler, baglar, izler },
+		veri: {
+			bicim: DISA_AKTARMA_BICIMI,
+			surum: DISA_AKTARMA_SURUMU,
+			dugumler,
+			baglar,
+			izler,
+			alintilar,
+			donemler
+		},
 		atlanan
 	};
+}
+
+function gunMu(t: unknown): string | null {
+	return typeof t === 'string' && TARIH.test(t) && gecerliGun(t) ? t : null;
+}
+
+function kararTemizle(x: unknown): TasinanKarar | null {
+	if (!nesneMi(x)) return null;
+	const guven = sayi(x.guven, 0, 100);
+	const sonuc = kararSonucuMu(x.sonuc) ? x.sonuc : null;
+	const zaman = typeof x.sonucTarihi === 'string' ? new Date(x.sonucTarihi) : null;
+	const k: TasinanKarar = {
+		gerekce: metin(x.gerekce, 2000),
+		beklenti: metin(x.beklenti, 1000),
+		guven: guven === null ? null : Math.round(guven),
+		sorulacak: gunMu(x.sorulacak),
+		sonuc,
+		sonucNotu: sonuc ? metin(x.sonucNotu, 1000) : null,
+		sonucTarihi: sonuc && zaman && !Number.isNaN(zaman.getTime()) ? zaman.toISOString() : null
+	};
+	return Object.values(k).some((v) => v !== null) ? k : null;
 }
