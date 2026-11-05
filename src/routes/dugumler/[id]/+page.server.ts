@@ -25,6 +25,8 @@ import {
 } from '#lib/server/dugumler.ts';
 import { disBagKur, disBagSil, gelenDisBaglar, gidenDisBaglar } from '#lib/server/disBaglar.ts';
 import { gorselGuvenliMi } from '#lib/server/eserArama.ts';
+import { wikidataUygula, yapimciDugumu, yapimciyiEkle } from '#lib/server/geriGetirenlerDb.ts';
+import { wikidataAra } from '#lib/server/wikidata.ts';
 import { kanonikDugumu, kanonikGetir, kesifYollari, korKesisim } from '#lib/server/kesif.ts';
 import { durakEkle, dugumunIzleri, izSecenekleri } from '#lib/server/izler.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
@@ -55,7 +57,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		gelenDis,
 		gidenDis,
 		kendiSeceneklerim,
-		alintiListesi
+		alintiListesi,
+		yapimciVar
 	] = await Promise.all([
 		dugumBaglari(params.id, izleyenId),
 		geldigiYol(params.id, izleyenId),
@@ -69,7 +72,11 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		gidenDisBaglar(params.id, izleyenId),
 		// Başkasının düğümüne bakan kişi, kendi düğümlerinden birine bağ kurabilir
 		izleyenId && !sahibiMi ? dugumSecenekleri(izleyenId) : Promise.resolve([]),
-		alintilariListele(params.id, izleyenId)
+		alintilariListele(params.id, izleyenId),
+		// Zenginleştirme önerisi: eserin yapımcısı kişi olarak haritada yoksa
+		sahibiMi && sonuc.dugum.tur === 'eser' && sonuc.dugum.altBaslik
+			? yapimciDugumu(sonuc.dugum.sahipId, sonuc.dugum.altBaslik.split(' · ')[0])
+			: Promise.resolve('yok')
 	]);
 
 	// Sahip kimliği ve iç alanlar sayfaya gönderilmez
@@ -90,6 +97,12 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		gidenDis,
 		kendiSeceneklerim,
 		alintilar: alintiListesi,
+		yapimciOnerisi:
+			yapimciVar === null && sonuc.dugum.altBaslik ? sonuc.dugum.altBaslik.split(' · ')[0] : null,
+		wikidataOnerisi:
+			sahibiMi &&
+			(sonuc.dugum.tur === 'kisi' || sonuc.dugum.tur === 'yer') &&
+			!sonuc.dugum.wikidata,
 		indekslenebilir: dugum.gizlilik === 'herkes' && sonuc.sahip.aramaMotorlari,
 		eklendi: url.searchParams.has('eklendi'),
 		getirenSor: url.searchParams.has('getiren')
@@ -176,6 +189,42 @@ export const actions: Actions = {
 					: durum
 						? `Durum: ${durumEtiketi(durum, sonuc.eserTuru)}.`
 						: 'Durum kaldırıldı.'
+			}
+		};
+	},
+
+	/** Eserin yazarını/yönetmenini/sanatçısını kişi düğümü olarak ekler (kişi → eser bağıyla) */
+	yapimciEkle: async ({ params, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		if (!uuidMu(params.id)) error(404, BULUNAMADI);
+		const kisiId = await yapimciyiEkle(kullanici.id, params.id, 'Eserin yapımcısı');
+		if (!kisiId) error(404, BULUNAMADI);
+		return {
+			bildirim: {
+				mesaj: 'Kişi haritana eklendi ve bu esere bağlandı.',
+				baglanti: { href: `/dugumler/${kisiId}`, metin: 'Kişiye git' }
+			}
+		};
+	},
+
+	/** Kişi ya da yer için Wikidata'dan bilgi: yalnızca boş alanlar doldurulur */
+	wikidata: async ({ params, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		if (!uuidMu(params.id)) error(404, BULUNAMADI);
+		const sonuc = await dugumGetir(params.id, kullanici.id);
+		if (!sonuc || sonuc.dugum.sahipId !== kullanici.id) error(404, BULUNAMADI);
+		const ozet = await wikidataAra(sonuc.dugum.baslik);
+		if (!ozet) {
+			return fail(404, {
+				bildirim: { mesaj: 'Wikidata’da bu adla bir kayıt bulunamadı.', tur: 'hata' as const }
+			});
+		}
+		const doldurulan = await wikidataUygula(kullanici.id, params.id, ozet);
+		return {
+			bildirim: {
+				mesaj: doldurulan?.length
+					? `Wikidata’dan eklendi: ${doldurulan.join(', ')}.`
+					: 'Wikidata kaydı bağlandı; dolu alanlarına dokunulmadı.'
 			}
 		};
 	},

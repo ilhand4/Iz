@@ -247,6 +247,29 @@
 		</div>
 	</article>
 
+	{#if data.yapimciOnerisi || data.wikidataOnerisi}
+		<div class="zengin">
+			{#if data.yapimciOnerisi}
+				<form method="POST" action="?/yapimciEkle" class="zengin-oneri" use:enhance>
+					<span class="kucuk"
+						><strong>{data.yapimciOnerisi}</strong> haritanda kişi olarak yok.</span
+					>
+					<button class="dugme dugme-kucuk">
+						<Simge ad="ekle" boyut={14} /> Kişi olarak ekle ve bağla
+					</button>
+				</form>
+			{/if}
+			{#if data.wikidataOnerisi}
+				<form method="POST" action="?/wikidata" class="zengin-oneri" use:enhance>
+					<span class="kucuk soluk"
+						>Boş alanları Wikidata’dan doldur (açıklama, yıllar, konum).</span
+					>
+					<button class="dugme dugme-kucuk">Wikidata’dan bilgi al</button>
+				</form>
+			{/if}
+		</div>
+	{/if}
+
 	{#if data.alintilar.length || (data.sahibiMi && d.tur === 'eser')}
 		<section class="alintilar yigin" aria-labelledby="alintilar-baslik">
 			<h2 id="alintilar-baslik">Alıntılar</h2>
@@ -849,6 +872,22 @@
 		color: var(--metin-soluk);
 	}
 	.alinti-listesi form {
+		margin: 0;
+	}
+	.zengin {
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-2);
+	}
+	.zengin-oneri {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--a-2) var(--a-3);
+		padding: var(--a-2) var(--a-4);
+		border: 1px dashed var(--cizgi-guclu);
+		border-radius: var(--yaricap);
 		margin: 0;
 	}
 	.kesif {

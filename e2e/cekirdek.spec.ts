@@ -290,3 +290,32 @@ test('ağ görünümü adrese yazılır ve bağ türü lejantı süzer', async (
 	await expect(page.locator('#zaman-surgusu')).toHaveCount(0);
 	await expect(page).toHaveURL(/gizli=kisi/);
 });
+
+test('Goodreads dosyası içe aktarılır, bağ avı soru sorar', async ({ page }) => {
+	await page.goto('/ice-aktar');
+	await page.getByLabel(/Goodreads/).check();
+	const csv = [
+		'Book Id,Title,Author,Original Publication Year,Date Read,Exclusive Shelf',
+		'1,Kürk Mantolu Madonna,Sabahattin Ali,1943,2019/08/01,read',
+		'2,İçimizdeki Şeytan,Sabahattin Ali,1940,2019/09/01,read'
+	].join('\n');
+	await page.locator('#dosya').setInputFiles({
+		name: 'goodreads_library_export.csv',
+		mimeType: 'text/csv',
+		buffer: Buffer.from(csv, 'utf8')
+	});
+	await page.getByRole('button', { name: 'Getir' }).click();
+	await expect(page).toHaveURL(/\/bag-avi\?eklenen=2/);
+	await expect(page.getByRole('status')).toContainText('2 yeni eser');
+	await expect(page.getByRole('heading', { name: /düğümünden mi geldin\?/ })).toBeVisible();
+	await page.getByRole('button', { name: 'Evet, oradan geldim' }).click();
+	await expect(page.getByRole('status').filter({ hasText: 'Bağ kuruldu.' })).toBeVisible();
+});
+
+test('İz Yıllığı yılın özetini gösterir', async ({ page }) => {
+	await page.goto('/yillik/2019');
+	await expect(page.getByRole('heading', { level: 1, name: '2019' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Seni en çok yere götüren' })).toBeVisible();
+	const kart = await page.request.get('/yillik/2019/kart.png');
+	expect(kart.headers()['content-type']).toBe('image/png');
+});

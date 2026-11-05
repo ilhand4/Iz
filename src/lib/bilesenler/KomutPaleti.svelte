@@ -39,6 +39,15 @@
 		},
 		{ tur: 'eylem', id: 'e-hat', etiket: 'Hat haritası', simge: 'iz', href: '/izler/hat' },
 		{ tur: 'eylem', id: 'e-donemler', etiket: 'Dönemler', simge: 'takvim', href: '/donemler' },
+		{ tur: 'eylem', id: 'e-bagavi', etiket: 'Bağ avı', simge: 'baglanti', href: '/bag-avi' },
+		{
+			tur: 'eylem',
+			id: 'e-getir',
+			etiket: 'Başka yerden getir (Goodreads, Letterboxd…)',
+			simge: 'asagi',
+			href: '/ice-aktar'
+		},
+		{ tur: 'eylem', id: 'e-yillik', etiket: 'İz Yıllığı', simge: 'takvim', href: '/yillik' },
 		{ tur: 'eylem', id: 'e-gruplar', etiket: 'Gruplar', simge: 'grup', href: '/gruplar' },
 		{ tur: 'eylem', id: 'e-ayarlar', etiket: 'Ayarlar', simge: 'ayar', href: '/ayarlar' }
 	];

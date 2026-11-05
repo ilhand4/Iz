@@ -131,3 +131,47 @@ export function izOgSvg(veri: { baslik: string; sahip: string; duraklar: OgDurag
 	<text x="${OG_GENISLIK - 80}" y="${OG_YUKSEKLIK - 40}" text-anchor="end" font-family="${YAZI}" font-size="22" fill="${RENK.soluk}">Neyin seni neye götürdüğü</text>
 </svg>`;
 }
+
+/** İz Yıllığı kartı: yılın özeti, sahibinin kendisi paylaşsın diye (1200×630) */
+export function yillikSvg(veri: {
+	yil: number;
+	ad: string;
+	toplam: number;
+	enCokGoturen: { baslik: string; tur: DugumTuru; ulasilan: number } | null;
+	zincir: { baslik: string; tur: DugumTuru }[];
+	kumeSayisi: number;
+}): string {
+	const zincir = veri.zincir.slice(0, 5);
+	const aralik = zincir.length > 1 ? (OG_GENISLIK - 180) / (zincir.length - 1) : 0;
+	const nokta = (i: number) => ({
+		x: zincir.length === 1 ? OG_GENISLIK / 2 : 90 + i * aralik,
+		y: 470
+	});
+	const yol =
+		zincir.length > 1
+			? `<path d="M${zincir.map((_, i) => `${nokta(i).x.toFixed(1)} ${nokta(i).y}`).join(' L')}" fill="none" stroke="${RENK.vurgu}" stroke-width="4" stroke-dasharray="2 12" stroke-linecap="round"/>`
+			: '';
+	const duraklar = zincir
+		.map((d, i) => {
+			const n = nokta(i);
+			return `${sekil(d.tur, n.x, n.y, 22)}
+	<text x="${n.x.toFixed(1)}" y="${n.y + 56}" text-anchor="middle" font-family="${YAZI}" font-size="20" font-weight="600" fill="${RENK.metin}">${kacir(satirlaraBol(d.baslik, 16, 1)[0] ?? '')}</text>`;
+		})
+		.join('\n\t');
+	const satir = (y: number, etiket: string, deger: string) =>
+		`<text x="80" y="${y}" font-family="${YAZI}" font-size="24" fill="${RENK.soluk}">${kacir(etiket)}</text>
+	<text x="420" y="${y}" font-family="${YAZI}" font-size="26" font-weight="700" fill="${RENK.metin}">${kacir(deger)}</text>`;
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="${OG_GENISLIK}" height="${OG_YUKSEKLIK}" viewBox="0 0 ${OG_GENISLIK} ${OG_YUKSEKLIK}">
+	<rect width="100%" height="100%" fill="${RENK.zemin}"/>
+	<rect x="0" y="0" width="${OG_GENISLIK}" height="10" fill="${RENK.vurgu}"/>
+	<text x="80" y="92" font-family="${YAZI}" font-size="26" font-weight="700" fill="${RENK.vurgu}" letter-spacing="2">İZ YILLIĞI</text>
+	<text x="80" y="190" font-family="${BASLIK_YAZISI}" font-size="96" font-weight="600" fill="${RENK.metin}">${veri.yil}</text>
+	<text x="330" y="190" font-family="${YAZI}" font-size="28" fill="${RENK.soluk}">${kacir(veri.ad)}</text>
+	${satir(260, 'Yılın düğümleri', String(veri.toplam))}
+	${veri.enCokGoturen ? satir(304, 'En çok yere götüren', `${satirlaraBol(veri.enCokGoturen.baslik, 34, 1)[0]} (${veri.enCokGoturen.ulasilan})`) : ''}
+	${satir(348, 'Yeni kümeler', String(veri.kumeSayisi))}
+	${zincir.length > 1 ? `<text x="80" y="410" font-family="${YAZI}" font-size="22" fill="${RENK.soluk}">Yılın en uzun zinciri</text>` : ''}
+	${yol}
+	${duraklar}
+</svg>`;
+}

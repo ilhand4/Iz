@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import BosDurum from '#lib/bilesenler/BosDurum.svelte';
+	import DugumSecici from '#lib/bilesenler/DugumSecici.svelte';
 	import DugumKarti from '#lib/bilesenler/DugumKarti.svelte';
 	import IzKarti from '#lib/bilesenler/IzKarti.svelte';
 	import SayfaBasligi from '#lib/bilesenler/SayfaBasligi.svelte';
@@ -28,6 +30,7 @@
 			: `Haritanda ${toplam} düğüm, ${pano.bagSayisi} bağ ve ${data.toplamIz} iz var.`}
 	>
 		{#snippet eylemler()}
+			<a class="dugme" href="/ice-aktar"><Simge ad="asagi" boyut={18} /> Başka yerden getir</a>
 			<a class="dugme" href="/ara"><Simge ad="ara" boyut={18} /> Eser ara</a>
 			<a class="dugme dugme-birincil" href="/dugumler/yeni"
 				><Simge ad="ekle" boyut={18} /> Düğüm ekle</a
@@ -52,6 +55,47 @@
 			</span>
 			<Simge ad="ok" boyut={20} />
 		</a>
+	{/if}
+
+	{#if data.soru || data.gecmis.length}
+		<div class="hatirlaticilar">
+			{#if data.soru}
+				<section class="kart gunun-sorusu" aria-labelledby="soru-baslik">
+					<p class="ust-etiket">Günün sorusu</p>
+					<h2 id="soru-baslik">
+						<a href="/dugumler/{data.soru.id}">“{data.soru.baslik}”</a> — bunu nereden duymuştun?
+					</h2>
+					{#if data.secenekler.length}
+						<form method="POST" action="/dugumler/{data.soru.id}?/bagKur" class="yigin" use:enhance>
+							<input type="hidden" name="yon" value="gelen" />
+							<DugumSecici
+								id="soru-getiren"
+								ad="digerId"
+								secenekler={data.secenekler}
+								yerTutucu="Haritandan seç…"
+							/>
+							<div class="satir">
+								<button class="dugme dugme-birincil dugme-kucuk">Bağla</button>
+								<a class="kucuk" href="/dugumler/{data.soru.id}?getiren=1">Yeni bir şey ekle</a>
+							</div>
+						</form>
+					{/if}
+				</section>
+			{/if}
+			{#if data.gecmis.length}
+				<section class="kart bugun" aria-labelledby="bugun-baslik">
+					<p class="ust-etiket">Bugün geçmişte</p>
+					<ul>
+						{#each data.gecmis as g (g.id)}
+							<li>
+								<strong>{g.yilOnce} yıl önce bugün</strong>
+								<a href="/dugumler/{g.id}"><TurSekli tur={g.tur} boyut={11} /> {g.baslik}</a>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
+		</div>
 	{/if}
 
 	<form method="GET" action="/hizli" class="hizli-ekle" role="search" aria-label="Hızlı ekle">
@@ -375,6 +419,49 @@
 		color: var(--metin-soluk);
 	}
 
+	.hatirlaticilar {
+		display: grid;
+		gap: var(--a-3);
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+	}
+	.ust-etiket {
+		margin: 0 0 var(--a-2);
+		font-size: var(--boyut-xs);
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--vurgu);
+	}
+	.gunun-sorusu h2 {
+		margin: 0 0 var(--a-3);
+		font-size: var(--boyut-lg);
+	}
+	.gunun-sorusu h2 a {
+		color: var(--metin);
+	}
+	.bugun ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--a-2);
+	}
+	.bugun li {
+		display: flex;
+		flex-direction: column;
+	}
+	.bugun li strong {
+		font-size: var(--boyut-xs);
+		color: var(--metin-soluk);
+	}
+	.bugun li a {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-1);
+		font-weight: 600;
+		color: var(--metin);
+	}
 	.sihirbaz-daveti {
 		display: flex;
 		align-items: center;

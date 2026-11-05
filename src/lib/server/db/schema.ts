@@ -231,6 +231,8 @@ export const dugumler = pgTable(
 		aramaMetni: text('arama_metni').generatedAlwaysAs((): SQL =>
 			sadelestirSql(sql`${dugumler.baslik} || ' ' || coalesce(${dugumler.altBaslik}, '')`)
 		),
+		/** Wikidata kimliği ("Q123"): zenginleştirmeyle doldurulur */
+		wikidata: text('wikidata'),
 		/** Etki ölçeği (puan değil): degistirdi / iz_birakti / gecti; null: belirtilmemiş */
 		etki: text('etki'),
 		/** Eserin ortak kaydı (tetikleyiciyle doldurulur; eser değilse null) */
@@ -486,6 +488,25 @@ export const alintilar = pgTable(
 		index('alintilar_dugum_idx').on(t.dugumId),
 		check('alintilar_metin_kontrol', sql`length(${t.metin}) between 1 and 2000`)
 	]
+);
+
+// ——— Bağ avı: "hayır, oradan gelmedim" cevapları bir daha sorulmasın ———
+
+export const bagAviRedleri = pgTable(
+	'bag_avi_redleri',
+	{
+		sahipId: uuid('sahip_id')
+			.notNull()
+			.references(() => kullanicilar.id, { onDelete: 'cascade' }),
+		kaynakId: uuid('kaynak_id')
+			.notNull()
+			.references(() => dugumler.id, { onDelete: 'cascade' }),
+		hedefId: uuid('hedef_id')
+			.notNull()
+			.references(() => dugumler.id, { onDelete: 'cascade' }),
+		olusturma: zamanDamgasi('olusturma').notNull().defaultNow()
+	},
+	(t) => [primaryKey({ columns: [t.sahipId, t.kaynakId, t.hedefId] })]
 );
 
 // ——— Kalıcı hız sınırı (UNLOGGED): sunucu yeniden başlasa ya da çoğalsa da sınırlar korunur ———
