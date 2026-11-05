@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ceviri } from '#lib/dilDurumu.svelte.ts';
 	import Simge from './Simge.svelte';
 
 	type Tema = 'sistem' | 'acik' | 'koyu';
@@ -8,11 +9,11 @@
 	let tema = $state<Tema>(baslangic);
 
 	const SIRA: Tema[] = ['sistem', 'acik', 'koyu'];
-	const ETIKET: Record<Tema, string> = {
-		sistem: 'Tema: sistem ayarı',
-		acik: 'Tema: açık',
-		koyu: 'Tema: koyu'
-	};
+	const ETIKET = $derived({
+		sistem: ceviri.t('tema.sistem'),
+		acik: ceviri.t('tema.acik'),
+		koyu: ceviri.t('tema.koyu')
+	});
 
 	function degistir() {
 		tema = SIRA[(SIRA.indexOf(tema) + 1) % SIRA.length];

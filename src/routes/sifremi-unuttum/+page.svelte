@@ -1,25 +1,31 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Alan from '#lib/bilesenler/Alan.svelte';
+	import { ceviri } from '#lib/dilDurumu.svelte.ts';
+	import { hataDilde } from '#lib/dil.ts';
 	import type { PageProps } from './$types';
 
 	let { form }: PageProps = $props();
 	let gonderiliyor = $state(false);
+	const t = $derived(ceviri.t);
+	const hd = (m: string | null | undefined) => hataDilde(m, ceviri.dil);
 </script>
 
-<svelte:head><title>Şifremi unuttum · İz</title></svelte:head>
+<svelte:head><title>{t('unuttum.sekme')} · İz</title></svelte:head>
 
 <div class="kap kap-dar">
 	<div class="kart hesap-karti">
-		<h1>Şifreni mi unuttun?</h1>
+		<h1>{t('unuttum.baslik')}</h1>
 		{#if form?.gonderildi}
 			<p class="bildirim bildirim-basari" role="status">
-				<strong>{form.eposta}</strong> adresine kayıtlı bir hesap varsa şifre sıfırlama bağlantısı gönderdik.
-				Bağlantı bir saat geçerli. Gelen kutunda yoksa istenmeyen klasörüne de bak.
+				{#if ceviri.dil === 'en'}{t('unuttum.gonderildi')} (<strong>{form.eposta}</strong
+					>){:else}<strong>{form.eposta}</strong>
+					{t('unuttum.gonderildi')}{/if}
+				{t('unuttum.gecerlilik')}
 			</p>
-			<p class="kucuk soluk alt-not"><a href="/giris">Girişe dön</a></p>
+			<p class="kucuk soluk alt-not"><a href="/giris">{t('unuttum.giriseDon')}</a></p>
 		{:else}
-			<p class="soluk">E-posta adresini yaz; şifreni yenilemen için bir bağlantı gönderelim.</p>
+			<p class="soluk">{t('unuttum.giris')}</p>
 			<form
 				method="POST"
 				class="yigin"
@@ -32,7 +38,7 @@
 					};
 				}}
 			>
-				<Alan id="eposta" etiket="E-posta" hata={form?.hata}>
+				<Alan id="eposta" etiket={t('giris.eposta')} hata={hd(form?.hata)}>
 					<input
 						id="eposta"
 						name="eposta"
@@ -44,10 +50,12 @@
 					/>
 				</Alan>
 				<button class="dugme dugme-birincil" disabled={gonderiliyor}>
-					{gonderiliyor ? 'Gönderiliyor…' : 'Bağlantı gönder'}
+					{gonderiliyor ? t('unuttum.gonderiliyor') : t('unuttum.gonder')}
 				</button>
 			</form>
-			<p class="kucuk soluk alt-not">Hatırladın mı? <a href="/giris">Giriş yap</a></p>
+			<p class="kucuk soluk alt-not">
+				{t('unuttum.hatirladin')} <a href="/giris">{t('giris.yap')}</a>
+			</p>
 		{/if}
 	</div>
 </div>

@@ -7,9 +7,11 @@
 		type Gizlilik,
 		type TarihHassasiyeti
 	} from '#lib/sabitler.ts';
-	import { tarihYaz } from '#lib/tarih.ts';
+	import { tarihDilde } from '#lib/dil.ts';
+	import { ceviri } from '#lib/dilDurumu.svelte.ts';
 	import GizlilikRozeti from './GizlilikRozeti.svelte';
 	import TurRozeti from './TurRozeti.svelte';
+	import TurSekli from './TurSekli.svelte';
 
 	type Props = {
 		dugum: {
@@ -37,7 +39,7 @@
 	{#if dugum.gorselUrl}
 		<img src={dugum.gorselUrl} alt="" loading="lazy" referrerpolicy="no-referrer" />
 	{:else}
-		<span class="yer-tutucu" aria-hidden="true">{dugum.baslik.slice(0, 1)}</span>
+		<span class="yer-tutucu" aria-hidden="true"><TurSekli tur={dugum.tur} boyut={22} /></span>
 	{/if}
 	<span class="govde">
 		<span class="baslik">{dugum.baslik}</span>
@@ -49,7 +51,9 @@
 			{/if}
 			{#if dugum.gizlilik !== 'ozel'}<GizlilikRozeti gizlilik={dugum.gizlilik} />{/if}
 			{#if dugum.tarih}
-				<span class="kucuk soluk">{tarihYaz(dugum.tarih, dugum.tarihHassasiyeti)}</span>
+				<span class="kucuk soluk"
+					>{tarihDilde(dugum.tarih, dugum.tarihHassasiyeti, ceviri.dil)}</span
+				>
 			{/if}
 		</span>
 	</span>
@@ -89,18 +93,23 @@
 	}
 	.dugum-karti[data-tur='eser'] {
 		--renk: var(--tur-eser);
+		--renk-zemin: var(--tur-eser-zemin);
 	}
 	.dugum-karti[data-tur='kisi'] {
 		--renk: var(--tur-kisi);
+		--renk-zemin: var(--tur-kisi-zemin);
 	}
 	.dugum-karti[data-tur='yer'] {
 		--renk: var(--tur-yer);
+		--renk-zemin: var(--tur-yer-zemin);
 	}
 	.dugum-karti[data-tur='karar'] {
 		--renk: var(--tur-karar);
+		--renk-zemin: var(--tur-karar-zemin);
 	}
 	.dugum-karti[data-tur='ani'] {
 		--renk: var(--tur-ani);
+		--renk-zemin: var(--tur-ani-zemin);
 	}
 	img,
 	.yer-tutucu {
@@ -114,9 +123,8 @@
 	.yer-tutucu {
 		display: grid;
 		place-items: center;
-		font-family: var(--yazi-baslik);
-		font-size: var(--boyut-xl);
-		color: var(--renk);
+		background: var(--renk-zemin, var(--yuzey-2));
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--renk) 18%, transparent);
 	}
 	.govde {
 		display: flex;

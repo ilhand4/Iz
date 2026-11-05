@@ -26,7 +26,10 @@ const SAYFALAR = [
 	'/sorular',
 	'/kitap',
 	'/emanet',
-	'/ceviri'
+	'/ceviri',
+	'/gizlilik',
+	'/cerezler',
+	'/'
 ];
 
 for (const tema of ['light', 'dark'] as const) {

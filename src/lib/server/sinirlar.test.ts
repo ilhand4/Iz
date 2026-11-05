@@ -22,10 +22,11 @@ describe('KaliciHizSiniri', () => {
 	});
 
 	it('pencere geçince yeniden izin verir', async () => {
-		const s = new KaliciHizSiniri('kisa', 1, 50);
+		// Pencere yük altında da iki istek arasında dolmayacak kadar geniş (tam pakette PostGIS yüklenirken)
+		const s = new KaliciHizSiniri('kisa', 1, 600);
 		expect((await s.dene('x')).izin).toBe(true);
 		expect((await s.dene('x')).izin).toBe(false);
-		await new Promise((r) => setTimeout(r, 80));
+		await new Promise((r) => setTimeout(r, 700));
 		expect((await s.dene('x')).izin).toBe(true);
 	});
 });

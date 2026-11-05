@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { DugumTuru, Gizlilik } from '#lib/sabitler.ts';
 	import { gunYaz } from '#lib/tarih.ts';
+	import { ceviri } from '#lib/dilDurumu.svelte.ts';
 	import GizlilikRozeti from './GizlilikRozeti.svelte';
 	import TurSekli from './TurSekli.svelte';
 
@@ -29,7 +30,10 @@
 	{#if iz.aciklama}<span class="aciklama">{iz.aciklama}</span>{/if}
 
 	{#if iz.duraklar.length}
-		<span class="yol" aria-label="Duraklar: {iz.duraklar.map((d) => d.baslik).join(', ')}">
+		<span
+			class="yol"
+			aria-label={ceviri.t('iz.duraklar', { liste: iz.duraklar.map((d) => d.baslik).join(', ') })}
+		>
 			{#each iz.duraklar as d (d.id)}
 				<span class="durak" title={d.baslik}><TurSekli tur={d.tur} boyut={14} /></span>
 			{/each}
@@ -40,10 +44,16 @@
 			{#if iz.sonDurak}<span class="ok" aria-hidden="true">→</span> {iz.sonDurak.baslik}{/if}
 		</span>
 	{:else}
-		<span class="bos">Henüz durak yok</span>
+		<span class="bos">{ceviri.t('iz.durakYok')}</span>
 	{/if}
 
-	<span class="meta">{iz.durakSayisi} durak · {gunYaz(iz.guncelleme)}</span>
+	<span class="meta"
+		>{ceviri.t('iz.durak', { sayi: iz.durakSayisi })} · {ceviri.dil === 'en'
+			? new Intl.DateTimeFormat('en-GB', { dateStyle: 'long', timeZone: 'Europe/Istanbul' }).format(
+					new Date(iz.guncelleme)
+				)
+			: gunYaz(iz.guncelleme)}</span
+	>
 </a>
 
 <style>

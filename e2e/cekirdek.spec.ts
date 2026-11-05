@@ -576,3 +576,37 @@ test('çeviri masası: iki çeviri yan yana, fark vurgusu, oy ve alıntı sını
 	// Kısa alıntı sınırı: 600 karakterden uzun çeviri girilemez
 	await expect(page.locator('textarea[name="metin"]')).toHaveAttribute('maxlength', '600');
 });
+
+test('PWA: manifest, simgeler, paylaşım hedefi ve çevrimdışı sayfası', async ({ page }) => {
+	const manifest = await (await page.request.get('/manifest.webmanifest')).json();
+	expect(manifest).toMatchObject({ short_name: 'İz', display: 'standalone' });
+	expect(manifest.share_target.action).toBe('/paylas');
+	for (const s of manifest.icons) expect((await page.request.get(s.src)).ok()).toBe(true);
+	expect((await page.request.get('/favicon.ico')).ok()).toBe(true);
+
+	// Telefonun paylaş menüsünden gelen metin hızlı ekleye düşer
+	await page.goto('/paylas?baslik=Aylak%20Adam&metin=Selin%20Hoca%20%C3%B6nerdi');
+	await expect(page).toHaveURL(/\/hizli\?metin=Aylak/);
+
+	await page.goto('/cevrimdisi');
+	await expect(page.getByRole('heading', { name: 'Şu an çevrimdışısın.' })).toBeVisible();
+	const sw = await page.evaluate(async () => {
+		const k = await navigator.serviceWorker.ready;
+		return !!k.active;
+	});
+	expect(sw).toBe(true);
+	expect((await (await page.request.get('/saglik')).json()).durum).toBe('iyi');
+});
+
+test('dil seçimi: İngilizce tanıtım ve gizlilik metni, sonra Türkçeye dönüş', async ({ page }) => {
+	await page.goto('/dil?d=en&donus=/gizlilik');
+	await expect(
+		page.getByRole('heading', { level: 1, name: 'Privacy and personal data' })
+	).toBeVisible();
+	await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+	await page.goto('/');
+	await expect(page.getByRole('heading', { level: 1 })).toContainText('People record');
+	await page.getByRole('link', { name: 'Türkçe' }).click();
+	await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
+	await expect(page.getByRole('heading', { level: 1 })).toContainText('İnsanlar ne yaşadığını');
+});

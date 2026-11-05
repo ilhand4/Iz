@@ -14,5 +14,5 @@ export const load: LayoutServerLoad = async ({ locals, cookies }) => {
 				])
 			).reduce((a, b) => a + b, 0)
 		: 0;
-	return { kullanici: locals.kullanici, tema, okunmamis };
+	return { kullanici: locals.kullanici, tema, okunmamis, dil: locals.dil };
 };

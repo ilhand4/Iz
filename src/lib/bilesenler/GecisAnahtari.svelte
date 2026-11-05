@@ -2,6 +2,7 @@
 	// Geçiş anahtarı (passkey) düğmesi: ekleme (ayarlar) ya da giriş. Tarayıcı WebAuthn
 	// desteklemiyorsa hiç görünmez (şifreyle giriş her zaman çalışır).
 	import { onMount } from 'svelte';
+	import { ceviri } from '#lib/dilDurumu.svelte.ts';
 	import { goto, refreshAll } from '$app/navigation';
 	import { bildirimler } from '#lib/bildirim.svelte.ts';
 	import Simge from './Simge.svelte';
@@ -72,7 +73,7 @@
 			{:else if kip === 'kayit'}
 				Bu cihaza geçiş anahtarı ekle
 			{:else}
-				Geçiş anahtarıyla giriş yap
+				{ceviri.t('gecis.giris')}
 			{/if}
 		</button>
 		{#if hata}<p class="hata-metni kucuk" role="alert">{hata}</p>{/if}

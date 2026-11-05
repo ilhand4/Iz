@@ -317,6 +317,14 @@
 					{/if}
 				</p>
 			{/if}
+			{#if !data.sahibiMi && data.ceviriMasalari.length}
+				<p class="ceviri-masalari satir kucuk">
+					<Simge ad="kopyala" boyut={14} />
+					{#each data.ceviriMasalari as m (m.id)}
+						<a href="/ceviri/{m.id}">Çeviri masası: {m.baslik}</a>
+					{/each}
+				</p>
+			{/if}
 			{#if data.sahibiMi}
 				<div class="satir eylemler">
 					{#if !d.muhurlu}
@@ -330,6 +338,17 @@
 					<a class="dugme dugme-kucuk" href="/izler/yeni?dugum={d.id}">
 						<Simge ad="iz" boyut={16} /> Buradan iz başlat
 					</a>
+					{#if d.tur === 'eser'}
+						{#each data.ceviriMasalari as m (m.id)}
+							<a class="dugme dugme-kucuk" href="/ceviri/{m.id}">
+								<Simge ad="kopyala" boyut={16} /> Çeviri masası
+							</a>
+						{:else}
+							<a class="dugme dugme-kucuk dugme-hayalet" href="/ceviri?eser={d.id}">
+								<Simge ad="kopyala" boyut={16} /> Çevirileri karşılaştır
+							</a>
+						{/each}
+					{/if}
 				</div>
 			{/if}
 		</div>
@@ -372,20 +391,6 @@
 					</li>
 				{/each}
 			</ul>
-		</section>
-	{/if}
-
-	{#if d.tur === 'eser' && (data.ceviriMasalari.length || data.sahibiMi)}
-		<section class="ceviri-masalari satir" aria-label="Çeviri masaları">
-			<Simge ad="kopyala" boyut={16} />
-			{#each data.ceviriMasalari as m (m.id)}
-				<a href="/ceviri/{m.id}">Çeviri masası: {m.baslik}</a>
-			{/each}
-			{#if data.sahibiMi}
-				<a class="kucuk soluk" href="/ceviri?eser={d.id}"
-					>{data.ceviriMasalari.length ? 'Yeni masa aç' : 'Çevirilerini karşılaştır: masa aç'}</a
-				>
-			{/if}
 		</section>
 	{/if}
 
@@ -905,8 +910,8 @@
 			{/if}
 
 			{#if data.sahibiMi}
-				<div class="kart bag-formu">
-					<h3>Yeni bağ kur</h3>
+				<details class="kart bag-formu" open={!!gidenHata || data.baglar.giden.length === 0}>
+					<summary>Yeni bağ kur</summary>
 					{#if data.secenekler.length}
 						<form method="POST" action="?/bagKur" class="yigin" use:enhance>
 							<input type="hidden" name="yon" value="giden" />
@@ -961,7 +966,7 @@
 						<a href="/dugumler/yeni?kaynak={d.id}">Yeni düğüm ekle</a> ya da
 						<a href="/ara?kaynak={d.id}">eser ara</a>.
 					</p>
-				</div>
+				</details>
 			{/if}
 
 			{#if uzakKapilar.length}
@@ -1291,9 +1296,6 @@
 		flex-direction: column;
 		gap: var(--a-2);
 	}
-	.bag-formu h3 {
-		margin-bottom: var(--a-3);
-	}
 	details.bag-formu summary {
 		cursor: pointer;
 		font-family: var(--yazi-baslik);
@@ -1429,6 +1431,7 @@
 		white-space: pre-line;
 	}
 	.ceviri-masalari {
+		margin: var(--a-3) 0 0;
 		align-items: center;
 		flex-wrap: wrap;
 		gap: var(--a-2) var(--a-3);

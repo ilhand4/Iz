@@ -12,6 +12,25 @@
 
 	let { data }: PageProps = $props();
 	const pano = $derived(data.pano);
+	const ilkAd = $derived(data.kullanici?.ad.split(/\s+/)[0] ?? '');
+	const bugun = new Intl.DateTimeFormat('tr-TR', {
+		weekday: 'long',
+		day: 'numeric',
+		month: 'long',
+		timeZone: 'Europe/Istanbul'
+	}).format(new Date());
+	const ODALAR = [
+		{ href: '/dugumler/ag', ad: 'Ağ', simge: 'dugumler' },
+		{ href: '/dugumler/zaman', ad: 'Zaman çizgisi', simge: 'zaman' },
+		{ href: '/dugumler/harita', ad: 'Harita', simge: 'harita' },
+		{ href: '/izler/hat', ad: 'Hat haritası', simge: 'iz' },
+		{ href: '/kararlar', ad: 'Karar defteri', simge: 'onay' },
+		{ href: '/sorular', ad: 'Yakınlara sorular', simge: 'kisi' },
+		{ href: '/kitap', ad: 'Kitabım', simge: 'takvim' },
+		{ href: '/ceviri', ad: 'Çeviri masası', simge: 'kopyala' },
+		{ href: '/donemler', ad: 'Dönemler', simge: 'bayrak' },
+		{ href: '/yillik', ad: 'Yıllık', simge: 'yildiz' }
+	] as const;
 	const toplam = $derived(Object.values(pano.sayilar).reduce((a, b) => a + (b ?? 0), 0));
 	const k = $derived(data.karakterler);
 	const karakterVar = $derived(
@@ -23,8 +42,8 @@
 
 <div class="kap yigin genis-aralik">
 	<SayfaBasligi
-		ust="Pano"
-		baslik="Merhaba, {data.kullanici?.ad}"
+		baslik="Merhaba, {ilkAd}"
+		ust={bugun}
 		aciklama={toplam === 0
 			? 'Haritan henüz boş. İlk düğümünü ekleyerek başla.'
 			: `Haritanda ${toplam} düğüm, ${pano.bagSayisi} bağ ve ${data.toplamIz} iz var.`}
@@ -146,48 +165,21 @@
 		</p>
 	</form>
 
-	<section aria-label="Türlere göre düğüm sayıları" class="sayilar">
+	<section class="sayilar" aria-label="Türlere göre düğüm sayıları">
 		{#each DUGUM_TURLERI as tur (tur)}
-			<a class="kart sayi" href="/dugumler?tur={tur}" data-tur={tur}>
-				<span class="sayi-ust">
-					<TurSekli {tur} boyut={14} />
-					<span>{DUGUM_TURU_COGUL[tur]}</span>
-				</span>
+			<a class="sayi" href="/dugumler?tur={tur}" data-tur={tur}>
 				<strong>{pano.sayilar[tur] ?? 0}</strong>
+				<span><TurSekli {tur} boyut={11} /> {DUGUM_TURU_COGUL[tur]}</span>
 			</a>
 		{/each}
 	</section>
 
 	{#if toplam > 0}
-		<section aria-labelledby="gorunumler-baslik" class="yigin">
-			<h2 id="gorunumler-baslik" class="gorunmez">Haritana bak</h2>
-			<div class="gorunum-kartlari">
-				<a class="kart gorunum" href="/dugumler/ag">
-					<span class="gorunum-simge"><Simge ad="dugumler" boyut={22} /></span>
-					<span class="gorunum-metin">
-						<strong>Ağ</strong>
-						<span>Neyin neye götürdüğünü tek bakışta gör.</span>
-					</span>
-					<Simge ad="ok" boyut={18} />
-				</a>
-				<a class="kart gorunum" href="/dugumler/zaman">
-					<span class="gorunum-simge"><Simge ad="zaman" boyut={22} /></span>
-					<span class="gorunum-metin">
-						<strong>Zaman çizgisi</strong>
-						<span>Düğümlerini yaşandıkları sırayla izle.</span>
-					</span>
-					<Simge ad="ok" boyut={18} />
-				</a>
-				<a class="kart gorunum" href="/izler">
-					<span class="gorunum-simge"><Simge ad="iz" boyut={22} /></span>
-					<span class="gorunum-metin">
-						<strong>İzler</strong>
-						<span>Yollarını bir hikâye gibi anlat.</span>
-					</span>
-					<Simge ad="ok" boyut={18} />
-				</a>
-			</div>
-		</section>
+		<nav class="odalar" aria-label="Haritanın odaları">
+			{#each ODALAR as o (o.href)}
+				<a href={o.href}><Simge ad={o.simge} boyut={16} /> {o.ad}</a>
+			{/each}
+		</nav>
 	{/if}
 
 	{#if k && (karakterVar || k.yetimSayisi > 0)}
@@ -360,89 +352,81 @@
 	}
 	.sayilar {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
-		gap: var(--a-3);
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		border-block: 1px solid var(--cizgi);
 	}
 	.sayi {
 		display: flex;
 		flex-direction: column;
-		gap: var(--a-1);
+		gap: 2px;
 		padding: var(--a-3) var(--a-4);
-		text-decoration: none;
 		color: var(--metin);
-		transition:
-			box-shadow var(--gecis),
-			border-color var(--gecis);
+		text-decoration: none;
+		transition: background var(--gecis);
+	}
+	.sayi + .sayi {
+		border-left: 1px solid var(--cizgi);
 	}
 	.sayi:hover {
+		background: var(--yuzey);
 		color: var(--metin);
-		border-color: var(--cizgi-guclu);
-		box-shadow: var(--golge-2);
-	}
-	.sayi-ust {
-		display: flex;
-		align-items: center;
-		gap: var(--a-2);
-		font-size: var(--boyut-sm);
-		color: var(--metin-soluk);
 	}
 	.sayi strong {
 		font-family: var(--yazi-baslik);
-		font-size: var(--boyut-2xl);
-		line-height: 1.1;
-		font-variant-numeric: tabular-nums;
+		font-size: 2.2rem;
+		font-weight: 500;
+		line-height: 1.05;
+		font-variant-numeric: lining-nums tabular-nums;
 	}
-
-	.gorunum-kartlari {
-		display: grid;
-		gap: var(--a-3);
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
-	}
-	.gorunum {
-		display: flex;
+	.sayi span {
+		display: inline-flex;
 		align-items: center;
-		gap: var(--a-3);
-		padding: var(--a-4);
-		color: var(--metin);
-		text-decoration: none;
-		transition:
-			box-shadow var(--gecis),
-			border-color var(--gecis);
-	}
-	.gorunum:hover {
-		color: var(--metin);
-		border-color: var(--vurgu);
-		box-shadow: var(--golge-2);
-	}
-	.gorunum > :global(svg:last-child) {
-		color: var(--metin-silik);
-		transition:
-			transform var(--gecis),
-			color var(--gecis);
-	}
-	.gorunum:hover > :global(svg:last-child) {
-		color: var(--vurgu);
-		transform: translateX(3px);
-	}
-	.gorunum-simge {
-		display: grid;
-		place-items: center;
-		flex: none;
-		width: 2.75rem;
-		height: 2.75rem;
-		border-radius: var(--yaricap);
-		background: var(--vurgu-zemin);
-		color: var(--vurgu);
-	}
-	.gorunum-metin {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-	}
-	.gorunum-metin span {
+		gap: 0.35rem;
 		font-size: var(--boyut-sm);
 		color: var(--metin-soluk);
+	}
+	@media (max-width: 40rem) {
+		.sayilar {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+		.sayi:nth-child(4) {
+			border-left: 0;
+		}
+		.sayi:nth-child(n + 4) {
+			border-top: 1px solid var(--cizgi);
+		}
+		.sayi strong {
+			font-size: 1.7rem;
+		}
+	}
+	.odalar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--a-2);
+	}
+	.odalar a {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		min-height: 2.25rem;
+		padding: 0 var(--a-3);
+		border: 1px solid var(--cizgi);
+		border-radius: var(--yaricap-tam);
+		background: var(--yuzey);
+		color: var(--metin);
+		font-size: var(--boyut-sm);
+		font-weight: 550;
+		text-decoration: none;
+		transition:
+			border-color var(--gecis),
+			color var(--gecis);
+	}
+	.odalar a:hover {
+		border-color: var(--vurgu);
+		color: var(--vurgu-guclu);
+	}
+	.odalar a :global(svg) {
+		color: var(--metin-silik);
 	}
 
 	.hatirlaticilar {

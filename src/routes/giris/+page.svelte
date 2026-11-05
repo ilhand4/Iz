@@ -3,19 +3,23 @@
 	import { page } from '$app/state';
 	import Alan from '#lib/bilesenler/Alan.svelte';
 	import GecisAnahtari from '#lib/bilesenler/GecisAnahtari.svelte';
+	import { ceviri } from '#lib/dilDurumu.svelte.ts';
+	import { hataDilde } from '#lib/dil.ts';
 	import type { PageProps } from './$types';
 
 	let { form }: PageProps = $props();
 	let gonderiliyor = $state(false);
+	const t = $derived(ceviri.t);
+	const hd = (m: string | null | undefined) => hataDilde(m, ceviri.dil);
 
 	const h = $derived(form?.hatalar as Record<string, string> | undefined);
 </script>
 
-<svelte:head><title>Giriş · İz</title></svelte:head>
+<svelte:head><title>{t('giris.sekme')} · İz</title></svelte:head>
 
 <div class="kap kap-dar">
 	<div class="kart hesap-karti">
-		<h1>Tekrar hoş geldin</h1>
+		<h1>{t('giris.baslik')}</h1>
 
 		<form
 			method="POST"
@@ -31,12 +35,12 @@
 		>
 			{#if page.url.searchParams.has('sifirlandi') && !form}
 				<p class="bildirim bildirim-basari" role="status">
-					Şifren değiştirildi. Yeni şifrenle giriş yapabilirsin.
+					{t('giris.sifirlandi')}
 				</p>
 			{/if}
-			{#if h?.genel}<p class="bildirim bildirim-hata" role="alert">{h.genel}</p>{/if}
+			{#if h?.genel}<p class="bildirim bildirim-hata" role="alert">{hd(h.genel)}</p>{/if}
 
-			<Alan id="eposta" etiket="E-posta" hata={h?.eposta}>
+			<Alan id="eposta" etiket={t('giris.eposta')} hata={hd(h?.eposta)}>
 				<input
 					id="eposta"
 					name="eposta"
@@ -47,7 +51,7 @@
 					required
 				/>
 			</Alan>
-			<Alan id="sifre" etiket="Şifre" hata={h?.sifre} ipucu={null}>
+			<Alan id="sifre" etiket={t('giris.sifre')} hata={hd(h?.sifre)} ipucu={null}>
 				<input
 					id="sifre"
 					name="sifre"
@@ -58,17 +62,19 @@
 				/>
 			</Alan>
 
-			<p class="kucuk sifre-unuttum"><a href="/sifremi-unuttum">Şifremi unuttum</a></p>
+			<p class="kucuk sifre-unuttum"><a href="/sifremi-unuttum">{t('giris.unuttum')}</a></p>
 
 			<button class="dugme dugme-birincil" disabled={gonderiliyor}>
-				{gonderiliyor ? 'Giriş yapılıyor…' : 'Giriş yap'}
+				{gonderiliyor ? t('giris.yapiliyor') : t('giris.yap')}
 			</button>
 		</form>
 
-		<div class="ya-da" aria-hidden="true"><span>ya da</span></div>
+		<div class="ya-da" aria-hidden="true"><span>{t('giris.yaDa')}</span></div>
 		<GecisAnahtari kip="giris" donus={page.url.searchParams.get('donus')} />
 
-		<p class="kucuk soluk alt-not">Hesabın yok mu? <a href="/kayit">Kayıt ol</a></p>
+		<p class="kucuk soluk alt-not">
+			{t('giris.hesapYok')} <a href="/kayit">{t('giris.kayitOl')}</a>
+		</p>
 	</div>
 </div>
 

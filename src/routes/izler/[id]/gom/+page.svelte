@@ -2,6 +2,7 @@
 	// Başka sitelere <iframe> ile gömülen sade iz görünümü. Bağlantılar yeni sekmede açılır.
 	import { page } from '$app/state';
 	import Logo from '#lib/bilesenler/Logo.svelte';
+	import { ceviri } from '#lib/dilDurumu.svelte.ts';
 	import TurSekli from '#lib/bilesenler/TurSekli.svelte';
 	import type { PageProps } from './$types';
 
@@ -19,7 +20,7 @@
 		<p class="kucuk soluk">
 			<a href="{koken}/@{data.sahip.kullaniciAdi}" target="_blank" rel="noopener">{data.sahip.ad}</a
 			>
-			· {data.duraklar.length} durak
+			· {ceviri.t('iz.durak', { sayi: data.duraklar.length })}
 		</p>
 	</header>
 	<ol class="duraklar">
@@ -27,7 +28,7 @@
 			<li>
 				<span class="no" aria-hidden="true">{i + 1}</span>
 				{#if 'gizli' in durak}
-					<span class="gizli">Gizli durak</span>
+					<span class="gizli">{ceviri.t('iz.gizliDurak')}</span>
 				{:else}
 					<span class="govde">
 						<a
@@ -50,7 +51,8 @@
 	</ol>
 	<footer>
 		<a href="{koken}/izler/{data.iz.id}" target="_blank" rel="noopener" class="imza">
-			<Logo boyut={16} /> İz'de aç
+			<Logo boyut={16} />
+			{ceviri.t('iz.izdeAc')}
 		</a>
 	</footer>
 </article>

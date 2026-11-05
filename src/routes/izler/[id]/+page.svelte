@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ceviri } from '#lib/dilDurumu.svelte.ts';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import BosDurum from '#lib/bilesenler/BosDurum.svelte';
@@ -159,10 +160,13 @@
 					{#if 'gizli' in durak}
 						<div class="kart gizli-durak">
 							<Simge ad="kilit" boyut={18} />
-							<span>Bu durak yalnızca izin sahibine açık.</span>
+							<span>{ceviri.t('iz.gizliDurakMetin')}</span>
 						</div>
 					{:else}
-						<article class="kart durak-karti" aria-label="{i + 1}. durak: {durak.dugum.baslik}">
+						<article
+							class="kart durak-karti"
+							aria-label={ceviri.t('iz.durakEtiketi', { no: i + 1, baslik: durak.dugum.baslik })}
+						>
 							{#if durak.dugum.gorselUrl}
 								<img
 									src={durak.dugum.gorselUrl}
@@ -231,9 +235,9 @@
 					{/if}
 				</li>
 			{/each}
-			<li class="son" aria-label="İzin sonu">
+			<li class="son" aria-label={ceviri.t('iz.sonEtiket')}>
 				<span class="durak-no"><Simge ad="bayrak" boyut={14} /></span>
-				<span class="kucuk soluk">Şimdilik burada bitiyor.</span>
+				<span class="kucuk soluk">{ceviri.t('iz.son')}</span>
 			</li>
 		</ol>
 	{/if}
@@ -254,8 +258,22 @@
 		gap: var(--a-1);
 		flex-wrap: wrap;
 	}
+	.catal {
+		grid-column: 2;
+	}
 	.catal-formu {
 		margin: 0;
+	}
+	/* Çatallanma düğmesi kalabalık etmesin: durağın üzerine gelince ya da odaklanınca görünür */
+	@media (hover: hover) {
+		.catal-formu {
+			opacity: 0;
+			transition: opacity var(--gecis);
+		}
+		li:hover .catal-formu,
+		.catal-formu:focus-within {
+			opacity: 1;
+		}
 	}
 	.ortak-rozet {
 		background: var(--vurgu-zemin);

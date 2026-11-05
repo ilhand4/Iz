@@ -8,7 +8,7 @@
 - Tempo: her aşamada maddelerin hepsini bitir → `npm run check`, `npm test`, `npm run build` → tarayıcıda dene (açık/koyu tema, masaüstü/mobil ekran görüntüsü) → ROADMAP.md'yi güncelle → Türkçe commit → `git push origin main` (kullanıcı 5 Kasım 2026'da push'u bana bıraktı; GitHub Desktop'un kimlik bilgileri kullanılıyor) → GitHub Actions sonucunu kontrol et → kısa Türkçe özet.
 - Kullanıcı Aşama 2'den itibaren işi **"profesyonel bir site tasarımcısı gözüyle"** yapmamı istedi: yalnızca özelliği değil görsel tutarlılığı, boş durumları, mobil kullanımı ve erişilebilirliği de bitmiş say.
 - Yalnızca gerçekten kullanıcının vermesi gereken kararlarda soru sor; diğerlerinde makul varsayılanı seç ve buraya not et.
-- **Sıradaki iş:** Aşama 8 (PWA, İngilizce arayüz, yayına alma). Aşama 1–7 bitti. Açık kalan kullanıcı kararı: **e-posta servisi seçimi** (seçilene kadar iletiler geliştirmede terminale yazılır, üretimde gönderilmez). Üretim `.env`'ine `BODY_SIZE_LIMIT=30M` eklenmeli (kullanıcı yazar; sesli yanıtlar 25 MB'a kadar). Aşama 3'e kaynaklık eden dış değerlendirmedeki örnek kodlar olduğu gibi kullanılmaz; mevcut şemaya (uuid, `herkes`) ek sütun/tablo olarak uyarlanır.
+- **Sıradaki iş:** Aşama 8'in kalanları: uygulama içi sayfaların İngilizcesi, yayına alma (barındırma/alan adı kullanıcının kararı; şimdilik ertelendi, kontrol listesi `YAYIN.md`). Aşama 1–7 bitti. Açık kalan kullanıcı kararı: **e-posta servisi seçimi** (seçilene kadar iletiler geliştirmede terminale yazılır, üretimde gönderilmez). Üretim `.env`'ine `BODY_SIZE_LIMIT=30M` eklenmeli (kullanıcı yazar; sesli yanıtlar 25 MB'a kadar). Aşama 3'e kaynaklık eden dış değerlendirmedeki örnek kodlar olduğu gibi kullanılmaz; mevcut şemaya (uuid, `herkes`) ek sütun/tablo olarak uyarlanır.
 - Veritabanı şifresi ve TMDB anahtarı `.env` dosyasında; kullanıcı kendisi yazdı. Bunları okuma/yazdırma.
 
 ## Ürün
@@ -163,8 +163,17 @@
 - **Erişim** (`ceviriMasasi.ts`): görme masa gizliliğiyle; paragraf/ayar yalnızca sahibi; çeviri ekleme sahibi + (grup/herkes masasında) grup arkadaşları; oy ve yorum masayı gören her girişli kullanıcı; silme yazarı ya da masa sahibi. Eser bağlantısı izleyen eseri göremiyorsa gönderilmez. Saatte 60 çeviri/yorum.
 - **Fark vurgusu** istemcide (`sozcukFarki`): bir sözcük, paragraftaki **öteki çevirilerin hepsinde** karşılıksızsa `<mark>`.
 
+### Aşama 8 kararları
+
+- **PWA:** `static/manifest.webmanifest`, simgeler `npm run simgeler` (`scripts/simgeler.ts`, sharp; tür şekilli logo — `Logo.svelte` ile aynı). Kit 3'te service worker **klasör**: `src/service-worker/index.ts` + kendi `tsconfig.json` (`$app/tsconfig/service-worker`), kök tsconfig'te `exclude`; API `self` → `$app/service-worker`, dosya listeleri `immutable/assets` → `$app/manifest`, sürüm → `$app/env`. Önbelleğe girmez: API, ses, fotoğraf, giriş/kayıt/yanıt/davet/şifre, dışa aktarma, POST. Çıkışta (POST /cikis) sayfa önbelleği silinir. `/cevrimdisi` önceden derlenir.
+- **Paylaşım hedefi:** `share_target` GET `/paylas?baslik&metin&adres` → `/hizli?metin=` (yinelenen parça atılır, en çok 300 karakter).
+- **Dil (kullanıcı kararı: altyapı + kamuya açık sayfalar):** `src/lib/dil.ts` (`dilSec`: çerez `dil`, yoksa Accept-Language; Türkçe öncelikli, varsayılan tr), sözlük `src/lib/sozluk/tr.ts` (asıl, anahtar türü) + `en.ts` (`Record<Anahtar, string>`: eksik anahtar tip hatası). Bileşende `const t = $derived(ceviri.t)` (`dilDurumu.svelte.ts`, kök düzen verisinden). `hooks` → `locals.dil`, `<html lang="%iz.dil%">`. `/dil?d=en&donus=` çerez + yönlendirme (yalnızca site içi yol). Sunucu doğrulama iletileri `hataDilde` eşlemesiyle. Playwright `locale: 'tr-TR'` (yoksa İngilizce açılır). Uygulama içi sayfalar Türkçe kalır.
+- **KVKK:** `/gizlilik`, `/cerezler` (dört zorunlu çerez: `iz_oturum`, `tema`, `dil`, `iz_meydan`; izleme yok → onay penceresi yok). `VERI_SORUMLUSU`, `ILETISIM_EPOSTA` ortam değişkenleri. Metin taslaktır; yayından önce hukukçu.
+- **Yayına hazırlık:** `YAYIN.md`, `GET /saglik` (`{durum:'iyi'}` ya da 503).
+- **Tasarım ilkeleri (Aşama 8 elden geçirmesi):** kutu kutu kart ızgarası yerine editoryal düzen (ince çizgiler, numaralı bölümler, büyük serif rakamlar); türün şekli her yerde kimlik (yer tutucular, logo, simgeler); "Yakında" gibi eskiyen etiket koyma; harf rozeti yerine tür şekli.
+
 ## Komutlar
 
-`npm run dev` · `npm run check` · `npm test` · `npm run build` · `npm run preview` · `npm run db:generate` · `npm run db:migrate` · `npm run db:seed`
+`npm run dev` · `npm run check` · `npm test` · `npm run build` · `npm run preview` · `npm run db:generate` · `npm run db:migrate` · `npm run db:seed` · `npm run simgeler`
 
 Git Bash'te Node PATH'te olmayabilir: `export PATH="/c/Program Files/nodejs:$PATH"`. Git Bash heredoc'ları `\\` dizilerini tek `\`'ye indirir; ters eğik çizgi içeren dosyaları Write/Edit aracıyla yaz.

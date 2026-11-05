@@ -2,6 +2,7 @@ import { sequence, type Handle } from '@sveltejs/kit/hooks';
 import { aramaOnbellegi } from '#lib/server/aramaOnbellegi.ts';
 import { kaliciOnbellekKur } from '#lib/server/eserArama.ts';
 import { sesKuyrugunuBaslat } from '#lib/server/sesler.ts';
+import { dilSec } from '#lib/dil.ts';
 import {
 	OTURUM_CEREZI,
 	oturumCereziSil,
@@ -47,12 +48,17 @@ const oturum: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-/** Tema çerezini sunucuda okuyup <html data-theme> olarak yazar: sayfa yanlış temada parlamaz */
+/**
+ * Tema ve dil: tema çerezi <html data-theme> olarak (sayfa yanlış temada parlamaz), dil çerezden ya da
+ * tarayıcının dilinden seçilip <html lang> olarak yazılır.
+ */
 const tema: Handle = async ({ event, resolve }) => {
 	const secim = event.cookies.get('tema');
 	const ozellik = secim === 'acik' || secim === 'koyu' ? `data-theme="${secim}"` : '';
+	event.locals.dil = dilSec(event.cookies.get('dil'), event.request.headers.get('accept-language'));
 	return resolve(event, {
-		transformPageChunk: ({ html }) => html.replace('%iz.tema%', ozellik)
+		transformPageChunk: ({ html }) =>
+			html.replace('%iz.tema%', ozellik).replace('%iz.dil%', event.locals.dil)
 	});
 };
 

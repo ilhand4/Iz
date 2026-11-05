@@ -6,6 +6,7 @@ declare global {
 		interface Locals {
 			kullanici: OturumKullanicisi | null;
 			oturumId: string | null;
+			dil: import('#lib/dil.ts').Dil;
 		}
 		// interface PageData {}
 		// interface PageState {}

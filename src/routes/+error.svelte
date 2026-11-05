@@ -1,29 +1,39 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { ceviri } from '#lib/dilDurumu.svelte.ts';
 
-	const BASLIK: Record<number, string> = {
-		400: 'İstek anlaşılamadı',
-		403: 'Bu işleme izin yok',
-		404: 'Burada bir iz yok',
-		429: 'Biraz yavaşlayalım',
-		500: 'Bir şeyler ters gitti'
-	};
+	const t = $derived(ceviri.t);
+	const baslik = $derived(
+		page.status === 400 ||
+			page.status === 403 ||
+			page.status === 404 ||
+			page.status === 429 ||
+			page.status === 500
+			? t(`hata.${page.status}`)
+			: t('hata.genel')
+	);
+	// Sunucunun Türkçe hata iletisi İngilizce arayüzde genel bir metinle değiştirilir
+	const ileti = $derived(
+		page.status >= 500
+			? t('hata.500Metin')
+			: ceviri.dil === 'en' && page.status === 404
+				? t('hata.404Metin')
+				: page.error?.message
+	);
 </script>
 
-<svelte:head><title>{BASLIK[page.status] ?? 'Hata'} · İz</title></svelte:head>
+<svelte:head><title>{baslik} · İz</title></svelte:head>
 
 <div class="kap kap-dar">
 	<div class="kart hata">
 		<p class="kod">{page.status}</p>
-		<h1>{BASLIK[page.status] ?? 'Hata'}</h1>
+		<h1>{baslik}</h1>
 		<p class="soluk">
-			{page.status === 500
-				? 'Beklenmedik bir hata oluştu. Lütfen biraz sonra tekrar dene.'
-				: page.error?.message}
+			{ileti}
 		</p>
 		<div class="satir">
-			<a class="dugme dugme-birincil" href="/">Ana sayfa</a>
-			<a class="dugme" href="/pano">Pano</a>
+			<a class="dugme dugme-birincil" href="/">{t('hata.anaSayfa')}</a>
+			<a class="dugme" href="/pano">{t('hata.pano')}</a>
 		</div>
 	</div>
 </div>

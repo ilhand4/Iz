@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { ceviri } from '#lib/dilDurumu.svelte.ts';
+	import { TUR_ETIKETI } from '#lib/dil.ts';
 	import AgGorunumu from '#lib/bilesenler/AgGorunumu.svelte';
 	import BosDurum from '#lib/bilesenler/BosDurum.svelte';
 	import DugumKarti from '#lib/bilesenler/DugumKarti.svelte';
@@ -9,6 +11,7 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	const t = $derived(ceviri.t);
 	const p = $derived(data.profil);
 	const bagliIdler = $derived(new Set(data.ag.baglar.flatMap((b) => [b.kaynakId, b.hedefId])));
 	const turSayilari = $derived(
@@ -18,7 +21,7 @@
 		})).filter((t) => t.sayi > 0)
 	);
 	const katilma = $derived(
-		new Intl.DateTimeFormat('tr-TR', {
+		new Intl.DateTimeFormat(ceviri.dil === 'en' ? 'en-GB' : 'tr-TR', {
 			month: 'long',
 			year: 'numeric',
 			timeZone: 'Europe/Istanbul'
@@ -32,24 +35,17 @@
 	<link
 		rel="alternate"
 		type="application/rss+xml"
-		title="{p.ad} · İz izleri"
+		title={t('profil.rssBaslik', { ad: p.ad })}
 		href="/@{p.kullaniciAdi}/rss.xml"
 	/>
-	<meta
-		name="description"
-		content={p.hakkinda ?? `${p.ad} adlı kişinin İz'deki herkese açık haritası ve izleri.`}
-	/>
+	<meta name="description" content={p.hakkinda ?? t('profil.meta', { ad: p.ad })} />
 </svelte:head>
 
 <div class="kap yigin genis-aralik">
 	{#if data.kendisi}
 		<p class="bildirim bildirim-bilgi kendisi">
 			<Simge ad="dunya" boyut={18} />
-			<span
-				>Profilin başkalarına böyle görünür: yalnızca “herkese açık” düğüm ve izlerin. <a
-					href="/ayarlar#profil">Profili düzenle</a
-				></span
-			>
+			<span>{t('profil.kendisi')} <a href="/ayarlar#profil">{t('profil.duzenle')}</a></span>
 		</p>
 	{/if}
 
@@ -57,15 +53,18 @@
 		<span class="avatar" aria-hidden="true">{p.ad.slice(0, 1).toLocaleUpperCase('tr')}</span>
 		<div class="kimlik">
 			<h1>{p.ad}</h1>
-			<p class="kullanici-adi">@{p.kullaniciAdi} · {katilma} tarihinden beri İz'de</p>
+			<p class="kullanici-adi">@{p.kullaniciAdi} · {t('profil.katilma', { tarih: katilma })}</p>
 			{#if p.hakkinda}<p class="hakkinda">{p.hakkinda}</p>{/if}
 			{#if !bos}
-				<ul class="sayilar" aria-label="Herkese açık içerik">
-					<li><strong>{data.izler.length}</strong> iz</li>
-					{#each turSayilari as t (t.tur)}
+				<ul class="sayilar" aria-label={t('profil.acikIcerik')}>
+					<li><strong>{data.izler.length}</strong> {t('profil.izSayisi')}</li>
+					{#each turSayilari as ts (ts.tur)}
 						<li>
-							<TurSekli tur={t.tur} boyut={11} /> <strong>{t.sayi}</strong>
-							{DUGUM_TURU_ETIKETI[t.tur].toLocaleLowerCase('tr')}
+							<TurSekli tur={ts.tur} boyut={11} /> <strong>{ts.sayi}</strong>
+							{(ceviri.dil === 'en'
+								? TUR_ETIKETI.en[ts.tur]
+								: DUGUM_TURU_ETIKETI[ts.tur]
+							).toLocaleLowerCase(ceviri.dil)}
 						</li>
 					{/each}
 				</ul>
@@ -75,17 +74,15 @@
 
 	{#if bos}
 		<BosDurum
-			baslik="Henüz herkese açık bir şey yok"
-			aciklama={data.kendisi
-				? 'Bir düğümü ya da izi “herkese açık” yaptığında burada görünür.'
-				: `${p.ad} haritasını şimdilik kendine saklıyor.`}
+			baslik={t('profil.bosBaslik')}
+			aciklama={data.kendisi ? t('profil.bosKendisi') : t('profil.bosBaskasi', { ad: p.ad })}
 		/>
 	{:else}
 		{#if data.izler.length}
 			<section class="yigin" aria-labelledby="izler-baslik">
 				<div class="bolum-ust">
-					<h2 id="izler-baslik">İzler</h2>
-					<a class="kucuk rss" href="/@{p.kullaniciAdi}/rss.xml">RSS ile takip et</a>
+					<h2 id="izler-baslik">{t('profil.izler')}</h2>
+					<a class="kucuk rss" href="/@{p.kullaniciAdi}/rss.xml">{t('profil.rss')}</a>
 				</div>
 				<div class="izgara">
 					{#each data.izler as iz (iz.id)}
@@ -97,12 +94,8 @@
 
 		{#if data.ag.baglar.length}
 			<section class="yigin" aria-labelledby="ag-baslik">
-				<h2 id="ag-baslik">Açık harita</h2>
-				<p class="kucuk soluk">
-					Herkese açık düğümler ve aralarındaki “götürdü” bağları. Kesikli kontürlü şekiller gölge
-					düğümler (içeriği gizli); noktalı çizgiler, aradaki gizli düğümleri göstermeden dolaylı
-					bağlantıyı işaret eder.
-				</p>
+				<h2 id="ag-baslik">{t('profil.acikHarita')}</h2>
+				<p class="kucuk soluk">{t('profil.acikHaritaMetin')}</p>
 				<AgGorunumu
 					dugumler={data.ag.dugumler.filter((d) => bagliIdler.has(d.id))}
 					baglar={data.ag.baglar}
@@ -113,7 +106,7 @@
 
 		{#if data.dugumler.length}
 			<section class="yigin" aria-labelledby="dugumler-baslik">
-				<h2 id="dugumler-baslik">Düğümler</h2>
+				<h2 id="dugumler-baslik">{t('profil.dugumler')}</h2>
 				<div class="izgara">
 					{#each data.dugumler as dugum (dugum.id)}
 						<DugumKarti {dugum} />

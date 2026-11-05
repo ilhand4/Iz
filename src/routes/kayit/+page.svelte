@@ -1,21 +1,25 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Alan from '#lib/bilesenler/Alan.svelte';
+	import { ceviri } from '#lib/dilDurumu.svelte.ts';
+	import { hataDilde } from '#lib/dil.ts';
 	import type { PageProps } from './$types';
 
 	let { form }: PageProps = $props();
 	let gonderiliyor = $state(false);
+	const t = $derived(ceviri.t);
+	const hd = (m: string | null | undefined) => hataDilde(m, ceviri.dil);
 
 	const h = $derived(form?.hatalar as Record<string, string> | undefined);
 	const d = $derived(form?.degerler as Record<string, string> | undefined);
 </script>
 
-<svelte:head><title>Kayıt ol · İz</title></svelte:head>
+<svelte:head><title>{t('kayit.sekme')} · İz</title></svelte:head>
 
 <div class="kap kap-dar">
 	<div class="kart hesap-karti">
-		<h1>İzini başlat</h1>
-		<p class="soluk">Hesabın yalnızca sana ait. Ne eklediğini, kimin göreceğini sen seçersin.</p>
+		<h1>{t('kayit.baslik')}</h1>
+		<p class="soluk">{t('kayit.giris')}</p>
 
 		<form
 			method="POST"
@@ -29,9 +33,9 @@
 				};
 			}}
 		>
-			{#if h?.genel}<p class="bildirim bildirim-hata" role="alert">{h.genel}</p>{/if}
+			{#if h?.genel}<p class="bildirim bildirim-hata" role="alert">{hd(h.genel)}</p>{/if}
 
-			<Alan id="ad" etiket="Adın" hata={h?.ad}>
+			<Alan id="ad" etiket={t('kayit.ad')} hata={hd(h?.ad)}>
 				<input
 					id="ad"
 					name="ad"
@@ -44,9 +48,9 @@
 			</Alan>
 			<Alan
 				id="kullaniciAdi"
-				etiket="Kullanıcı adı"
-				hata={h?.kullaniciAdi}
-				ipucu="3–30 karakter: a-z, rakam, nokta, alt çizgi."
+				etiket={t('kayit.kullaniciAdi')}
+				hata={hd(h?.kullaniciAdi)}
+				ipucu={t('kayit.kullaniciAdiIpucu')}
 			>
 				<input
 					id="kullaniciAdi"
@@ -60,7 +64,7 @@
 					maxlength="30"
 				/>
 			</Alan>
-			<Alan id="eposta" etiket="E-posta" hata={h?.eposta}>
+			<Alan id="eposta" etiket={t('giris.eposta')} hata={hd(h?.eposta)}>
 				<input
 					id="eposta"
 					name="eposta"
@@ -71,12 +75,7 @@
 					required
 				/>
 			</Alan>
-			<Alan
-				id="sifre"
-				etiket="Şifre"
-				hata={h?.sifre}
-				ipucu="En az 10 karakter. Uzun bir cümle iyi bir şifredir."
-			>
+			<Alan id="sifre" etiket={t('giris.sifre')} hata={hd(h?.sifre)} ipucu={t('kayit.sifreIpucu')}>
 				<input
 					id="sifre"
 					name="sifre"
@@ -87,7 +86,7 @@
 					minlength="10"
 				/>
 			</Alan>
-			<Alan id="sifreTekrar" etiket="Şifre (tekrar)" hata={h?.sifreTekrar}>
+			<Alan id="sifreTekrar" etiket={t('kayit.sifreTekrar')} hata={hd(h?.sifreTekrar)}>
 				<input
 					id="sifreTekrar"
 					name="sifreTekrar"
@@ -99,11 +98,17 @@
 			</Alan>
 
 			<button class="dugme dugme-birincil" disabled={gonderiliyor}>
-				{gonderiliyor ? 'Hesap açılıyor…' : 'Hesap aç'}
+				{gonderiliyor ? t('kayit.aciliyor') : t('kayit.ac')}
 			</button>
+			<p class="kucuk soluk aydinlatma">
+				{t('kayit.aydinlatmaBas')} <a href="/gizlilik">{t('kayit.aydinlatmaBag')}</a>{ceviri.dil ===
+				'en'
+					? ''
+					: ' '}{t('kayit.aydinlatmaSon')}
+			</p>
 		</form>
 
-		<p class="kucuk soluk alt-not">Zaten hesabın var mı? <a href="/giris">Giriş yap</a></p>
+		<p class="kucuk soluk alt-not">{t('kayit.hesapVar')} <a href="/giris">{t('giris.yap')}</a></p>
 	</div>
 </div>
 
@@ -117,5 +122,9 @@
 	}
 	.alt-not {
 		margin: var(--a-4) 0 0;
+	}
+	.aydinlatma {
+		margin: 0;
+		line-height: 1.5;
 	}
 </style>

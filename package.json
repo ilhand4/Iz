@@ -22,6 +22,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:seed": "tsx scripts/seed.ts",
 		"db:studio": "drizzle-kit studio",
+		"simgeler": "tsx scripts/simgeler.ts",
 		"db:yedek": "tsx scripts/yedek.ts",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write ."

@@ -149,14 +149,19 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 - [x] **Telif (kullanıcı kararı: kısa alıntı + beyan):** çeviri en çok 600 karakter; çevirmen zorunlu, yayınevi/yıl isteğe bağlı; dayanak zorunlu (telif süresi dolmuş / izinli / inceleme amaçlı kısa alıntı); alıntı dayanaklı çeviri içeren paragraf masa başına en çok 5; masalar varsayılan özel; sayfada telif notu
 - [x] Testler: 253 birim/entegrasyon testi, 124 uçtan uca test ve axe taraması tamamı geçiyor
 
-## ⏳ Aşama 8 — PWA, İngilizce, yayına alma
+## 🚧 Aşama 8 — PWA, İngilizce, yayına alma
 
-- [ ] PWA (çevrimdışı okuma, ana ekrana ekleme)
-- [ ] Telefonun paylaş menüsünden İz'e ekleme (PWA paylaşım hedefi; Android'de çalışır, iPhone desteği sınırlı)
-- [ ] İngilizce arayüz (i18n)
-- [ ] Yayına alma: barındırma seçimi, HTTPS arkasında `adapter-node` (gerekirse `paths.origin`), yedekleme, izleme
+- [x] PWA: manifest, simgeler (`npm run simgeler`, tür şekilli logo), service worker (`src/service-worker/`): uygulama dosyaları önbellekte, ziyaret edilen sayfalar ağ önce / çevrimdışı son kopya, `/cevrimdisi` sayfası; çıkışta kişisel sayfa önbelleği silinir; kısayollar
+- [x] Telefonun paylaş menüsünden İz'e ekleme: `share_target` → `/paylas` → hızlı ekle (Android; iPhone desteği sınırlı)
+- [x] İngilizce arayüz — **altyapı + kamuya açık sayfalar** (kullanıcı kararı): dil çerezi ya da tarayıcı dili, `<html lang>`, alt bilgide dil seçici; tanıtım, giriş/kayıt/şifre, hata sayfası, menüler, alt bilgi, profil, iz kartı ve okuma, gömme, rozetler, gizlilik ve çerez metinleri. Uygulama içi sayfalar şimdilik Türkçe
+- [ ] İngilizce: uygulama içi sayfalar (aynı sözlükle, sayfa sayfa)
+- [x] Yayına hazırlık: `YAYIN.md` kontrol listesi, `/saglik` ucu, `.env.example` (gövde sınırı, veri sorumlusu, yükleme klasörü)
+- [ ] Yayına alma: barındırma ve alan adı seçimi (kullanıcının kararı; şimdilik ertelendi)
 - [ ] Gelir getiren bir yayına geçilirse TMDB'den ticari kullanım lisansı alma (şu anki anahtar yalnızca kişisel kullanım içindir)
-- [ ] KVKK metinleri (aydınlatma, çerez); hesap silme ve dışa aktarma Aşama 3a'da
+- [x] KVKK metinleri: `/gizlilik` (aydınlatma; veri sorumlusu `VERI_SORUMLUSU`), `/cerezler` (yalnızca zorunlu çerezler, onay penceresi yok), kayıt formunda bağlantı. **Yayından önce hukukçu incelemesi gerekir**
+- [x] Tasarım elden geçirildi: tanıtım sayfası (tür şekilli, çizilerek beliren iz; numaralı bölümler; görünüm çizimleri; odalar; kapanış), pano (tipografik sayılar, odalar şeridi), tür şekilli yer tutucular, düğüm sayfası düzeni, alt bilgi; eski "Yakında" etiketleri kaldırıldı
+- [x] Hata taraması: 92 sayfa otomatik gezildi (4xx/5xx, konsol hatası yok); düzeltilenler: iz sayfasında çatallanma düğmesinin zaman çizgisine binmesi, haritada adresten seçilen işaretçinin seçili görünmemesi, eksik `favicon.ico`, kararsız hız sınırı testi
+- [x] Testler: 256 birim/entegrasyon testi, 138 uçtan uca test ve axe taraması
 
 ---
 
