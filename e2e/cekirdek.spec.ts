@@ -440,3 +440,90 @@ test('yer düğümüne eski ve yeni fotoğraf eklenir, karşılaştırılır', a
 	);
 	expect(yanit.headers()['content-type']).toBe('image/webp');
 });
+
+test('yakına soru: bağlantı oturumsuz yanıtlanır, yanıt anıya dönüşür', async ({
+	page,
+	browser
+}) => {
+	await page.goto('/sorular');
+	await page.locator('#aliciAdi').fill('Babaanne');
+	await page.getByRole('button', { name: 'Bağlantı oluştur' }).click();
+	const adres = await page.getByLabel('Yanıt bağlantısı').inputValue();
+	expect(adres).toMatch(/\/yanit\/[A-Za-z0-9_-]{43}$/);
+
+	// Hesabı olmayan yakın: ayrı, oturumsuz bir tarayıcı bağlamı
+	const yabanci = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+	const sayfa = await yabanci.newPage();
+	await sayfa.goto(adres);
+	await expect(sayfa.getByText('Babaanne, ', { exact: false }).first()).toBeVisible();
+	await sayfa
+		.locator('#yanit')
+		.fill("1958'de İzmir'den İstanbul'a geldik; Fatma teyzen karşıladı.");
+	await sayfa.locator('input[name="onay"]').check();
+	await sayfa.getByRole('button', { name: 'Gönder' }).click();
+	await expect(sayfa.getByRole('heading', { name: 'Yanıtın gönderildi.' })).toBeVisible();
+	await yabanci.close();
+
+	await page.goto('/sorular');
+	await page.getByRole('button', { name: 'Anı olarak ekle' }).first().click();
+	await page.getByRole('link', { name: 'Anıyı aç' }).first().click();
+	await expect(page.getByRole('heading', { level: 1 })).toContainText('Babaanne anlatıyor');
+	await page.getByRole('link', { name: 'Anlatılandan düğüm öner' }).click();
+	await expect(page.getByRole('heading', { name: 'Yeni olabilecekler' })).toBeVisible();
+	// Svelte değeri özellik olarak yazar (istemci gezinmesinde öznitelik yok): değerleri oku
+	await expect
+		.poll(() =>
+			page
+				.locator('.yeniler input.ad')
+				.evaluateAll((l) => l.map((i) => (i as HTMLInputElement).value))
+		)
+		.toContain('Fatma teyze');
+	await page.getByRole('button', { name: 'Seçilenleri ekle' }).click();
+	await expect(page.getByRole('status').filter({ hasText: 'yeni düğüm eklendi' })).toBeVisible();
+});
+
+test('anıya ses eklenir; zaman kapsülü içeriği gizler', async ({ page }) => {
+	// 1 saniyelik sessiz WAV (16 kHz, mono, 16 bit)
+	const veri = Buffer.alloc(32000);
+	const baslik = Buffer.alloc(44);
+	baslik.write('RIFF', 0);
+	baslik.writeUInt32LE(36 + veri.length, 4);
+	baslik.write('WAVEfmt ', 8);
+	baslik.writeUInt32LE(16, 16);
+	baslik.writeUInt16LE(1, 20);
+	baslik.writeUInt16LE(1, 22);
+	baslik.writeUInt32LE(16000, 24);
+	baslik.writeUInt32LE(32000, 28);
+	baslik.writeUInt16LE(2, 32);
+	baslik.writeUInt16LE(16, 34);
+	baslik.write('data', 36);
+	baslik.writeUInt32LE(veri.length, 40);
+
+	await page.goto('/dugumler/yeni?tur=ani');
+	await page.locator('input[name="baslik"]').fill('Kızıma mektup');
+	await page.getByText('Zaman kapsülü (isteğe bağlı)').click();
+	await page.locator('#muhurTarihi').fill('01.01.2099');
+	await page.locator('form button.dugme-birincil').last().click();
+	await expect(page).toHaveURL(/\/dugumler\/[0-9a-f-]{36}\?eklendi=1/);
+	await expect(page.getByText(/Zaman kapsülü · 1 Ocak 2099/)).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Düzenle' })).toHaveCount(0);
+
+	// Mühürlü düğüme eklenen ses de açılana kadar görünmez; kapsülü açınca görünür
+	await page
+		.locator('.sesler details.bag-formu')
+		.evaluate((d) => ((d as HTMLDetailsElement).open = true));
+	await page.locator('#sesDosya').setInputFiles({
+		name: 'sessiz.wav',
+		mimeType: 'audio/wav',
+		buffer: Buffer.concat([baslik, veri])
+	});
+	await page.locator('.sesler form button.dugme-birincil').click();
+	await expect(page.getByRole('status').filter({ hasText: 'Ses kaydedildi' })).toBeVisible();
+	await expect(page.locator('.ses-listesi audio')).toHaveCount(0);
+
+	await page.getByText('Beklemeden aç').click();
+	await page.locator('.kapsul input[name="onay"]').check();
+	await page.getByRole('button', { name: 'Kapsülü aç' }).click();
+	await expect(page.getByRole('status').filter({ hasText: 'Zaman kapsülü açıldı.' })).toBeVisible();
+	await expect(page.locator('.ses-listesi audio')).toHaveCount(1);
+});

@@ -33,6 +33,8 @@
 		oge.dataset.tur = yer.dugumler[0].tur;
 		const sayi = yer.dugumler.length;
 		oge.setAttribute('aria-label', `${yer.ad}: ${sayi} düğüm`);
+		// İşaretçiler harita yüklenince eklenir: o anki seçim de baştan yazılır
+		oge.setAttribute('aria-pressed', String(yer.anahtar === secili));
 		oge.title = yer.ad;
 		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		svg.setAttribute('viewBox', '0 0 16 16');

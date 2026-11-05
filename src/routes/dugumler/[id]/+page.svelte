@@ -273,6 +273,39 @@
 			{#if d.etki && etkiMi(d.etki)}
 				<span class="rozet etki-rozeti" data-etki={d.etki}>{ETKI_ETIKETI[d.etki]}</span>
 			{/if}
+			{#if d.muhurlu}
+				<div class="kapsul" role="note" aria-labelledby="kapsul-baslik">
+					<Simge ad="kilit" boyut={22} />
+					<div class="yigin">
+						<p id="kapsul-baslik" class="kapsul-baslik">
+							Zaman kapsülü · {tarihYaz(d.muhurTarihi, 'gun')} günü açılacak
+						</p>
+						<p class="kucuk soluk">
+							O güne kadar açıklaması, fotoğrafları ve sesleri {data.sahibiMi
+								? 'sana bile '
+								: ''}gösterilmez.
+						</p>
+						{#if data.sahibiMi}
+							<details>
+								<summary class="kucuk">Beklemeden aç</summary>
+								<form method="POST" action="?/kapsuluAc" class="yigin" use:enhance>
+									<label class="onay kucuk">
+										<input type="checkbox" name="onay" value="evet" required />
+										<span>Kapsülü şimdi açmak istiyorum; bu geri alınamaz.</span>
+									</label>
+									<div class="satir">
+										<button class="dugme dugme-kucuk">Kapsülü aç</button>
+									</div>
+								</form>
+							</details>
+						{/if}
+					</div>
+				</div>
+			{:else if d.muhurTarihi}
+				<p class="kucuk soluk kapsul-acildi">
+					<Simge ad="kilit" boyut={14} /> Bu zaman kapsülü {tarihYaz(d.muhurTarihi, 'gun')} günü açıldı.
+				</p>
+			{/if}
 			{#if d.aciklama}<p class="aciklama">{d.aciklama}</p>{/if}
 			{#if data.yol.length || data.kapilar.length}
 				<p class="olcuyler kucuk">
@@ -286,9 +319,11 @@
 			{/if}
 			{#if data.sahibiMi}
 				<div class="satir eylemler">
-					<a class="dugme dugme-kucuk" href="/dugumler/{d.id}/duzenle">
-						<Simge ad="kalem" boyut={16} /> Düzenle
-					</a>
+					{#if !d.muhurlu}
+						<a class="dugme dugme-kucuk" href="/dugumler/{d.id}/duzenle">
+							<Simge ad="kalem" boyut={16} /> Düzenle
+						</a>
+					{/if}
 					<a class="dugme dugme-kucuk" href="/dugumler/ag?odak={d.id}">
 						<Simge ad="dugumler" boyut={16} /> Ağda göster
 					</a>
@@ -1378,6 +1413,35 @@
 	.sonuc-karti .not {
 		margin-top: var(--a-2);
 		white-space: pre-line;
+	}
+	.kapsul {
+		display: flex;
+		gap: var(--a-3);
+		align-items: flex-start;
+		margin-top: var(--a-3);
+		padding: var(--a-4);
+		border: 1px dashed var(--tur-ani);
+		border-radius: var(--yaricap);
+		background: var(--tur-ani-zemin);
+		color: var(--metin);
+	}
+	.kapsul p {
+		margin: 0;
+	}
+	.kapsul-baslik {
+		font-family: var(--yazi-baslik);
+		font-size: var(--boyut-lg);
+	}
+	.kapsul .onay {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--a-2);
+	}
+	.kapsul-acildi {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--a-1);
+		margin: var(--a-2) 0 0;
 	}
 	.sesler .arasi {
 		justify-content: space-between;

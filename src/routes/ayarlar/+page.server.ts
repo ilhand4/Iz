@@ -22,6 +22,13 @@ import { dogrulamaGonder, epostaDegistiBildir } from '#lib/server/epostaJetonu.t
 import { beklemeMesaji } from '#lib/server/hizSiniri.ts';
 import { dogrulamaSiniri, hesapSiniri, iceAktarmaSiniri } from '#lib/server/sinirlar.ts';
 import { oturumCereziSil } from '#lib/server/oturum.ts';
+import {
+	banaEmanetler,
+	BEKLEME_AYLARI,
+	vasiyetGetir,
+	vasiyetKaydet,
+	vasiyetSil
+} from '#lib/server/vasiyet.ts';
 import { sahipsizFotograflariTemizle } from '#lib/server/fotograflar.ts';
 import { iceAktarmaDogrula } from '#lib/server/veriTasima.ts';
 import { girisGerekli } from '#lib/server/yetkilendirme.ts';
@@ -29,13 +36,15 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const kullanici = girisGerekli(locals, url);
-	const [hesap, oturumlar, anahtarlar] = await Promise.all([
+	const [hesap, oturumlar, anahtarlar, vasiyet, emanetler] = await Promise.all([
 		hesapGetir(kullanici.id),
 		oturumlariListele(kullanici.id, locals.oturumId),
-		anahtarlariListele(kullanici.id)
+		anahtarlariListele(kullanici.id),
+		vasiyetGetir(kullanici.id),
+		banaEmanetler(kullanici.id)
 	]);
 	if (!hesap) error(404, 'Hesap bulunamadı.');
-	return { hesap, oturumlar, anahtarlar };
+	return { hesap, oturumlar, anahtarlar, vasiyet, emanetSayisi: emanetler.length };
 };
 
 const EN_BUYUK_DOSYA = 5 * 1024 * 1024;
@@ -47,6 +56,30 @@ async function sinirAsildi(kullaniciId: string) {
 }
 
 export const actions: Actions = {
+	vasiyetKaydet: async ({ request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		const fd = await request.formData();
+		const kullaniciAdi = alan(fd, 'varis');
+		const bekleme = Number(alan(fd, 'beklemeAy'));
+		const hata = (alanAdi: string, mesaj: string) =>
+			fail(400, { vasiyet: { hatalar: { [alanAdi]: mesaj }, degerler: { varis: kullaniciAdi } } });
+		if (!kullaniciAdi) return hata('varis', 'Güvendiğin kişinin kullanıcı adını yaz.');
+		if (!(BEKLEME_AYLARI as readonly number[]).includes(bekleme))
+			return hata('beklemeAy', 'Bir süre seç.');
+		if (alan(fd, 'onay') !== 'evet')
+			return hata('onay', 'Arşivinin tamamının açılacağını onaylamalısın.');
+		const sonuc = await vasiyetKaydet(kullanici.id, kullaniciAdi, bekleme);
+		if (sonuc === 'yok') return hata('varis', 'Bu kullanıcı adıyla bir İz hesabı yok.');
+		if (sonuc === 'kendisi') return hata('varis', 'Kendini varis seçemezsin.');
+		return { bildirim: { mesaj: 'Dijital vasiyetin kaydedildi.' } };
+	},
+
+	vasiyetSil: async ({ locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		await vasiyetSil(kullanici.id);
+		return { bildirim: { mesaj: 'Dijital vasiyetin kaldırıldı.' } };
+	},
+
 	profil: async ({ request, locals, url }) => {
 		const kullanici = girisGerekli(locals, url);
 		const sonuc = profilDogrula(await request.formData());

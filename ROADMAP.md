@@ -131,14 +131,16 @@ Durum işaretleri: ✅ tamamlandı · 🚧 sürüyor · ⏳ sırada
 - [x] Yüklenen fotoğraflar için hak beyanı: dayanak (kendim çektim / aile arşivi / izinli ya da açık lisanslı / kamu malı), izinli ve kamu malında kaynak zorunlu, onay kutusu; herkese açık düğümde uyarı
 - [x] Testler: 227 birim/entegrasyon testi (PGlite + PostGIS), 105 uçtan uca test ve axe taraması tamamı geçiyor
 
-## ⏳ Aşama 6 — Aile Hafızası
+## ✅ Aşama 6 — Aile Hafızası
 
-- [ ] Sesli anı kaydı ve Türkçe yazıya dökme
-- [ ] Claude ile kişi / yer / yıl varlık çıkarma → düğüm önerileri
-- [ ] Yalnızca aileye açık arşiv; basılı kitap (PDF) çıktısı
-- [ ] StoryWorth modeli: yakınlara haftada bir soru; yanıt uygulama hesabı olmadan, sesli mesajla da verilebilir; yıl sonunda kitap
-- [ ] KVKK'nın "özel nitelikli" saydığı bilgiler (sağlık, din vb.) için tasarım; ses tanıma bileşeni seçimi (maliyet ve gizlilik kararı)
-- [ ] Zaman kapsülü ("2035'te aç") ve dijital vasiyet (arşivi bir yakına devretme)
+- [x] Sesli anı kaydı (tarayıcıda kayıt ya da ses dosyası; anı, kişi ve yer düğümlerinde) ve **yerel** Türkçe yazıya dökme: whisper.cpp + `ggml-large-v3-turbo-q5_0` + ffmpeg, ses hiçbir yere gönderilmez (kullanıcı kararı). Arka plan kuyruğu, elle düzeltme, yeniden deneme; Whisper'ın altyazı halüsinasyonları ayıklanır
+- [x] Kişi / yer / yıl varlık çıkarma → düğüm önerileri: Claude API yerine **yerel Türkçe kurallar** (kullanıcı kararı; metin dışarı gitmez): kesme işaretli ekler, akrabalık/hitap sözcükleri, yer sonekleri, haritadaki adlarla eşleşme, yıllar. Öneriler onaya sunulur
+- [x] Yalnızca aileye açık arşiv (`/gruplar/<id>/arsiv`: üyelerin "grup" gizlilikli anı, yer ve kişileri) ve basılı kitap: tarayıcıdan A5 PDF (`/kitap`, yıla göre)
+- [x] Yakınlara soru (StoryWorth modeli): haftanın sorusu, 24 hazır soru ya da kendi sorun; hesapsız yanıt bağlantısı (yazılı ya da sesli), WhatsApp ile gönderme, yanıt bildirimi, yanıttan anı; yıl sonunda kitap
+- [x] KVKK tasarımı: sesler düğüm herkese açık olsa da yalnızca sahibine ve grup arkadaşlarına; yanıt sayfasında açık rıza onayı; hassas bilgiler için uyarılar; fotoğraf ve seslerde konum/cihaz bilgisi tutulmaz; yüklemeler OneDrive gibi bulut klasörlerinin dışında (`~/.iz/`)
+- [x] Zaman kapsülü ("01.01.2035'te aç"): açılış gününe kadar açıklama, fotoğraf ve sesler sahibine bile gösterilmez, düğüm değiştirilemez; "beklemeden aç" onayla
+- [x] Dijital vasiyet: güvenilen İz kullanıcısı varis; 3/6/12/24 ay hiç gelinmezse tüm arşiv ona salt okunur açılır ve indirilebilir (`/emanet`)
+- [x] Testler: 244 birim/entegrasyon testi, 119 uçtan uca test ve axe taraması tamamı geçiyor
 
 ## ⏳ Aşama 7 — Çeviri Masası
 

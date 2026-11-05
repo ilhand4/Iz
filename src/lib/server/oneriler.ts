@@ -5,7 +5,7 @@ import { and, eq, isNotNull } from 'drizzle-orm';
 import { varlikCikar } from '../varliklar';
 import { db } from './db';
 import { baglar, dugumler, sesler } from './db/schema';
-import { dugumSecenekleri, etkin } from './dugumler';
+import { dugumSecenekleri, etkin, muhursuz } from './dugumler';
 
 export const ONERI_NOTU = 'Anlatırken geçti';
 
@@ -13,7 +13,14 @@ export async function anlatiOnerileri(sahipId: string, dugumId: string) {
 	const [d] = await db
 		.select({ baslik: dugumler.baslik, aciklama: dugumler.aciklama, tarih: dugumler.tarih })
 		.from(dugumler)
-		.where(and(eq(dugumler.id, dugumId), eq(dugumler.sahipId, sahipId), etkin(dugumler)));
+		.where(
+			and(
+				eq(dugumler.id, dugumId),
+				eq(dugumler.sahipId, sahipId),
+				etkin(dugumler),
+				muhursuz(dugumler)
+			)
+		);
 	if (!d) return null;
 	const metinler = await db
 		.select({ metin: sesler.metin })
@@ -48,7 +55,14 @@ export async function onerileriUygula(sahipId: string, dugumId: string, secim: O
 		const [d] = await tx
 			.select({ tarih: dugumler.tarih })
 			.from(dugumler)
-			.where(and(eq(dugumler.id, dugumId), eq(dugumler.sahipId, sahipId), etkin(dugumler)))
+			.where(
+				and(
+					eq(dugumler.id, dugumId),
+					eq(dugumler.sahipId, sahipId),
+					etkin(dugumler),
+					muhursuz(dugumler)
+				)
+			)
 			.for('update');
 		if (!d) return null;
 		const kaynaklar: string[] = [];

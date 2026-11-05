@@ -18,6 +18,7 @@
 	const sifre = $derived(bolum('sifre'));
 	const sil = $derived(bolum('sil'));
 	const ice = $derived(bolum('ice'));
+	const vasiyetHata = $derived(bolum('vasiyet'));
 
 	const BOLUMLER = [
 		['profil', 'Profil'],
@@ -26,6 +27,7 @@
 		['gecis', 'Geçiş anahtarları'],
 		['oturumlar', 'Oturumlar'],
 		['veriler', 'Verilerin'],
+		['vasiyet', 'Dijital vasiyet'],
 		['sil', 'Hesabı sil']
 	] as const;
 
@@ -324,6 +326,72 @@
 				</form>
 			</section>
 
+			<section id="vasiyet" class="kart bolum" aria-labelledby="vasiyet-baslik">
+				<h2 id="vasiyet-baslik">Dijital vasiyet</h2>
+				<p class="kucuk soluk">
+					Güvendiğin bir İz kullanıcısını seç. Belirlediğin süre boyunca hiç gelmezsen arşivinin
+					tamamı (özel düğümler, fotoğraflar, sesler dahil) ona salt okunur olarak açılır;
+					verilerini de indirebilir. Her girişinde sayaç sıfırlanır. Varisin seçildiğini görür, ama
+					süre dolana kadar hiçbir içeriğine erişemez.
+				</p>
+				{#if data.vasiyet}
+					<p class="bildirim bildirim-bilgi">
+						Varisin <strong>{data.vasiyet.varis.ad}</strong> (@{data.vasiyet.varis.kullaniciAdi}): {data
+							.vasiyet.beklemeAy} ay hiç gelmezsen arşivin ona açılır.
+					</p>
+				{/if}
+				<form method="POST" action="?/vasiyetKaydet" class="yigin" use:enhance={koru}>
+					<div class="iki">
+						<Alan
+							id="varis"
+							etiket="Varisin kullanıcı adı"
+							hata={vasiyetHata?.hatalar.varis}
+							ipucu="Ör. @ayse"
+						>
+							<input
+								id="varis"
+								name="varis"
+								autocomplete="off"
+								value={vasiyetHata?.degerler?.varis ?? data.vasiyet?.varis.kullaniciAdi ?? ''}
+							/>
+						</Alan>
+						<Alan id="beklemeAy" etiket="Ne kadar gelmezsem" hata={vasiyetHata?.hatalar.beklemeAy}>
+							<select id="beklemeAy" name="beklemeAy">
+								{#each [3, 6, 12, 24] as ay (ay)}
+									<option value={ay} selected={(data.vasiyet?.beklemeAy ?? 12) === ay}
+										>{ay} ay</option
+									>
+								{/each}
+							</select>
+						</Alan>
+					</div>
+					<label class="onay kucuk">
+						<input type="checkbox" name="onay" value="evet" required />
+						<span
+							>Süre dolunca özel olanlar dahil tüm arşivimin bu kişiye açılacağını anlıyorum.</span
+						>
+					</label>
+					{#if vasiyetHata?.hatalar.onay}
+						<p class="hata-metni" role="alert">{vasiyetHata.hatalar.onay}</p>
+					{/if}
+					<div class="satir">
+						<button class="dugme dugme-birincil"
+							>{data.vasiyet ? 'Vasiyeti güncelle' : 'Vasiyeti kaydet'}</button
+						>
+					</div>
+				</form>
+				{#if data.vasiyet}
+					<form method="POST" action="?/vasiyetSil" use:enhance>
+						<button class="dugme dugme-kucuk dugme-hayalet">Vasiyeti kaldır</button>
+					</form>
+				{/if}
+				{#if data.emanetSayisi}
+					<p class="kucuk">
+						<a href="/emanet">{data.emanetSayisi} kişi seni varisi olarak seçti</a>
+					</p>
+				{/if}
+			</section>
+
 			<section id="sil" class="kart bolum tehlike" aria-labelledby="sil-baslik">
 				<h2 id="sil-baslik">Hesabı sil</h2>
 				<p class="kucuk">
@@ -421,6 +489,15 @@
 	.iki {
 		display: grid;
 		gap: var(--a-3);
+	}
+	.onay {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--a-2);
+	}
+	.onay input {
+		margin-top: 0.2rem;
+		accent-color: var(--vurgu);
 	}
 	.onay-kutusu {
 		display: flex;

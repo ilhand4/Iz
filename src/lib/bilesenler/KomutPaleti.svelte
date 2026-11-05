@@ -51,6 +51,13 @@
 		{ tur: 'eylem', id: 'e-yillik', etiket: 'İz Yıllığı', simge: 'takvim', href: '/yillik' },
 		{ tur: 'eylem', id: 'e-kitap', etiket: 'Kitabım', simge: 'takvim', href: '/kitap' },
 		{ tur: 'eylem', id: 'e-sorular', etiket: 'Yakınlara sorular', simge: 'kisi', href: '/sorular' },
+		{
+			tur: 'eylem',
+			id: 'e-emanet',
+			etiket: 'Emanetler (dijital vasiyet)',
+			simge: 'kilit',
+			href: '/emanet'
+		},
 		{ tur: 'eylem', id: 'e-kararlar', etiket: 'Karar defteri', simge: 'onay', href: '/kararlar' },
 		{ tur: 'eylem', id: 'e-gruplar', etiket: 'Gruplar', simge: 'grup', href: '/gruplar' },
 		{ tur: 'eylem', id: 'e-ayarlar', etiket: 'Ayarlar', simge: 'ayar', href: '/ayarlar' }

@@ -79,7 +79,8 @@ pg_restore --clean --if-exists --no-owner -h localhost -U iz -d iz_dev yedekler/
 
 `.github/workflows/denetim.yml` her gönderimde lint, tip denetimi, testler ve derlemeyi çalıştırır; ardından PostgreSQL 18 servisiyle uçtan uca testleri koşar.
 
-> Üretimde JSON içe aktarma (en çok 5 MB) ve fotoğraf yükleme (en çok 15 MB) için `.env`'e `BODY_SIZE_LIMIT=16M` ekleyin (adapter-node varsayılanı 512K). Yüklenen fotoğraflar `yuklemeler/` klasöründedir; veritabanı yedeğine girmez, ayrıca yedekleyin.
+> Üretimde JSON içe aktarma (en çok 5 MB) ve fotoğraf yükleme (en çok 15 MB) için `.env`'e `BODY_SIZE_LIMIT=30M` ekleyin (sesli yanıtlar 25 MB'a kadar) (adapter-node varsayılanı 512K). Yüklenen fotoğraf ve sesler varsayılan olarak `~/.iz/yuklemeler/` altındadır (`YUKLEME_KLASORU` ile değişir); veritabanı yedeğine girmez, ayrıca yedekleyin.
+> Sesleri yazıya dökmek için (isteğe bağlı): [whisper.cpp](https://github.com/ggml-org/whisper.cpp/releases) `whisper-bin-x64.zip` → `~/.iz/araclar/whisper/`, model `ggml-large-v3-turbo-q5_0.bin` → `~/.iz/araclar/`, ve `winget install Gyan.FFmpeg`. Araçlar yoksa sesler saklanır, metin elle yazılır.
 > PostGIS gerekir: Stack Builder → Spatial Extensions → PostGIS Bundle, ardından `postgres` kullanıcısıyla `CREATE EXTENSION postgis;` (bkz. `db/kurulum.sql`).
 
 > `npm start` kökeni `https://` varsayar (adapter-node); yerelde düz http ile denerken formlar CSRF korumasına takılır. Yerel deneme için `npm run preview` kullanın.
@@ -110,6 +111,7 @@ pg_restore --clean --if-exists --no-owner -h localhost -U iz -d iz_dev yedekler/
 - **Geri getirenler:** Goodreads, Letterboxd, Spotify ve Kindle'dan içe aktarma; bağ avı soruları; günün sorusu; bugün geçmişte; yazarı kişi olarak ekleme ve Wikidata zenginleştirmesi; İz Yıllığı ve paylaşılabilir kartı.
 - **Harita:** konumlu düğümler OpenStreetMap üzerinde (MapLibre); konumu haritaya tıklayarak seçme; PostGIS ile "Yakınındakiler".
 - **Bir zamanlar burası:** yer ve anı düğümlerine eski ve yeni fotoğraf; kaydırmalı önce/sonra karşılaştırması; hak beyanı; konum ve cihaz bilgileri (EXIF) yüklenirken silinir.
+- **Aile hafızası:** sesli anı kaydı ve bu bilgisayarda Türkçe yazıya dökme (whisper.cpp); anlatılandan kişi/yer/yıl önerileri; yakınlara hesapsız yanıtlanan sorular (yazılı ya da sesli, WhatsApp ile gönderilir); aile arşivi ve yazdırılabilir A5 kitap; zaman kapsülü; dijital vasiyet.
 - **Karar defteri:** karar düğümüne gerekçe, beklenti ve % güven; zamanı gelince sonucu sorar; kalibrasyon grafiği ve Brier puanı (`/kararlar`, yalnızca sana açık).
 - **Bildirimler ve "Geri al":** bağ kaldırma, durak çıkarma, silme ve yeniden yerleştirme geri alınabilir; silinenler 30 gün çöp kutusunda bekler.
 

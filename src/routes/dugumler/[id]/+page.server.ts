@@ -39,6 +39,7 @@ import {
 	dugumGetir,
 	dugumSecenekleri,
 	dugumVeGetireniKaydet,
+	kapsuluAc,
 	durumGuncelle
 } from '#lib/server/dugumler.ts';
 import { disBagKur, disBagSil, gelenDisBaglar, gidenDisBaglar } from '#lib/server/disBaglar.ts';
@@ -204,6 +205,15 @@ export const actions: Actions = {
 				}
 			});
 		return { bildirim: { mesaj: 'Fotoğraf eklendi.' } };
+	},
+
+	kapsuluAc: async ({ params, request, locals, url }) => {
+		const kullanici = girisGerekli(locals, url);
+		if (!uuidMu(params.id)) error(404, BULUNAMADI);
+		if (alan(await request.formData(), 'onay') !== 'evet')
+			return fail(400, { kapsul: { hata: 'Açmak için onay kutusunu işaretle.' } });
+		if (!(await kapsuluAc(params.id, kullanici.id))) error(404, BULUNAMADI);
+		return { bildirim: { mesaj: 'Zaman kapsülü açıldı.' } };
 	},
 
 	sesEkle: async ({ params, request, locals, url }) => {

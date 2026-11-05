@@ -272,6 +272,16 @@ export async function dugumGuncelle(id: string, sahipId: string, veri: DugumVeri
 	return sonuc.length > 0;
 }
 
+/** Zaman kapsülünü beklemeden açar (yalnızca sahibi) */
+export async function kapsuluAc(id: string, sahipId: string) {
+	const s = await db
+		.update(dugumler)
+		.set({ muhurTarihi: null, guncelleme: new Date() })
+		.where(and(eq(dugumler.id, id), eq(dugumler.sahipId, sahipId), etkin(dugumler)))
+		.returning({ id: dugumler.id });
+	return s.length > 0;
+}
+
 /** Düğümü çöp kutusuna atar (30 gün içinde geri yüklenebilir) */
 export async function dugumuCopeAt(id: string, sahipId: string) {
 	const [sonuc] = await db

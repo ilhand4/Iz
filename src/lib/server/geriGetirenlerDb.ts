@@ -13,7 +13,7 @@ import { bagKur } from './baglar';
 import { db } from './db';
 import { alintilar, bagAviRedleri, baglar, dugumler } from './db/schema';
 import type { AdayEser } from './disKaynaklar';
-import { etkin, satirlar } from './dugumler';
+import { etkin, muhursuz, satirlar } from './dugumler';
 import type { WikidataOzeti } from './wikidata';
 
 /** Kullanıcının çöpte olmayan tüm düğümleri (yalın) ve bağları */
@@ -258,7 +258,14 @@ export async function wikidataUygula(sahipId: string, dugumId: string, o: Wikida
 			enlem: dugumler.enlem
 		})
 		.from(dugumler)
-		.where(and(eq(dugumler.id, dugumId), eq(dugumler.sahipId, sahipId), etkin(dugumler)));
+		.where(
+			and(
+				eq(dugumler.id, dugumId),
+				eq(dugumler.sahipId, sahipId),
+				etkin(dugumler),
+				muhursuz(dugumler)
+			)
+		);
 	if (!d) return null;
 	const yillar =
 		d.tur === 'kisi' && (o.dogumYili || o.olumYili)

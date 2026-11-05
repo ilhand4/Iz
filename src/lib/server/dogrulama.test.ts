@@ -372,3 +372,19 @@ describe('kararDefteriDogrula', () => {
 		expect(kararSonucuDogrula(form({ sonuc: 'belki' })).tamam).toBe(false);
 	});
 });
+
+describe('zaman kapsülü tarihi', () => {
+	const temel = { tur: 'ani', baslik: 'Mektup', gizlilik: 'ozel' };
+	it('gelecekte bir gün olmalı; boş bırakılırsa kapsül yok', () => {
+		const ileri = dugumDogrula(form({ ...temel, muhurTarihi: '01.01.2099' }));
+		expect(ileri.tamam && ileri.veri.muhurTarihi).toBe('2099-01-01');
+		const bos = dugumDogrula(form({ ...temel, muhurTarihi: '' }));
+		expect(bos.tamam && bos.veri.muhurTarihi).toBeNull();
+		const gecmis = dugumDogrula(form({ ...temel, muhurTarihi: '2001' }));
+		expect(gecmis.tamam).toBe(false);
+		if (!gecmis.tamam) expect(gecmis.hatalar.muhurTarihi).toMatch(/gelecekte/);
+		// Alan formda yoksa dokunulmaz
+		const yok = dugumDogrula(form(temel));
+		expect(yok.tamam && 'muhurTarihi' in yok.veri).toBe(false);
+	});
+});
